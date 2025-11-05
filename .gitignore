@@ -1,0 +1,16 @@
+# CMake 构建目录
+cmake-build-debug/
+cmake-build-release/
+build/
+.vscode/
+data/
+.idea/
+
+# 一般编译产物
+*.o
+*.obj
+*.log
+*.a
+*.so
+*.dll
+*.exe

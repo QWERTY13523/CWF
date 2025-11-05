@@ -1,0 +1,25 @@
+{
+  "version": 4,
+  "configurePresets": [
+    {
+      "name": "linux-conda-cgal",
+      "displayName": "Ninja + conda(cgal)",
+      "generator": "Ninja",
+      "binaryDir": "build/linux-conda",
+      "cacheVariables": {
+        "CMAKE_PREFIX_PATH": "/home/yiming/miniconda3/envs/cgal",
+        "CMAKE_INSTALL_PREFIX": "/home/yiming/miniconda3/envs/cgal",
+        "CMAKE_BUILD_RPATH": "/home/yiming/miniconda3/envs/cgal/lib",
+        "CMAKE_INSTALL_RPATH": "/home/yiming/miniconda3/envs/cgal/lib"
+      },
+      "environment": {
+        "PATH": "/home/yiming/miniconda3/envs/cgal/bin:$penv{PATH}",
+        "LD_LIBRARY_PATH": "/home/yiming/miniconda3/envs/cgal/lib:$penv{LD_LIBRARY_PATH}"
+      }
+    }
+  ],
+  "buildPresets": [
+    { "name": "rel", "configurePreset": "linux-conda-cgal", "configuration": "Release" },
+    { "name": "dbg", "configurePreset": "linux-conda-cgal", "configuration": "Debug" }
+  ]
+}
