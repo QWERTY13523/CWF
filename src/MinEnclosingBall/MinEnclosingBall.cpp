@@ -1,4 +1,4 @@
-#include "BGAL/Algorithm/BOC/MinEnclosingBall.h"
+#include "BGAL/MinEnclosingBall/MinEnclosingBall.h"
 
 #include <algorithm>
 #include <array>

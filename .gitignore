@@ -5,6 +5,12 @@ build/
 .vscode/
 data/
 .idea/
+bin/
+ddd1.obj
+Temp.obj
+Temp.off
+CMakeUserPresets.json
+
 
 # 一般编译产物
 *.o

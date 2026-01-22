@@ -9,7 +9,7 @@ find_package(OpenMP REQUIRED)
 find_package(libigl CONFIG QUIET)
 
 add_library(CVTLike STATIC ${BGAL_CVTLike_SRC})
-target_link_libraries(CVTLike Algorithm BaseShape Model Tessellation2D Tessellation3D Optimization OpenMP::OpenMP_CXX CGAL::CGAL ${Boost_LIBRARIES} igl::igl_core )
+target_link_libraries(CVTLike Algorithm BaseShape Model Tessellation2D Tessellation3D Optimization  MinEnclosingBall OpenMP::OpenMP_CXX CGAL::CGAL ${Boost_LIBRARIES} igl::igl_core )
 set_target_properties(CVTLike PROPERTIES VERSION ${PROJECT_VERSION})
 set_target_properties(CVTLike PROPERTIES CLEAN_DIRECT_OUTPUT 1) 
 

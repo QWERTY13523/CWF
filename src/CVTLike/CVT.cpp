@@ -326,7 +326,7 @@ namespace BGAL
 		double Movement = 0.01;
 		std::string inPointsName;
 		namespace fs = std::filesystem;
-		fs::path obj("/home/yiming/research/CWF/data/mobius1.obj");
+		fs::path obj("/home/yiming/research/CWF/data/block.obj");
 		fs::path base = obj.parent_path();
 		if(pointsName == nullptr){
 			inPointsName =  base / ("n" + std::to_string(num_sites) + "_" + modelname + "_inputPoints.xyz");
@@ -397,7 +397,7 @@ namespace BGAL
 		    Fnum++;
 		    if (Fnum % 1 == 0)
 		    {
-		        OutputMesh(_sites, _RVD, num_sites, std::filesystem::current_path()/"data"/"Mobius", modelname, Fnum);
+		        OutputMesh(_sites, _RVD, num_sites, std::filesystem::current_path()/"data"/"Block", modelname, Fnum);
 		    }
 		    endRVD = clock();
 		    RVDtime += (double)(endRVD - startRVD) / CLOCKS_PER_SEC;
@@ -507,15 +507,32 @@ namespace BGAL
 		        //         if (used.insert(c).second) consider_vid(c);
 		        //     }
 		        // }
-		    	BGAL::MEBall B;
-		    	if (!boundary_pts.empty()) {
-		    		B = BGAL::minimum_enclosing_ball(boundary_pts);
-		    	}
-
-		    	BGAL::_Point3 farp = site;
+		    	// if (Fnum >= 37 && !boundary_pts.empty())
+		    	// {
+		    	// 	// 1. 计算当前 cell 边界点的最小外接球
+		    	// 	BGAL::MEBall B = BGAL::minimum_enclosing_ball(boundary_pts);
+			    //
+		    	// 	// 2. 把最小外接球球心投影到原始三角网表面
+		    	// 	//    Point_T 就是你前面用来投影 site 的 CGAL 点类型
+		    	// 	Point_T bc_query(B.c.x(), B.c.y(), B.c.z());
+		    	// 	Point_T bc_proj  = tree.closest_point(bc_query);
+			    //
+		    	// 	// 3. 能量：site 到这个"投影点"的距离平方
+		    	// 	double dx = site.x() - bc_proj.x();
+		    	// 	double dy = site.y() - bc_proj.y();
+		    	// 	double dz = site.z() - bc_proj.z();
+		    	// 	double Ei_center = dx*dx + dy*dy + dz*dz;
+			    //
+		    	// 	// 4. 累加能量和梯度（把投影点当常量，和你之前对 B.c 的处理一致）
+		    	// 	lossCenter += eplison * Ei_center;
+		    	// 	gi[i].x()  += 2.0 * eplison * dx;
+		    	// 	gi[i].y()  += 2.0 * eplison * dy;
+		    	// 	gi[i].z()  += 2.0 * eplison * dz;
+		    	// }
+				BGAL::_Point3 farp = site;
 		    	double best_d2 = -1.0;
 		    	for (const auto& p : boundary_pts) {
-		    		double d2 = (p - B.c).sqlength_();
+		    		double d2 = (p - site).length_();
 		    		if (d2 > best_d2) {
 		    			best_d2 = d2;
 		    			farp = p;
@@ -523,18 +540,9 @@ namespace BGAL
 		    	}
 
 		        spheres[i].c = decltype(spheres[i].c)(site.x(), site.y(), site.z());
-		        spheres[i].r = std::sqrt(best_d2);
+		        spheres[i].r = best_d2;
 		    	spheres[i].max_point =
 			decltype(spheres[i].max_point)(farp.x(), farp.y(), farp.z());
-
-		    	double dx = site.x() - B.c.x();
-		    	double dy = site.y() - B.c.y();
-		    	double dz = site.z() - B.c.z();
-		    	double Ei_center = dx*dx + dy*dy + dz*dz;
-		    	lossCenter += eplison * Ei_center;
-		    	gi[i].x() += 2.0 * eplison * dx;
-		    	gi[i].y() += 2.0 * eplison * dy;
-		    	gi[i].z() += 2.0 * eplison * dz;
 
 		    } // end omp for
 
@@ -551,11 +559,12 @@ namespace BGAL
 		              << "energy: "   << energy
 		              << " LossCVT: " << lossCVT/eplison
 		              << " LossQE: "  << loss - lossCVT
+			          <<" LossCenter: " << lossCenter/eplison
 		              << " Lambda_CVT: " << eplison << std::endl;
 
 		    namespace fs = std::filesystem;
-		    fs::path file  = fs::absolute(fs::current_path() / "data"/ "Mobius" / ("Sphere_900_" + std::to_string(Fnum) + ".csv"));
-		    fs::path file1 = fs::absolute(fs::current_path() / "data"/ "Mobius" / "Max_point" / ("MaxPoint_900_" + std::to_string(Fnum) + ".xyz"));
+		    fs::path file  = fs::absolute(fs::current_path() / "data"/ "Block" / ("Sphere_8000_" + std::to_string(Fnum) + ".csv"));
+		    fs::path file1 = fs::absolute(fs::current_path() / "data"/ "Block" / "Max_point" / ("MaxPoint_8000_" + std::to_string(Fnum) + ".xyz"));
 		    std::cerr << "[io] cwd   = " << fs::current_path().string() << "\n";
 		    std::cerr << "[io] write = " << file.string() << "\n";
 
@@ -573,9 +582,9 @@ namespace BGAL
 		        else std::cerr << "[io] ok\n";
 		    }
 
-		    fs::path edge_dir = fs::current_path() / "data" / "Mobius" / "Edges";
+		    fs::path edge_dir = fs::current_path() / "data" / "Block" / "Edges";
 		    fs::create_directories(edge_dir);
-		    fs::path edge_obj = fs::absolute(edge_dir / ("Center2Max_900_" + std::to_string(Fnum) + ".obj"));
+		    fs::path edge_obj = fs::absolute(edge_dir / ("Center2Max_8000_" + std::to_string(Fnum) + ".obj"));
 		    std::cerr << "[io] write = " << edge_obj.string() << "\n";
 
 		    {
@@ -651,7 +660,7 @@ namespace BGAL
 		}
 		_RVD.calculate_(_sites);
 
-		OutputMesh(_sites, _RVD, num_sites, std::filesystem::current_path()/"data"/"Bunny", modelname, 2);
+		OutputMesh(_sites, _RVD, num_sites, std::filesystem::current_path()/"data"/"Block", modelname, 2);
 
 
 	}
