@@ -19,8 +19,16 @@
 
 #include <CGAL/squared_distance_3.h>
 #include <cmath>
+#include <Eigen/Sparse>
+#include <memory>
 #include <igl/gaussian_curvature.h>
 #include <igl/read_triangle_mesh.h>
+#include <igl/principal_curvature.h>
+#include <igl/adjacency_list.h>
+#include <igl/avg_edge_length.h>
+#include <numeric>
+
+#include "BGAL/BaseShape/KDTree.h"
 
 typedef CGAL::Simple_cartesian<double> K_T;
 typedef K_T::FT FT;
@@ -95,16 +103,6 @@ struct MyFace {
 };
 
 namespace BGAL {
-_CVT3D::_CVT3D(const _ManifoldModel &model)
-    : _model(model), _RVD(model), _RVD2(model), _para() {
-  _rho = [](BGAL::_Point3 &p) { return 1; };
-  _para.is_show = true;
-  _para.epsilon = 1e-30;
-  _para.max_linearsearch = 20;
-}
-_CVT3D::_CVT3D(const _ManifoldModel &model,
-               std::function<double(_Point3 &p)> &rho, _LBFGS::_Parameter para)
-    : _model(model), _RVD(model), _RVD2(model), _rho(rho), _para(para) {}
 void OutputMesh(std::vector<_Point3> &sites, _Restricted_Tessellation3D RVD,
                 int num, std::string outpath, std::string modelname, int step) {
   const std::vector<std::vector<std::tuple<int, int, int>>> &cells =
@@ -256,6 +254,116 @@ void OutputMesh(std::vector<_Point3> &sites, _Restricted_Tessellation3D RVD,
   }
 }
 
+_CVT3D::_CVT3D(const _ManifoldModel &model)
+    : _model(model), _RVD(model), _RVD2(model), _para() {
+  _para.is_show = true;
+  _para.epsilon = 1e-30;
+  _para.max_linearsearch = 20;
+  // 默认密度函数，稍后会被覆盖
+  _rho = [this](BGAL::_Point3 &p) { return 1; };
+
+  std::shared_ptr<std::vector<double>> density_field =
+      std::make_shared<std::vector<double>>();
+  std::shared_ptr<_KDTree> kdtree;
+
+  {
+    const int nv = _model.number_vertices_();
+    const int nf = _model.number_faces_();
+
+    Eigen::MatrixXd V(nv, 3);
+    Eigen::MatrixXi F(nf, 3);
+    std::vector<_Point3> pts;
+    pts.reserve(nv);
+
+    for (int i = 0; i < nv; ++i) {
+      const auto &p = _model.vertex_(i);
+      V(i, 0) = p.x();
+      V(i, 1) = p.y();
+      V(i, 2) = p.z();
+      pts.push_back(p);
+    }
+    for (int fi = 0; fi < nf; ++fi) {
+      const auto &f = _model.face_(fi);
+      F(fi, 0) = f[0];
+      F(fi, 1) = f[1];
+      F(fi, 2) = f[2];
+    }
+
+    // -------------------------------------------------------------
+    // 基于面法向量夹角的特征检测
+    // 对每个顶点，计算其相邻面法向量之间的最大夹角
+    // 在特征边(棱边/角点)处，相邻面法向量变化剧烈，夹角大
+    // 在平坦区域，相邻面法向量几乎相同，夹角接近0
+    // -------------------------------------------------------------
+
+    // 1. 计算每个面的法向量
+    std::vector<Eigen::Vector3d> face_normals(nf);
+    for (int fi = 0; fi < nf; ++fi) {
+      Eigen::Vector3d v0 = V.row(F(fi, 0));
+      Eigen::Vector3d v1 = V.row(F(fi, 1));
+      Eigen::Vector3d v2 = V.row(F(fi, 2));
+      Eigen::Vector3d n = (v1 - v0).cross(v2 - v0);
+      double len = n.norm();
+      if (len > 1e-15) n /= len;
+      face_normals[fi] = n;
+    }
+
+    // 2. 建立顶点到相邻面的映射
+    std::vector<std::vector<int>> vert_faces(nv);
+    for (int fi = 0; fi < nf; ++fi) {
+      vert_faces[F(fi, 0)].push_back(fi);
+      vert_faces[F(fi, 1)].push_back(fi);
+      vert_faces[F(fi, 2)].push_back(fi);
+    }
+
+    // 3. 对每个顶点，计算相邻面法向量之间的最大夹角
+    std::vector<double> max_angle(nv, 0.0);
+    for (int i = 0; i < nv; ++i) {
+      const auto &adj_faces = vert_faces[i];
+      for (int a = 0; a < (int)adj_faces.size(); ++a) {
+        for (int b = a + 1; b < (int)adj_faces.size(); ++b) {
+          double cos_val = face_normals[adj_faces[a]].dot(face_normals[adj_faces[b]]);
+          cos_val = std::max(-1.0, std::min(1.0, cos_val));
+          double angle = std::acos(cos_val); // [0, π]
+          if (angle > max_angle[i]) max_angle[i] = angle;
+        }
+      }
+    }
+
+    // 4. 构建密度场
+    // base_density: 平坦区域的基础密度
+    // feature_weight: 特征边密度倍数
+    // 阈值 angle_thresh: 小于此角度视为平坦
+    density_field->resize(nv);
+    double base_density = 1.0;
+    double feature_weight = 10.0; // [可调] 特征边比平坦区域密多少倍
+    double angle_thresh = 0.1;    // ~6度，低于此角度视为平坦
+
+    for (int i = 0; i < nv; ++i) {
+      double a = max_angle[i];
+      if (a < angle_thresh) a = 0.0;
+      // 用角度的平方，使特征区域与平坦区域区分更明显
+      double w = a / M_PI; // 归一化到 [0, 1]
+      (*density_field)[i] = base_density + feature_weight * (w * w);
+    }
+
+    kdtree = std::make_shared<_KDTree>(pts);
+  }
+
+  const double eps = _para.epsilon;
+  // 更新 lambda 函数，使用处理好的 density_field
+  _rho = std::function<double(BGAL::_Point3&)>([density_field, kdtree, eps](BGAL::_Point3 &p) {
+    const int vid = kdtree->search_(p);
+    if (vid < 0 || vid >= (int)density_field->size()) {
+      return eps; // Fallback
+    }
+    // 注意：这里返回的值直接作为 CVT 的密度权重
+    return (*density_field)[vid] + eps;
+  });
+}
+_CVT3D::_CVT3D(const _ManifoldModel &model,
+               std::function<double(_Point3 &p)> &rho, _LBFGS::_Parameter para)
+    : _model(model), _RVD(model), _RVD2(model), _rho(rho), _para(para) {}
 void _CVT3D::calculate_(int num_sites, char *modelNamee, char *pointsName) {
 
   double allTime = 0, RVDtime = 0;
@@ -280,7 +388,7 @@ void _CVT3D::calculate_(int num_sites, char *modelNamee, char *pointsName) {
   double Movement = 0.01;
   std::string inPointsName;
   namespace fs = std::filesystem;
-  fs::path obj("/home/yiming/research/CWF/data/mobius1.obj");
+  fs::path obj("/home/yiming/research/CWF/data/block.obj");
   fs::path base = obj.parent_path();
   if (pointsName == nullptr) {
     inPointsName = base / ("n" + std::to_string(num_sites) + "_" + modelname +
@@ -315,8 +423,8 @@ void _CVT3D::calculate_(int num_sites, char *modelNamee, char *pointsName) {
 
   int Fnum = 4;
   double alpha = 1.0, eplison = 1,
-         lambda = 1; // eplison is CVT weight,  lambda is qe weight.
-  double decay = 0;
+         lambda = 0; // eplison is CVT weight,  lambda is qe weight.
+  double decay = 1;
   std::vector<int> FaceIDs;
   FaceIDs.assign(num, -1);
   std::function<double(const Eigen::VectorXd &X, Eigen::VectorXd &g)> fgm2 =
@@ -354,7 +462,7 @@ void _CVT3D::calculate_(int num_sites, char *modelNamee, char *pointsName) {
         Fnum++;
         if (Fnum % 1 == 0) {
           OutputMesh(_sites, _RVD, num_sites,
-                     std::filesystem::current_path() / "data" / "Mobius",
+                     std::filesystem::current_path() / "data" / "Block",
                      modelname, Fnum);
         }
         endRVD = clock();
@@ -398,23 +506,24 @@ void _CVT3D::calculate_(int num_sites, char *modelNamee, char *pointsName) {
                   // NorTriM.normalized_();）
                   NorTriM.normalized_();
 
-                  r(0) = (eplison * _rho(p) *
+                  double rho_val = _rho(p);
+                  r(0) = (eplison * rho_val *
                           ((_sites[i] - p).sqlength_())); // CVT
                   r(1) = lambda * (NorTriM.dot_(p - _sites[i])) *
                              (NorTriM.dot_(p - _sites[i])) +
-                         eplison *
+                         eplison * rho_val *
                              ((p - _sites[i])
-                                  .sqlength_()); // QE + CVT (CVT term zeroed)
+                                  .sqlength_()); // QE + CVT with density
 
                   r(2) = lambda * -2 * NorTriM.x() *
                              (NorTriM.dot_(p - _sites[i])) +
-                         eplison * -2 * (p - _sites[i]).x(); // gx
+                         eplison * rho_val * -2 * (p - _sites[i]).x(); // gx
                   r(3) = lambda * -2 * NorTriM.y() *
                              (NorTriM.dot_(p - _sites[i])) +
-                         eplison * -2 * (p - _sites[i]).y(); // gy
+                         eplison * rho_val * -2 * (p - _sites[i]).y(); // gy
                   r(4) = lambda * -2 * NorTriM.z() *
                              (NorTriM.dot_(p - _sites[i])) +
-                         eplison * -2 * (p - _sites[i]).z(); // gz
+                         eplison * rho_val * -2 * (p - _sites[i]).z(); // gz
 
                   return r;
                 },
@@ -533,11 +642,11 @@ void _CVT3D::calculate_(int num_sites, char *modelNamee, char *pointsName) {
 
         namespace fs = std::filesystem;
         fs::path file =
-            fs::absolute(fs::current_path() / "data" / "Mobius" /
-                         ("Sphere_2500_" + std::to_string(Fnum) + ".csv"));
-        fs::path file1 =
-            fs::absolute(fs::current_path() / "data" / "Mobius" / "Max_point" /
-                         ("MaxPoint_2500_" + std::to_string(Fnum) + ".xyz"));
+            fs::absolute(fs::current_path() / "data" / "Block" /
+                         ("Sphere_6000_" + std::to_string(Fnum) + ".csv"));
+        // //fs::path file1 =
+        //     fs::absolute(fs::current_path() / "data" / "Block" / "Max_point" /
+        //                  ("MaxPoint_6000_" + std::to_string(Fnum) + ".xyz"));
         std::cerr << "[io] cwd   = " << fs::current_path().string() << "\n";
         std::cerr << "[io] write = " << file.string() << "\n";
 
@@ -548,9 +657,10 @@ void _CVT3D::calculate_(int num_sites, char *modelNamee, char *pointsName) {
         } else {
           out << std::setprecision(17);
           for (int i = 0; i < (int)spheres.size(); ++i) {
+            Eigen::Vector3d n = Nors[i].normalized();
             out << spheres[i].c.x() << "," << spheres[i].c.y() << ","
                 << spheres[i].c.z() << "," << spheres[i].r << "," << FaceIDs[i]
-                << "\n";
+                << "," << n.x() << "," << n.y() << "," << n.z() << "\n";
           }
           out.close();
           if (!out.good())
@@ -559,36 +669,36 @@ void _CVT3D::calculate_(int num_sites, char *modelNamee, char *pointsName) {
             std::cerr << "[io] ok\n";
         }
 
-        fs::path edge_dir = fs::current_path() / "data" / "Mobius" / "Edges";
-        fs::create_directories(edge_dir);
-        fs::path edge_obj = fs::absolute(
-            edge_dir / ("Center2Max_3000_" + std::to_string(Fnum) + ".obj"));
-        std::cerr << "[io] write = " << edge_obj.string() << "\n";
+        // fs::path edge_dir = fs::current_path() / "data" / "Block" / "Edges";
+        // fs::create_directories(edge_dir);
+        // fs::path edge_obj = fs::absolute(
+        //     edge_dir / ("Center2Max_6000_" + std::to_string(Fnum) + ".obj"));
+        // std::cerr << "[io] write = " << edge_obj.string() << "\n";
 
-        {
-          std::ofstream eout(edge_obj, std::ios::out | std::ios::trunc);
-          if (!eout) {
-            std::cerr << "[io] open failed (OBJ), errno=" << errno << " ("
-                      << std::strerror(errno) << ")\n";
-          } else {
-            eout << std::setprecision(17);
-            for (int i = 0; i < (int)spheres.size(); ++i) {
-              eout << "v " << spheres[i].c.x() << " " << spheres[i].c.y() << " "
-                   << spheres[i].c.z() << "\n";
-              eout << "v " << spheres[i].max_point.x() << " "
-                   << spheres[i].max_point.y() << " "
-                   << spheres[i].max_point.z() << "\n";
-            }
-            for (int i = 0; i < (int)spheres.size(); ++i) {
-              eout << "l " << (2 * i + 1) << " " << (2 * i + 2) << "\n";
-            }
-            eout.close();
-            if (!eout.good())
-              std::cerr << "[io] write failed (OBJ)\n";
-            else
-              std::cerr << "[io] ok (OBJ)\n";
-          }
-        }
+        // {
+        //   std::ofstream eout(edge_obj, std::ios::out | std::ios::trunc);
+        //   if (!eout) {
+        //     std::cerr << "[io] open failed (OBJ), errno=" << errno << " ("
+        //               << std::strerror(errno) << ")\n";
+        //   } else {
+        //     eout << std::setprecision(17);
+        //     for (int i = 0; i < (int)spheres.size(); ++i) {
+        //       eout << "v " << spheres[i].c.x() << " " << spheres[i].c.y() << " "
+        //            << spheres[i].c.z() << "\n";
+        //       eout << "v " << spheres[i].max_point.x() << " "
+        //            << spheres[i].max_point.y() << " "
+        //            << spheres[i].max_point.z() << "\n";
+        //     }
+        //     for (int i = 0; i < (int)spheres.size(); ++i) {
+        //       eout << "l " << (2 * i + 1) << " " << (2 * i + 2) << "\n";
+        //     }
+        //     eout.close();
+        //     if (!eout.good())
+        //       std::cerr << "[io] write failed (OBJ)\n";
+        //     else
+        //       std::cerr << "[io] ok (OBJ)\n";
+        //   }
+        // }
 
         // ……(后续 coverage 采样代码保持不变，如需可继续保留)
         return energy;
@@ -643,337 +753,339 @@ void _CVT3D::calculate_(int num_sites, char *modelNamee, char *pointsName) {
   _RVD.calculate_(_sites);
 
   OutputMesh(_sites, _RVD, num_sites,
-             std::filesystem::current_path() / "data" / "Mobius", modelname, 2);
+             std::filesystem::current_path() / "data" / "Block", modelname, 2);
 
-  // --- Calculate Displacement Statistics ---
-  {
-    std::cout << "[INFO] Calculating displacement on feature edges vs faces..."
-              << std::endl;
-    std::vector<Segment> feature_edges;
-    double angle_threshold = 30.0 * 3.14159265358979323846 / 180.0;
+  // // --- Calculate Displacement Statistics ---
+  // {
+  //   std::cout << "[INFO] Calculating displacement on feature edges vs faces..."
+  //             << std::endl;
+  //   std::vector<Segment> feature_edges;
+  //   double angle_threshold = 30.0 * 3.14159265358979323846 / 180.0;
 
-    // 1. Identify feature edges
-    int edge_idx = 0;
-    for (auto eb = polyhedron.edges_begin(); eb != polyhedron.edges_end();
-         ++eb) {
-      auto h = eb;
-      bool is_feature = false;
-      if (h->is_border() || h->opposite()->is_border()) {
-        is_feature = true;
-      } else {
-        auto p1 = h->vertex()->point();
-        auto p2 = h->opposite()->vertex()->point(); // The edge vertices
-        // Triangle 1: p1, p2, p3
-        auto p3 = h->next()->vertex()->point();
-        // Triangle 2: p2, p1, p4 (from opposite view)
-        auto p4 = h->opposite()->next()->vertex()->point();
+  //   // 1. Identify feature edges
+  //   int edge_idx = 0;
+  //   for (auto eb = polyhedron.edges_begin(); eb != polyhedron.edges_end();
+  //        ++eb) {
+  //     auto h = eb;
+  //     bool is_feature = false;
+  //     if (h->is_border() || h->opposite()->is_border()) {
+  //       is_feature = true;
+  //     } else {
+  //       auto p1 = h->vertex()->point();
+  //       auto p2 = h->opposite()->vertex()->point(); // The edge vertices
+  //       // Triangle 1: p1, p2, p3
+  //       auto p3 = h->next()->vertex()->point();
+  //       // Triangle 2: p2, p1, p4 (from opposite view)
+  //       auto p4 = h->opposite()->next()->vertex()->point();
 
-        auto v1 = p2 - p1;
-        auto v2 = p3 - p1;
-        auto n1 = CGAL::cross_product(v1, v2);
-        // Approximate normalization
-        double l1 = std::sqrt(n1.squared_length());
-        if (l1 > 1e-10)
-          n1 = n1 / l1;
+  //       auto v1 = p2 - p1;
+  //       auto v2 = p3 - p1;
+  //       auto n1 = CGAL::cross_product(v1, v2);
+  //       // Approximate normalization
+  //       double l1 = std::sqrt(n1.squared_length());
+  //       if (l1 > 1e-10)
+  //         n1 = n1 / l1;
 
-        auto v1_opp = p1 - p2;
-        auto v2_opp = p4 - p2;
-        auto n2 = CGAL::cross_product(v1_opp, v2_opp);
-        double l2 = std::sqrt(n2.squared_length());
-        if (l2 > 1e-10)
-          n2 = n2 / l2;
+  //       auto v1_opp = p1 - p2;
+  //       auto v2_opp = p4 - p2;
+  //       auto n2 = CGAL::cross_product(v1_opp, v2_opp);
+  //       double l2 = std::sqrt(n2.squared_length());
+  //       if (l2 > 1e-10)
+  //         n2 = n2 / l2;
 
-        double dot = n1 * n2;
-        if (dot < -1.0)
-          dot = -1.0;
-        if (dot > 1.0)
-          dot = 1.0;
-        double angle = std::acos(dot);
+  //       double dot = n1 * n2;
+  //       if (dot < -1.0)
+  //         dot = -1.0;
+  //       if (dot > 1.0)
+  //         dot = 1.0;
+  //       double angle = std::acos(dot);
 
-        if (angle > angle_threshold)
-          is_feature = true;
-      }
+  //       if (angle > angle_threshold)
+  //         is_feature = true;
+  //     }
 
-      if (is_feature) {
-        feature_edges.emplace_back(h->vertex()->point(),
-                                   h->opposite()->vertex()->point());
-      }
-      edge_idx++;
-    }
-    std::cout << "[INFO] Identified " << feature_edges.size()
-              << " feature edges." << std::endl;
+  //     if (is_feature) {
+  //       feature_edges.emplace_back(h->vertex()->point(),
+  //                                  h->opposite()->vertex()->point());
+  //     }
+  //     edge_idx++;
+  //   }
+  //   std::cout << "[INFO] Identified " << feature_edges.size()
+  //             << " feature edges." << std::endl;
 
-    // 2. Compute stats with dynamic threshold & median
+  //   // 2. Compute stats with dynamic threshold & median
 
-    // Calculate Bounding Box of Pts to determine scale
-    double min_x = 1e30, min_y = 1e30, min_z = 1e30;
-    double max_x = -1e30, max_y = -1e30, max_z = -1e30;
-    for (const auto &p : Pts) {
-      if (p.x() < min_x)
-        min_x = p.x();
-      if (p.y() < min_y)
-        min_y = p.y();
-      if (p.z() < min_z)
-        min_z = p.z();
-      if (p.x() > max_x)
-        max_x = p.x();
-      if (p.y() > max_y)
-        max_y = p.y();
-      if (p.z() > max_z)
-        max_z = p.z();
-    }
-    double diag =
-        std::sqrt(std::pow(max_x - min_x, 2) + std::pow(max_y - min_y, 2) +
-                  std::pow(max_z - min_z, 2));
-    double dist_threshold = diag * 0.01; // 1% of diagonal
-    std::cout << "[INFO] BBox Diagonal: " << diag
-              << ", Using dist_threshold: " << dist_threshold << std::endl;
+  //   // Calculate Bounding Box of Pts to determine scale
+  //   double min_x = 1e30, min_y = 1e30, min_z = 1e30;
+  //   double max_x = -1e30, max_y = -1e30, max_z = -1e30;
+  //   for (const auto &p : Pts) {
+  //     if (p.x() < min_x)
+  //       min_x = p.x();
+  //     if (p.y() < min_y)
+  //       min_y = p.y();
+  //     if (p.z() < min_z)
+  //       min_z = p.z();
+  //     if (p.x() > max_x)
+  //       max_x = p.x();
+  //     if (p.y() > max_y)
+  //       max_y = p.y();
+  //     if (p.z() > max_z)
+  //       max_z = p.z();
+  //   }
+  //   double diag =
+  //       std::sqrt(std::pow(max_x - min_x, 2) + std::pow(max_y - min_y, 2) +
+  //                 std::pow(max_z - min_z, 2));
+  //   double dist_threshold = diag * 0.01; // 1% of diagonal
+  //   std::cout << "[INFO] BBox Diagonal: " << diag
+  //             << ", Using dist_threshold: " << dist_threshold << std::endl;
 
-    std::vector<double> disps_edge;
-    std::vector<double> disps_face;
+  //   std::vector<double> disps_edge;
+  //   std::vector<double> disps_face;
 
-    // Assume Pts (initial) and _sites (final) are aligned
-    size_t n = _sites.size();
-    if (n > Pts.size())
-      n = Pts.size();
+  //   // Assume Pts (initial) and _sites (final) are aligned
+  //   size_t n = _sites.size();
+  //   if (n > Pts.size())
+  //     n = Pts.size();
 
-    for (size_t i = 0; i < n; ++i) {
-      double dx = _sites[i].x() - Pts[i].x();
-      double dy = _sites[i].y() - Pts[i].y();
-      double dz = _sites[i].z() - Pts[i].z();
-      double disp = std::sqrt(dx * dx + dy * dy + dz * dz);
+  //   for (size_t i = 0; i < n; ++i) {
+  //     double dx = _sites[i].x() - Pts[i].x();
+  //     double dy = _sites[i].y() - Pts[i].y();
+  //     double dz = _sites[i].z() - Pts[i].z();
+  //     double disp = std::sqrt(dx * dx + dy * dy + dz * dz);
 
-      Point_T pt(_sites[i].x(), _sites[i].y(), _sites[i].z());
-      double min_dist_sq = 1e30;
+  //     Point_T pt(_sites[i].x(), _sites[i].y(), _sites[i].z());
+  //     double min_dist_sq = 1e30;
 
-      // Brute force check distance to feature edges
-      for (const auto &seg : feature_edges) {
-        double d2 = CGAL::squared_distance(pt, seg);
-        if (d2 < min_dist_sq)
-          min_dist_sq = d2;
-      }
+  //     // Brute force check distance to feature edges
+  //     for (const auto &seg : feature_edges) {
+  //       double d2 = CGAL::squared_distance(pt, seg);
+  //       if (d2 < min_dist_sq)
+  //         min_dist_sq = d2;
+  //     }
 
-      if (min_dist_sq < dist_threshold * dist_threshold) {
-        disps_edge.push_back(disp);
-      } else {
-        disps_face.push_back(disp);
-      }
-    }
+  //     if (min_dist_sq < dist_threshold * dist_threshold) {
+  //       disps_edge.push_back(disp);
+  //     } else {
+  //       disps_face.push_back(disp);
+  //     }
+  //   }
 
-    auto compute_median = [](std::vector<double> &v) -> double {
-      if (v.empty())
-        return 0.0;
-      size_t n = v.size();
-      std::sort(v.begin(), v.end());
-      if (n % 2 == 0)
-        return (v[n / 2 - 1] + v[n / 2]) / 2.0;
-      return v[n / 2];
-    };
+  //   auto compute_median = [](std::vector<double> &v) -> double {
+  //     if (v.empty())
+  //       return 0.0;
+  //     size_t n = v.size();
+  //     std::sort(v.begin(), v.end());
+  //     if (n % 2 == 0)
+  //       return (v[n / 2 - 1] + v[n / 2]) / 2.0;
+  //     return v[n / 2];
+  //   };
 
-    auto compute_sum = [](const std::vector<double> &v) -> double {
-      double s = 0;
-      for (double d : v)
-        s += d;
-      return s;
-    };
+  //   auto compute_sum = [](const std::vector<double> &v) -> double {
+  //     double s = 0;
+  //     for (double d : v)
+  //       s += d;
+  //     return s;
+  //   };
 
-    double median_edge = compute_median(disps_edge);
-    double sum_edge = compute_sum(disps_edge);
-    double mean_edge = disps_edge.empty() ? 0.0 : sum_edge / disps_edge.size();
+  //   double median_edge = compute_median(disps_edge);
+  //   double sum_edge = compute_sum(disps_edge);
+  //   double mean_edge = disps_edge.empty() ? 0.0 : sum_edge / disps_edge.size();
 
-    double median_face = compute_median(disps_face);
-    double sum_face = compute_sum(disps_face);
-    double mean_face = disps_face.empty() ? 0.0 : sum_face / disps_face.size();
+  //   double median_face = compute_median(disps_face);
+  //   double sum_face = compute_sum(disps_face);
+  //   double mean_face = disps_face.empty() ? 0.0 : sum_face / disps_face.size();
 
-    std::cout << "Feature Edge Sites: " << disps_edge.size()
-              << " | Mean: " << mean_edge << " | Median: " << median_edge
-              << " | Total: " << sum_edge << std::endl;
+  //   std::cout << "Feature Edge Sites: " << disps_edge.size()
+  //             << " | Mean: " << mean_edge << " | Median: " << median_edge
+  //             << " | Total: " << sum_edge << std::endl;
 
-    // ... (existing logging code) ...
-    std::cout << "Face Sites: " << disps_face.size() << " | Mean: " << mean_face
-              << " | Median: " << median_face << " | Total: " << sum_face
-              << std::endl;
+  //   // ... (existing logging code) ...
+  //   std::cout << "Face Sites: " << disps_face.size() << " | Mean: " << mean_face
+  //             << " | Median: " << median_face << " | Total: " << sum_face
+  //             << std::endl;
 
-    // --- Export Statistics to CSV ---
-    namespace fs = std::filesystem;
-    fs::path base_path = fs::current_path() / "data" / "Mobius";
+  //   // --- Export Statistics to CSV ---
+  //   namespace fs = std::filesystem;
+  //   fs::path base_path = fs::current_path() / "data" / "Mobius";
 
-    // 1. Export Feature Edge Displacements
-    {
-      fs::path csv_path =
-          base_path / ("Displacement_FeatureEdges_" +
-                       std::to_string(num_sites) + "_" + modelname + ".csv");
-      std::ofstream out_edge(csv_path);
-      if (out_edge.is_open()) {
-        out_edge << "Displacement\n";
-        for (double d : disps_edge) {
-          out_edge << d << "\n";
-        }
-        out_edge.close();
-        std::cout << "[INFO] Written feature edge displacements to " << csv_path
-                  << std::endl;
-      } else {
-        std::cerr << "[ERROR] Failed to open " << csv_path << " for writing."
-                  << std::endl;
-      }
-    }
+  //   // 1. Export Feature Edge Displacements
+  //   {
+  //     fs::path csv_path =
+  //         base_path / ("Displacement_FeatureEdges_" +
+  //                      std::to_string(num_sites) + "_" + modelname + ".csv");
+  //     std::ofstream out_edge(csv_path);
+  //     if (out_edge.is_open()) {
+  //       out_edge << "Displacement\n";
+  //       for (double d : disps_edge) {
+  //         out_edge << d << "\n";
+  //       }
+  //       out_edge.close();
+  //       std::cout << "[INFO] Written feature edge displacements to " << csv_path
+  //                 << std::endl;
+  //     } else {
+  //       std::cerr << "[ERROR] Failed to open " << csv_path << " for writing."
+  //                 << std::endl;
+  //     }
+  //   }
 
-    // 2. Export Face Displacements
-    {
-      fs::path csv_path =
-          base_path / ("Displacement_Faces_" + std::to_string(num_sites) + "_" +
-                       modelname + ".csv");
-      std::ofstream out_face(csv_path);
-      if (out_face.is_open()) {
-        out_face << "Displacement\n";
-        for (double d : disps_face) {
-          out_face << d << "\n";
-        }
-        out_face.close();
-        std::cout << "[INFO] Written face displacements to " << csv_path
-                  << std::endl;
-      } else {
-        std::cerr << "[ERROR] Failed to open " << csv_path << " for writing."
-                  << std::endl;
-      }
-    }
-  } // end block
+  //   // 2. Export Face Displacements
+  //   {
+  //     fs::path csv_path =
+  //         base_path / ("Displacement_Faces_" + std::to_string(num_sites) + "_" +
+  //                      modelname + ".csv");
+  //     std::ofstream out_face(csv_path);
+  //     if (out_face.is_open()) {
+  //       out_face << "Displacement\n";
+  //       for (double d : disps_face) {
+  //         out_face << d << "\n";
+  //       }
+  //       out_face.close();
+  //       std::cout << "[INFO] Written face displacements to " << csv_path
+  //                 << std::endl;
+  //     } else {
+  //       std::cerr << "[ERROR] Failed to open " << csv_path << " for writing."
+  //                 << std::endl;
+  //     }
+  //   }
+  // } // end block
 
-  // --- Power Diagram Partitioning (Added) ---
-  {
-    std::cout << "\n[INFO] Starting Power Diagram Partitioning..." << std::endl;
-    namespace fs = std::filesystem;
-    fs::path base_path = fs::current_path() / "data" / "Mobius";
+  // // --- Power Diagram Partitioning (Added) ---
+  // {
+  //   std::cout << "\n[INFO] Starting Power Diagram Partitioning..." << std::endl;
+  //   namespace fs = std::filesystem;
+  //   fs::path base_path = fs::current_path() / "data" / "Mobius";
 
-    std::vector<double> all_displacements;
-    all_displacements.reserve(_sites.size());
+  //   std::vector<double> all_displacements;
+  //   all_displacements.reserve(_sites.size());
 
-    // 1. Calculate all displacements
-    size_t n = _sites.size();
-    if (n > Pts.size())
-      n = Pts.size(); // Safety check
+  //   // 1. Calculate all displacements
+  //   size_t n = _sites.size();
+  //   if (n > Pts.size())
+  //     n = Pts.size(); // Safety check
 
-    for (size_t i = 0; i < n; ++i) {
-      double dx = _sites[i].x() - Pts[i].x();
-      double dy = _sites[i].y() - Pts[i].y();
-      double dz = _sites[i].z() - Pts[i].z();
-      double disp = (dx * dx + dy * dy + dz * dz);
-      all_displacements.push_back(disp);
-    }
+  //   for (size_t i = 0; i < n; ++i) {
+  //     double dx = _sites[i].x() - Pts[i].x();
+  //     double dy = _sites[i].y() - Pts[i].y();
+  //     double dz = _sites[i].z() - Pts[i].z();
+  //     double disp = (dx * dx + dy * dy + dz * dz);
+  //     all_displacements.push_back(disp);
+  //   }
 
-    // 2. Compute Box Plot Statistics
-    std::vector<double> sorted_disp = all_displacements;
-    std::sort(sorted_disp.begin(), sorted_disp.end());
+  //   // 2. Compute Box Plot Statistics
+  //   std::vector<double> sorted_disp = all_displacements;
+  //   std::sort(sorted_disp.begin(), sorted_disp.end());
 
-    double Q1 = 0, Q3 = 0;
-    if (!sorted_disp.empty()) {
-      Q1 = sorted_disp[sorted_disp.size() / 4];
-      Q3 = sorted_disp[sorted_disp.size() * 3 / 4];
-    }
-    double IQR = Q3 - Q1;
-    double UpperFence = Q3 + 1.5 * IQR;
+  //   double Q1 = 0, Q3 = 0;
+  //   if (!sorted_disp.empty()) {
+  //     Q1 = sorted_disp[sorted_disp.size() / 4];
+  //     Q3 = sorted_disp[sorted_disp.size() * 3 / 4];
+  //   }
+  //   double IQR = Q3 - Q1;
+  //   double UpperFence = Q3 + 1.5 * IQR;
 
-    std::cout << "[INFO] Stats - Q1: " << Q1 << ", Q3: " << Q3
-              << ", IQR: " << IQR << ", Upper Fence: " << UpperFence
-              << std::endl;
+  //   std::cout << "[INFO] Stats - Q1: " << Q1 << ", Q3: " << Q3
+  //             << ", IQR: " << IQR << ", Upper Fence: " << UpperFence
+  //             << std::endl;
 
-    // 3. Clamp Weights (Disabled per user request, using squared distance
-    // directly)
-    std::vector<double> weights;
-    weights.reserve(n);
-    for (double d_sq : all_displacements) {
-      // 'd_sq' is squared displacement
-      double d_linear = std::sqrt(d_sq);
+  //   // 3. Clamp Weights (Disabled per user request, using squared distance
+  //   // directly)
+  //   std::vector<double> weights;
+  //   weights.reserve(n);
+  //   for (double d_sq : all_displacements) {
+  //     // 'd_sq' is squared displacement
+  //     double d_linear = std::sqrt(d_sq);
 
-      // Apply thresholds
-      if (d_linear > 0.68) {
-        d_linear = 0.68;
-      }
-      if (d_linear < 0.003) {
-        d_linear = 0.0;
-      }
+  //     // Apply thresholds
+  //     if (d_linear > 0.68) {
+  //       d_linear = 0.68;
+  //     }
+  //     if (d_linear < 0.003) {
+  //       d_linear = 0.0;
+  //     }
 
-      // Weight is squared clamped distance
-      double w = d_linear * d_linear;
-      weights.push_back(w);
-    }
+  //     // Weight is squared clamped distance
+  //     double w = d_linear * d_linear;
+  //     weights.push_back(w);
+  //   }
 
-    // 4. Generate Power Diagram
-    _RVD.calculate_(_sites, weights);
+  //   // 4. Generate Power Diagram
+  //   _RVD.calculate_(_sites, weights);
 
-    // 5. Output
-    OutputMesh(_sites, _RVD, num_sites, base_path, modelname, 2500);
+  //   // 5. Output
+  //   OutputMesh(_sites, _RVD, num_sites, base_path, modelname, 2500);
 
-    std::cout
-        << "[INFO] Power Diagram generation complete. Output with index 2500."
-        << std::endl;
+  //   std::cout
+  //       << "[INFO] Power Diagram generation complete. Output with index 2500."
+  //       << std::endl;
 
-    // 6. Calculate Site-Centered Max-Radius Sphere for each cell
-    std::cout
-        << "[INFO] Calculating Site-Centered Max-Radius Spheres using Edges..."
-        << std::endl;
-    std::vector<Sphere::Sphere> meb_spheres;
-    const std::vector<std::map<int, std::vector<std::pair<int, int>>>> &edges =
-        _RVD.get_edges_();
+  //   // 6. Calculate Site-Centered Max-Radius Sphere for each cell
+  //   std::cout
+  //       << "[INFO] Calculating Site-Centered Max-Radius Spheres using Edges..."
+  //       << std::endl;
+  //   std::vector<Sphere::Sphere> meb_spheres;
+  //   const std::vector<std::map<int, std::vector<std::pair<int, int>>>> &edges =
+  //       _RVD.get_edges_();
 
-    // Resize to match number of sites
-    meb_spheres.resize(n);
+  //   // Resize to match number of sites
+  //   meb_spheres.resize(n);
 
-    for (int i = 0; i < (int)n; ++i) {
-      double max_dist_sq = 0.0;
-      bool has_vertices = false;
+  //   for (int i = 0; i < (int)n; ++i) {
+  //     double max_dist_sq = 0.0;
+  //     bool has_vertices = false;
 
-      // Check if site i has valid edges
-      if (i < edges.size()) {
-        // Iterate over all neighbors (adjacent sites or -1 for boundary)
-        for (auto const &[neighbor_id, edge_segments] : edges[i]) {
-          // Iterate over segments of the edge between i and neighbor
-          for (auto const &seg : edge_segments) {
-            // seg.first and seg.second are indices into _RVD.vertex_()
-            int v_idx1 = seg.first;
-            int v_idx2 = seg.second;
+  //     // Check if site i has valid edges
+  //     if (i < edges.size()) {
+  //       // Iterate over all neighbors (adjacent sites or -1 for boundary)
+  //       for (auto const &[neighbor_id, edge_segments] : edges[i]) {
+  //         // Iterate over segments of the edge between i and neighbor
+  //         for (auto const &seg : edge_segments) {
+  //           // seg.first and seg.second are indices into _RVD.vertex_()
+  //           int v_idx1 = seg.first;
+  //           int v_idx2 = seg.second;
 
-            // Check vertex 1
-            BGAL::_Point3 v1 = _RVD.vertex_(v_idx1);
-            double d2_1 = (v1 - _sites[i]).sqlength_();
-            if (d2_1 > max_dist_sq)
-              max_dist_sq = d2_1;
+  //           // Check vertex 1
+  //           BGAL::_Point3 v1 = _RVD.vertex_(v_idx1);
+  //           double d2_1 = (v1 - _sites[i]).sqlength_();
+  //           if (d2_1 > max_dist_sq)
+  //             max_dist_sq = d2_1;
 
-            // Check vertex 2
-            BGAL::_Point3 v2 = _RVD.vertex_(v_idx2);
-            double d2_2 = (v2 - _sites[i]).sqlength_();
-            if (d2_2 > max_dist_sq)
-              max_dist_sq = d2_2;
+  //           // Check vertex 2
+  //           BGAL::_Point3 v2 = _RVD.vertex_(v_idx2);
+  //           double d2_2 = (v2 - _sites[i]).sqlength_();
+  //           if (d2_2 > max_dist_sq)
+  //             max_dist_sq = d2_2;
 
-            has_vertices = true;
-          }
-        }
-      }
+  //           has_vertices = true;
+  //         }
+  //       }
+  //     }
 
-      meb_spheres[i].c = decltype(meb_spheres[i].c)(
-          _sites[i].x(), _sites[i].y(), _sites[i].z());
+  //     meb_spheres[i].c = decltype(meb_spheres[i].c)(
+  //         _sites[i].x(), _sites[i].y(), _sites[i].z());
 
-      if (!has_vertices) {
-        meb_spheres[i].r = 0;
-      } else {
-        meb_spheres[i].r = std::sqrt(max_dist_sq);
-      }
-    }
+  //     if (!has_vertices) {
+  //       meb_spheres[i].r = 0;
+  //     } else {
+  //       meb_spheres[i].r = std::sqrt(max_dist_sq);
+  //     }
+  //   }
 
-    // 7. Output MEB to CSV
-    fs::path meb_csv = base_path / ("MEB_PowerDiagram_2500.csv");
-    std::ofstream out_meb(meb_csv);
-    if (out_meb.is_open()) {
-      out_meb << std::setprecision(17);
-      for (int i = 0; i < (int)n; ++i) {
-        // Format: cx,cy,cz,r,FaceID
-        out_meb << meb_spheres[i].c.x() << "," << meb_spheres[i].c.y() << ","
-                << meb_spheres[i].c.z() << "," << meb_spheres[i].r << ","
-                << FaceIDs[i] << "\n";
-      }
-      out_meb.close();
-      std::cout << "[INFO] Written MEB to " << meb_csv << std::endl;
-    }
-  }
+  //   // 7. Output MEB to CSV
+  //   fs::path meb_csv = base_path / ("MEB_PowerDiagram_2500.csv");
+  //   std::ofstream out_meb(meb_csv);
+  //   if (out_meb.is_open()) {
+  //     out_meb << std::setprecision(17);
+  //     for (int i = 0; i < (int)n; ++i) {
+  //       // Format: cx,cy,cz,r,FaceID,nx,ny,nz
+  //       Eigen::Vector3d nor = Nors[i].normalized();
+  //       out_meb << meb_spheres[i].c.x() << "," << meb_spheres[i].c.y() << ","
+  //               << meb_spheres[i].c.z() << "," << meb_spheres[i].r << ","
+  //               << FaceIDs[i] << "," << nor.x() << "," << nor.y() << ","
+  //               << nor.z() << "\n";
+  //     }
+  //     out_meb.close();
+  //     std::cout << "[INFO] Written MEB to " << meb_csv << std::endl;
+  //   }
+  // }
 }
 } // namespace BGAL
