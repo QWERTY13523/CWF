@@ -34,7 +34,7 @@ guess_data_root(const std::filesystem::path &exe_path) {
   return {}; // not found
 }
 
-void CWF3DTest(const std::filesystem::path &exe_path, int Nums = 6000,
+void CWF3DTest(const std::filesystem::path &exe_path, int Nums = 8000,
                std::string file = "block") {
   namespace fs = std::filesystem;
 
@@ -74,25 +74,25 @@ void CWF3DTest(const std::filesystem::path &exe_path, int Nums = 6000,
   // 5) 模型与 CVT
   BGAL::_ManifoldModel model("Temp.obj");
 
-  std::function<double(BGAL::_Point3 &)> rho = [](BGAL::_Point3 &) {
-    return 1.0;
-  };
+  int num = Nums;
+  std::function<double(BGAL::_Point3& p)> rho = [](BGAL::_Point3& p)
+		{
+			return 1;
+		};
 
   BGAL::_LBFGS::_Parameter para;
   para.is_show = true;
   para.epsilon = 1e-30;
-  para.max_iteration = 50;
+  para.max_iteration = 75;
+  BGAL::_CVT3D cvt(model,rho,para);
 
-  BGAL::_CVT3D cvt(model, rho, para);
-
-  int num = Nums;
   cvt.calculate_(num, (char *)file.c_str());
 }
 
 int main(int argc, char **argv) {
   // 允许从命令行指定：  MAIN [data_root] [model_name] [num_sites]
   std::string model = (argc >= 3) ? argv[2] : "block";
-  int N = (argc >= 4) ? std::max(1, std::atoi(argv[3])) : 6000;
+  int N = (argc >= 4) ? std::max(1, std::atoi(argv[3])) : 8000;
 
   // 如果用户显式传 data_root，就先把 CWD 切过去（这样 Temp/输出更直观）
   if (argc >= 2) {

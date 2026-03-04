@@ -4,6 +4,10 @@
 #include <ctime>
 #include <filesystem>
 #include <iostream>
+#include <fstream>
+#include <limits>
+#include <unordered_map>
+#include <unordered_set>
 
 #include "BGAL/Algorithm/BOC/BOC.h"
 #include "BGAL/CVTLike/CVT.h"
@@ -41,6 +45,7 @@ typedef CGAL::AABB_traits_3<K_T, Primitive> Traits;
 typedef CGAL::AABB_tree<Traits> Tree;
 typedef Tree::Point_and_primitive_id Point_and_primitive_id;
 double kgammaTol = 0.00000000000001;
+
 struct MyPoint {
   MyPoint(Eigen::Vector3d a) { p = a; }
 
@@ -102,6 +107,62 @@ struct MyFace {
   }
 };
 
+namespace {
+struct FeatureSegment {
+  BGAL::_Point3 a;
+  BGAL::_Point3 b;
+};
+
+double squared_distance_point_to_segment(const BGAL::_Point3 &p,
+                                         const BGAL::_Point3 &a,
+                                         const BGAL::_Point3 &b) {
+  const BGAL::_Point3 ab = b - a;
+  const double ab2 = ab.sqlength_();
+  if (ab2 <= 1e-30) {
+    return (p - a).sqlength_();
+  }
+  double t = (p - a).dot_(ab) / ab2;
+  t = std::max(0.0, std::min(1.0, t));
+  const BGAL::_Point3 proj = a + ab * t;
+  return (p - proj).sqlength_();
+}
+
+std::vector<FeatureSegment> collect_feature_segments(
+    const BGAL::_ManifoldModel &model, const double sharp_angle_deg) {
+  std::vector<FeatureSegment> segments;
+  segments.reserve(std::max(1, model.number_edges_() / 8));
+
+  const double sharp_cos =
+      std::cos(sharp_angle_deg * 3.14159265358979323846 / 180.0);
+
+  for (int eid = 0; eid < model.number_edges_(); ++eid) {
+    const auto e = model.edge_(eid);
+    if (e._id_reverse_edge < 0 || eid > e._id_reverse_edge) {
+      continue;
+    }
+
+    const auto re = model.edge_(e._id_reverse_edge);
+    bool is_feature = false;
+    if (e._id_face == -1 || re._id_face == -1) {
+      is_feature = true;
+    } else {
+      double dot = model.normal_face_(e._id_face).dot_(model.normal_face_(re._id_face));
+      dot = std::max(-1.0, std::min(1.0, dot));
+      if (dot < sharp_cos) {
+        is_feature = true;
+      }
+    }
+
+    if (is_feature) {
+      segments.push_back(
+          FeatureSegment{model.vertex_(e._id_left_vertex),
+                         model.vertex_(e._id_right_vertex)});
+    }
+  }
+  return segments;
+}
+} // namespace
+
 namespace BGAL {
 void OutputMesh(std::vector<_Point3> &sites, _Restricted_Tessellation3D RVD,
                 int num, std::string outpath, std::string modelname, int step) {
@@ -141,7 +202,6 @@ void OutputMesh(std::vector<_Point3> &sites, _Restricted_Tessellation3D RVD,
       if (step == 1) {
         color = 0;
       }
-      //
     } else {
       parea += area;
     }
@@ -200,7 +260,6 @@ void OutputMesh(std::vector<_Point3> &sites, _Restricted_Tessellation3D RVD,
             std::make_pair(std::min(i, ee.first), std::max(i, ee.first)));
         neibors[i].insert(ee.first);
         neibors[ee.first].insert(i);
-        // std::cout << ee.first << std::endl;
       }
     }
 
@@ -259,111 +318,47 @@ _CVT3D::_CVT3D(const _ManifoldModel &model)
   _para.is_show = true;
   _para.epsilon = 1e-30;
   _para.max_linearsearch = 20;
-  // 默认密度函数，稍后会被覆盖
-  _rho = [this](BGAL::_Point3 &p) { return 1; };
+  _para.max_iteration = 75;
 
-  std::shared_ptr<std::vector<double>> density_field =
-      std::make_shared<std::vector<double>>();
-  std::shared_ptr<_KDTree> kdtree;
+  // constexpr double kBaseDensity = 1.0;
+  // constexpr double kFeatureSparsityRatio =
+  //     1.05; // strong sparsification near feature edges
+  // constexpr double kSharpAngleDeg = 30.0;
+  // constexpr double kFeatureBandScale = 0.03;
 
-  {
-    const int nv = _model.number_vertices_();
-    const int nf = _model.number_faces_();
+  // auto feature_segments =
+  //     std::make_shared<std::vector<FeatureSegment>>(
+  //         collect_feature_segments(_model, kSharpAngleDeg));
 
-    Eigen::MatrixXd V(nv, 3);
-    Eigen::MatrixXi F(nf, 3);
-    std::vector<_Point3> pts;
-    pts.reserve(nv);
+  // const auto bbox = _model.bounding_box_();
+  // const double bbox_diag = (bbox.second - bbox.first).length_();
+  // const double sigma = std::max(1e-12, kFeatureBandScale * bbox_diag);
+  // const double inv_two_sigma2 = 0.5 / (sigma * sigma);
 
-    for (int i = 0; i < nv; ++i) {
-      const auto &p = _model.vertex_(i);
-      V(i, 0) = p.x();
-      V(i, 1) = p.y();
-      V(i, 2) = p.z();
-      pts.push_back(p);
-    }
-    for (int fi = 0; fi < nf; ++fi) {
-      const auto &f = _model.face_(fi);
-      F(fi, 0) = f[0];
-      F(fi, 1) = f[1];
-      F(fi, 2) = f[2];
-    }
+  // _rho = [feature_segments, inv_two_sigma2, kBaseDensity,
+  //         kFeatureSparsityRatio](BGAL::_Point3 &p) -> double {
+  //   if (feature_segments->empty()) {
+  //     return kBaseDensity;
+  //   }
 
-    // -------------------------------------------------------------
-    // 基于面法向量夹角的特征检测
-    // 对每个顶点，计算其相邻面法向量之间的最大夹角
-    // 在特征边(棱边/角点)处，相邻面法向量变化剧烈，夹角大
-    // 在平坦区域，相邻面法向量几乎相同，夹角接近0
-    // -------------------------------------------------------------
+  //   double min_d2 = std::numeric_limits<double>::max();
+  //   for (const auto &seg : *feature_segments) {
+  //     const double d2 = squared_distance_point_to_segment(p, seg.a, seg.b);
+  //     if (d2 < min_d2) {
+  //       min_d2 = d2;
+  //     }
+  //   }
 
-    // 1. 计算每个面的法向量
-    std::vector<Eigen::Vector3d> face_normals(nf);
-    for (int fi = 0; fi < nf; ++fi) {
-      Eigen::Vector3d v0 = V.row(F(fi, 0));
-      Eigen::Vector3d v1 = V.row(F(fi, 1));
-      Eigen::Vector3d v2 = V.row(F(fi, 2));
-      Eigen::Vector3d n = (v1 - v0).cross(v2 - v0);
-      double len = n.norm();
-      if (len > 1e-15) n /= len;
-      face_normals[fi] = n;
-    }
+  //   const double w = std::exp(-min_d2 * inv_two_sigma2);
+  //   return kBaseDensity * (1.0 - (1.0 - kFeatureSparsityRatio) * w);
+  // };
 
-    // 2. 建立顶点到相邻面的映射
-    std::vector<std::vector<int>> vert_faces(nv);
-    for (int fi = 0; fi < nf; ++fi) {
-      vert_faces[F(fi, 0)].push_back(fi);
-      vert_faces[F(fi, 1)].push_back(fi);
-      vert_faces[F(fi, 2)].push_back(fi);
-    }
-
-    // 3. 对每个顶点，计算相邻面法向量之间的最大夹角
-    std::vector<double> max_angle(nv, 0.0);
-    for (int i = 0; i < nv; ++i) {
-      const auto &adj_faces = vert_faces[i];
-      for (int a = 0; a < (int)adj_faces.size(); ++a) {
-        for (int b = a + 1; b < (int)adj_faces.size(); ++b) {
-          double cos_val = face_normals[adj_faces[a]].dot(face_normals[adj_faces[b]]);
-          cos_val = std::max(-1.0, std::min(1.0, cos_val));
-          double angle = std::acos(cos_val); // [0, π]
-          if (angle > max_angle[i]) max_angle[i] = angle;
-        }
-      }
-    }
-
-    // 4. 构建密度场
-    // base_density: 平坦区域的基础密度
-    // feature_weight: 特征边密度倍数
-    // 阈值 angle_thresh: 小于此角度视为平坦
-    density_field->resize(nv);
-    double base_density = 1.0;
-    double feature_weight = 10.0; // [可调] 特征边比平坦区域密多少倍
-    double angle_thresh = 0.1;    // ~6度，低于此角度视为平坦
-
-    for (int i = 0; i < nv; ++i) {
-      double a = max_angle[i];
-      if (a < angle_thresh) a = 0.0;
-      // 用角度的平方，使特征区域与平坦区域区分更明显
-      double w = a / M_PI; // 归一化到 [0, 1]
-      (*density_field)[i] = base_density + feature_weight * (w * w);
-    }
-
-    kdtree = std::make_shared<_KDTree>(pts);
-  }
-
-  const double eps = _para.epsilon;
-  // 更新 lambda 函数，使用处理好的 density_field
-  _rho = std::function<double(BGAL::_Point3&)>([density_field, kdtree, eps](BGAL::_Point3 &p) {
-    const int vid = kdtree->search_(p);
-    if (vid < 0 || vid >= (int)density_field->size()) {
-      return eps; // Fallback
-    }
-    // 注意：这里返回的值直接作为 CVT 的密度权重
-    return (*density_field)[vid] + eps;
-  });
 }
+
 _CVT3D::_CVT3D(const _ManifoldModel &model,
                std::function<double(_Point3 &p)> &rho, _LBFGS::_Parameter para)
     : _model(model), _RVD(model), _RVD2(model), _rho(rho), _para(para) {}
+
 void _CVT3D::calculate_(int num_sites, char *modelNamee, char *pointsName) {
 
   double allTime = 0, RVDtime = 0;
@@ -388,11 +383,11 @@ void _CVT3D::calculate_(int num_sites, char *modelNamee, char *pointsName) {
   double Movement = 0.01;
   std::string inPointsName;
   namespace fs = std::filesystem;
-  fs::path obj("/home/yiming/research/CWF/data/block.obj");
+  fs::path obj("./data/block.obj");
   fs::path base = obj.parent_path();
   if (pointsName == nullptr) {
-    inPointsName = base / ("n" + std::to_string(num_sites) + "_" + modelname +
-                           "_inputPoints.xyz");
+    inPointsName = (base / ("n" + std::to_string(num_sites) + "_" + modelname +
+                           "_inputPoints.xyz")).string();
   } else {
     inPointsName = pointsName;
   }
@@ -400,12 +395,11 @@ void _CVT3D::calculate_(int num_sites, char *modelNamee, char *pointsName) {
   std::vector<Eigen::Vector3d> Pts, Nors;
 
   int count = 0;
-  double x, y, z, nx, ny, nz; // if xyz file has normal
+  double x, y, z, nx, ny, nz;
   while (inPoints >> x >> y >> z >> nx >> ny >> nz) {
     Pts.push_back(Eigen::Vector3d(x, y, z));
     Nors.push_back(
-        Eigen::Vector3d(nx, ny, nz)); // Nors here is useless, if do not have
-                                      // normal, just set it to (1,0,0)
+        Eigen::Vector3d(nx, ny, nz));
     ++count;
   }
   inPoints.close();
@@ -413,7 +407,6 @@ void _CVT3D::calculate_(int num_sites, char *modelNamee, char *pointsName) {
 
   if (pointsName != nullptr) {
     num_sites = static_cast<int>(Pts.size());
-    ;
   }
   // begin step 1.
   int num = Pts.size();
@@ -423,14 +416,24 @@ void _CVT3D::calculate_(int num_sites, char *modelNamee, char *pointsName) {
 
   int Fnum = 4;
   double alpha = 1.0, eplison = 1,
-         lambda = 0; // eplison is CVT weight,  lambda is qe weight.
-  double decay = 1;
+         lambda = 0.85;
+  double decay = 0.985;
+  const double quality_weight = 0.1;
+  const double feature_sharp_angle_deg = 30.0;
+  const double feature_band_scale = 0.03;
+  const auto feature_segments =
+      collect_feature_segments(_model, feature_sharp_angle_deg);
+  const auto bbox = _model.bounding_box_();
+  const double bbox_diag = (bbox.second - bbox.first).length_();
+  const double sigma = std::max(1e-12, feature_band_scale * bbox_diag);
+  const double inv_two_sigma2 = 0.5 / (sigma * sigma);
   std::vector<int> FaceIDs;
   FaceIDs.assign(num, -1);
   std::function<double(const Eigen::VectorXd &X, Eigen::VectorXd &g)> fgm2 =
       [&](const Eigen::VectorXd &X, Eigen::VectorXd &g) {
         eplison = eplison * decay;
         double lossCVT = 0, lossQE = 0, loss = 0;
+        double lossQuality = 0.0;
         double lossCenter = 0.0;
 
         startRVD = clock();
@@ -456,74 +459,85 @@ void _CVT3D::calculate_(int num_sites, char *modelNamee, char *pointsName) {
           N.normalize();
           Nors[i] = N;
           BGAL::_Point3 p(closest.x(), closest.y(), closest.z());
-          _sites[i] = p;
+          this->_sites[i] = p;
         }
-        _RVD.calculate_(_sites);
+        this->_RVD.calculate_(this->_sites);
         Fnum++;
         if (Fnum % 1 == 0) {
-          OutputMesh(_sites, _RVD, num_sites,
-                     std::filesystem::current_path() / "data" / "Block",
+          OutputMesh(this->_sites, this->_RVD, num_sites,
+                     (std::filesystem::current_path() / "data" / "Block").string(),
                      modelname, Fnum);
         }
         endRVD = clock();
         RVDtime += (double)(endRVD - startRVD) / CLOCKS_PER_SEC;
 
         const std::vector<std::vector<std::tuple<int, int, int>>> &cells =
-            _RVD.get_cells_();
+            this->_RVD.get_cells_();
         const std::vector<std::map<int, std::vector<std::pair<int, int>>>>
-            &edges = _RVD.get_edges_();
+            &edges = this->_RVD.get_edges_();
 
         double energy = 0.0;
         g.setZero();
         std::vector<Eigen::Vector3d> gi(num, Eigen::Vector3d::Zero());
+        std::vector<double> feature_weights(num, 1.0);
+        if (!feature_segments.empty()) {
+          for (int i = 0; i < num; ++i) {
+            const BGAL::_Point3 p = this->_sites[i];
+            double min_d2 = std::numeric_limits<double>::max();
+            for (const auto &seg : feature_segments) {
+              const double d2 = squared_distance_point_to_segment(p, seg.a, seg.b);
+              if (d2 < min_d2) {
+                min_d2 = d2;
+              }
+            }
+            const double w = 1.0 - std::exp(-min_d2 * inv_two_sigma2);
+            feature_weights[i] = w;
+          }
+        }
 
         omp_set_num_threads(30); // change to your CPU core numbers
 #pragma omp parallel for reduction(+ : lossCVT, loss, lossCenter)
         for (int i = 0; i < num; ++i) {
-          _Point3 site = _sites[i];
+          BGAL::_Point3 site = this->_sites[i];
           Eigen::Vector3d xi(site.x(), site.y(), site.z());
 
-          // ----------------------
-          // 积分与梯度（原逻辑不变）
-          // ----------------------
           for (int j = 0; j < (int)cells[i].size(); ++j) {
             auto [a, b, c] = cells[i][j];
-            _Point3 pa = _RVD.vertex_(a), pb = _RVD.vertex_(b),
-                    pc = _RVD.vertex_(c);
+            BGAL::_Point3 pa = this->_RVD.vertex_(a), pb = this->_RVD.vertex_(b),
+                    pc = this->_RVD.vertex_(c);
 
             Eigen::VectorXd inte = BGAL::_Integral::integral_triangle3D(
-                [&](BGAL::_Point3 p) {
+                [&, site](BGAL::_Point3 p) {
                   Eigen::VectorXd r(5);
 
                   BGAL::_Point3 NorTriM =
-                      (_RVD.vertex_(std::get<1>(cells[i][j])) -
-                       _RVD.vertex_(std::get<0>(cells[i][j])))
-                          .cross_(_RVD.vertex_(std::get<2>(cells[i][j])) -
-                                  _RVD.vertex_(std::get<0>(cells[i][j])));
+                      (pb - pa).cross_(pc - pa);
 
-                  // 确保真正归一化（若 normalized_
-                  // 为返回新向量的版本，可改为：NorTriM =
-                  // NorTriM.normalized_();）
                   NorTriM.normalized_();
 
-                  double rho_val = _rho(p);
+                  // ===========================================================
+                  // 【核心恢复】：完美地通过 this->_rho(p) 进行调用
+                  // 因为你在构造函数中已经对它进行了初始化，所以这里不再需要做判断
+                  // ===========================================================
+                  double rho_val = this->_rho(p);
+                  
                   r(0) = (eplison * rho_val *
-                          ((_sites[i] - p).sqlength_())); // CVT
-                  r(1) = lambda * (NorTriM.dot_(p - _sites[i])) *
-                             (NorTriM.dot_(p - _sites[i])) +
+                          ((site - p).sqlength_())); 
+                  r(1) = lambda * (NorTriM.dot_(p - site)) *
+                             (NorTriM.dot_(p - site)) +
                          eplison * rho_val *
-                             ((p - _sites[i])
-                                  .sqlength_()); // QE + CVT with density
+                             ((p - site)
+                                  .sqlength_()); 
 
                   r(2) = lambda * -2 * NorTriM.x() *
-                             (NorTriM.dot_(p - _sites[i])) +
-                         eplison * rho_val * -2 * (p - _sites[i]).x(); // gx
+                             (NorTriM.dot_(p - site))+
+                         eplison * rho_val * -2 * (p - site).x();
                   r(3) = lambda * -2 * NorTriM.y() *
-                             (NorTriM.dot_(p - _sites[i])) +
-                         eplison * rho_val * -2 * (p - _sites[i]).y(); // gy
+                             (NorTriM.dot_(p - site)) +
+                         eplison * rho_val * -2 * (p - site).y(); 
                   r(4) = lambda * -2 * NorTriM.z() *
-                             (NorTriM.dot_(p - _sites[i])) +
-                         eplison * rho_val * -2 * (p - _sites[i]).z(); // gz
+                             (NorTriM.dot_(p - site)) +
+                         eplison * rho_val * -2 * (p - site).z();
 
                   return r;
                 },
@@ -541,7 +555,7 @@ void _CVT3D::calculate_(int num_sites, char *modelNamee, char *pointsName) {
           // -----------------------------------------
           int best_vid = -1;
           double x = site.x(), y = site.y(),
-                 z = site.z(); // 默认回退为 site 本身
+                 z = site.z(); // 默认回退至 site 本身
 
           std::unordered_set<int> bnd;
           if (i < (int)edges.size()) {
@@ -558,58 +572,10 @@ void _CVT3D::calculate_(int num_sites, char *modelNamee, char *pointsName) {
 
           if (!bnd.empty()) {
             for (int vid : bnd) {
-              const auto &pv = _RVD.vertex_(vid);
+              BGAL::_Point3 pv = this->_RVD.vertex_(vid);
               boundary_pts.emplace_back(pv.x(), pv.y(), pv.z());
             }
           }
-          // auto consider_vid = [&](int vid) {
-          //     const auto& pv = _RVD.vertex_(vid);
-          //     const double dx = site.x() - pv.x();
-          //     const double dy = site.y() - pv.y();
-          //     const double dz = site.z() - pv.z();
-          //     const double d2 = dx*dx + dy*dy + dz*dz; // 用距离平方比较稳定
-          //     if (d2 > best_d2 || (d2 == best_d2 && vid < best_vid)) {
-          //         best_d2 = d2; best_vid = vid;
-          //         x = pv.x(); y = pv.y(); z = pv.z();
-          //     }
-          // };
-          //
-          // if (!bnd.empty())
-          // {
-          //  for (int vid : bnd) consider_vid(vid);
-          // }
-          // } else {
-          //     // 罕见兜底：边界集合缺失时，退回到 cell 的顶点集合（去重）
-          //     std::unordered_set<int> used;
-          //     used.reserve(cells[i].size()*3);
-          //     for (int j = 0; j < (int)cells[i].size(); ++j) {
-          //         int a,b,c; std::tie(a,b,c) = cells[i][j];
-          //         if (used.insert(a).second) consider_vid(a);
-          //         if (used.insert(b).second) consider_vid(b);
-          //         if (used.insert(c).second) consider_vid(c);
-          //     }
-          // }
-          // if (Fnum >= 37 && !boundary_pts.empty())
-          // {
-          // 	// 1. 计算当前 cell 边界点的最小外接球
-          // 	BGAL::MEBall B = BGAL::minimum_enclosing_ball(boundary_pts);
-          //
-          // 	// 2. 把最小外接球球心投影到原始三角网表面
-          // 	//    Point_T 就是你前面用来投影 site 的 CGAL 点类型
-          // 	Point_T bc_query(B.c.x(), B.c.y(), B.c.z());
-          // 	Point_T bc_proj  = tree.closest_point(bc_query);
-          //
-          // 	// 3. 能量：site 到这个"投影点"的距离平方
-          // 	double dx = site.x() - bc_proj.x();
-          // 	double dy = site.y() - bc_proj.y();
-          // 	double dz = site.z() - bc_proj.z();
-          // 	double Ei_center = dx*dx + dy*dy + dz*dz;
-          //
-          // 	// 4. 累加能量和梯度（把投影点当常量，和你之前对 B.c
-          // 的处理一致） 	lossCenter += eplison * Ei_center; gi[i].x()
-          // += 2.0 * eplison * dx; 	gi[i].y()  += 2.0 * eplison * dy;
-          // gi[i].z()  += 2.0 * eplison * dz;
-          // }
           BGAL::_Point3 farp = site;
           double best_d2 = -1.0;
           for (const auto &p : boundary_pts) {
@@ -627,29 +593,73 @@ void _CVT3D::calculate_(int num_sites, char *modelNamee, char *pointsName) {
 
         } // end omp for
 
+        if (quality_weight > 0.0) {
+          double sum_len = 0.0;
+          size_t edge_count = 0;
+          for (int i = 0; i < (int)edges.size(); ++i) {
+            for (const auto &kv : edges[i]) {
+              const int j = kv.first;
+              if (j <= i || j >= num) {
+                continue;
+              }
+              const BGAL::_Point3 pi = this->_sites[i];
+              const BGAL::_Point3 pj = this->_sites[j];
+              const Eigen::Vector3d d(pi.x() - pj.x(), pi.y() - pj.y(),
+                                      pi.z() - pj.z());
+              const double len = d.norm();
+              if (len > 1e-12) {
+                sum_len += len;
+                ++edge_count;
+              }
+            }
+          }
+          if (edge_count > 0) {
+            const double L_avg = sum_len / static_cast<double>(edge_count);
+            for (int i = 0; i < (int)edges.size(); ++i) {
+              for (const auto &kv : edges[i]) {
+                const int j = kv.first;
+                if (j <= i || j >= num) {
+                  continue;
+                }
+                const BGAL::_Point3 pi = this->_sites[i];
+                const BGAL::_Point3 pj = this->_sites[j];
+                const Eigen::Vector3d d(pi.x() - pj.x(), pi.y() - pj.y(),
+                                        pi.z() - pj.z());
+                const double len = d.norm();
+                if (len <= 1e-12) {
+                  continue;
+                }
+                const double wij =
+                    quality_weight * feature_weights[i] * feature_weights[j];
+                const double diff = len - L_avg;
+                lossQuality += wij * diff * diff;
+                const double scale = (2.0 * wij * diff) / len;
+                const Eigen::Vector3d grad = scale * d;
+                gi[i] += grad;
+                gi[j] -= grad;
+              }
+            }
+          }
+        }
+
         for (int i = 0; i < num; i++) {
           gi[i] = gi[i] - Nors[i] * (gi[i].dot(Nors[i]) / Nors[i].dot(Nors[i]));
           g(i * 3) += gi[i].x();
           g(i * 3 + 1) += gi[i].y();
           g(i * 3 + 2) += gi[i].z();
         }
-        energy += loss;
+        energy += loss + lossQuality;
 
         std::cout << std::setprecision(7) << "energy: " << energy
                   << " LossCVT: " << lossCVT / eplison
                   << " LossQE: " << (loss - lossCVT) / lambda
+                  << " LossQuality: " << lossQuality
                   << " Lambda_CVT: " << eplison << std::endl;
 
         namespace fs = std::filesystem;
         fs::path file =
             fs::absolute(fs::current_path() / "data" / "Block" /
-                         ("Sphere_6000_" + std::to_string(Fnum) + ".csv"));
-        // //fs::path file1 =
-        //     fs::absolute(fs::current_path() / "data" / "Block" / "Max_point" /
-        //                  ("MaxPoint_6000_" + std::to_string(Fnum) + ".xyz"));
-        std::cerr << "[io] cwd   = " << fs::current_path().string() << "\n";
-        std::cerr << "[io] write = " << file.string() << "\n";
-
+                         ("Sphere_8000_" + std::to_string(Fnum) + ".csv"));
         std::ofstream out(file, std::ios::out | std::ios::trunc);
         if (!out) {
           std::cerr << "[io] open failed, errno=" << errno << " ("
@@ -663,44 +673,7 @@ void _CVT3D::calculate_(int num_sites, char *modelNamee, char *pointsName) {
                 << "," << n.x() << "," << n.y() << "," << n.z() << "\n";
           }
           out.close();
-          if (!out.good())
-            std::cerr << "[io] write failed (badbit/failbit set)\n";
-          else
-            std::cerr << "[io] ok\n";
         }
-
-        // fs::path edge_dir = fs::current_path() / "data" / "Block" / "Edges";
-        // fs::create_directories(edge_dir);
-        // fs::path edge_obj = fs::absolute(
-        //     edge_dir / ("Center2Max_6000_" + std::to_string(Fnum) + ".obj"));
-        // std::cerr << "[io] write = " << edge_obj.string() << "\n";
-
-        // {
-        //   std::ofstream eout(edge_obj, std::ios::out | std::ios::trunc);
-        //   if (!eout) {
-        //     std::cerr << "[io] open failed (OBJ), errno=" << errno << " ("
-        //               << std::strerror(errno) << ")\n";
-        //   } else {
-        //     eout << std::setprecision(17);
-        //     for (int i = 0; i < (int)spheres.size(); ++i) {
-        //       eout << "v " << spheres[i].c.x() << " " << spheres[i].c.y() << " "
-        //            << spheres[i].c.z() << "\n";
-        //       eout << "v " << spheres[i].max_point.x() << " "
-        //            << spheres[i].max_point.y() << " "
-        //            << spheres[i].max_point.z() << "\n";
-        //     }
-        //     for (int i = 0; i < (int)spheres.size(); ++i) {
-        //       eout << "l " << (2 * i + 1) << " " << (2 * i + 2) << "\n";
-        //     }
-        //     eout.close();
-        //     if (!eout.good())
-        //       std::cerr << "[io] write failed (OBJ)\n";
-        //     else
-        //       std::cerr << "[io] ok (OBJ)\n";
-        //   }
-        // }
-
-        // ……(后续 coverage 采样代码保持不变，如需可继续保留)
         return energy;
       };
 
@@ -727,7 +700,6 @@ void _CVT3D::calculate_(int num_sites, char *modelNamee, char *pointsName) {
   std::cout << "allTime: " << allTime << " RVDtime: " << RVDtime
             << " L-BFGS time: " << allTime - RVDtime << std::endl;
   for (int i = 0; i < num; ++i) {
-    // Point_T query(x0[i * 3], x0[i * 3+1], x0[i * 3+2]);
     Point_T query(iterX2(i * 3), iterX2(i * 3 + 1), iterX2(i * 3 + 2));
     Point_T closest = tree.closest_point(query);
     auto tri = tree.closest_point_and_primitive(query);
@@ -753,339 +725,7 @@ void _CVT3D::calculate_(int num_sites, char *modelNamee, char *pointsName) {
   _RVD.calculate_(_sites);
 
   OutputMesh(_sites, _RVD, num_sites,
-             std::filesystem::current_path() / "data" / "Block", modelname, 2);
+             (std::filesystem::current_path() / "data" / "Block").string(), modelname, 2);
 
-  // // --- Calculate Displacement Statistics ---
-  // {
-  //   std::cout << "[INFO] Calculating displacement on feature edges vs faces..."
-  //             << std::endl;
-  //   std::vector<Segment> feature_edges;
-  //   double angle_threshold = 30.0 * 3.14159265358979323846 / 180.0;
-
-  //   // 1. Identify feature edges
-  //   int edge_idx = 0;
-  //   for (auto eb = polyhedron.edges_begin(); eb != polyhedron.edges_end();
-  //        ++eb) {
-  //     auto h = eb;
-  //     bool is_feature = false;
-  //     if (h->is_border() || h->opposite()->is_border()) {
-  //       is_feature = true;
-  //     } else {
-  //       auto p1 = h->vertex()->point();
-  //       auto p2 = h->opposite()->vertex()->point(); // The edge vertices
-  //       // Triangle 1: p1, p2, p3
-  //       auto p3 = h->next()->vertex()->point();
-  //       // Triangle 2: p2, p1, p4 (from opposite view)
-  //       auto p4 = h->opposite()->next()->vertex()->point();
-
-  //       auto v1 = p2 - p1;
-  //       auto v2 = p3 - p1;
-  //       auto n1 = CGAL::cross_product(v1, v2);
-  //       // Approximate normalization
-  //       double l1 = std::sqrt(n1.squared_length());
-  //       if (l1 > 1e-10)
-  //         n1 = n1 / l1;
-
-  //       auto v1_opp = p1 - p2;
-  //       auto v2_opp = p4 - p2;
-  //       auto n2 = CGAL::cross_product(v1_opp, v2_opp);
-  //       double l2 = std::sqrt(n2.squared_length());
-  //       if (l2 > 1e-10)
-  //         n2 = n2 / l2;
-
-  //       double dot = n1 * n2;
-  //       if (dot < -1.0)
-  //         dot = -1.0;
-  //       if (dot > 1.0)
-  //         dot = 1.0;
-  //       double angle = std::acos(dot);
-
-  //       if (angle > angle_threshold)
-  //         is_feature = true;
-  //     }
-
-  //     if (is_feature) {
-  //       feature_edges.emplace_back(h->vertex()->point(),
-  //                                  h->opposite()->vertex()->point());
-  //     }
-  //     edge_idx++;
-  //   }
-  //   std::cout << "[INFO] Identified " << feature_edges.size()
-  //             << " feature edges." << std::endl;
-
-  //   // 2. Compute stats with dynamic threshold & median
-
-  //   // Calculate Bounding Box of Pts to determine scale
-  //   double min_x = 1e30, min_y = 1e30, min_z = 1e30;
-  //   double max_x = -1e30, max_y = -1e30, max_z = -1e30;
-  //   for (const auto &p : Pts) {
-  //     if (p.x() < min_x)
-  //       min_x = p.x();
-  //     if (p.y() < min_y)
-  //       min_y = p.y();
-  //     if (p.z() < min_z)
-  //       min_z = p.z();
-  //     if (p.x() > max_x)
-  //       max_x = p.x();
-  //     if (p.y() > max_y)
-  //       max_y = p.y();
-  //     if (p.z() > max_z)
-  //       max_z = p.z();
-  //   }
-  //   double diag =
-  //       std::sqrt(std::pow(max_x - min_x, 2) + std::pow(max_y - min_y, 2) +
-  //                 std::pow(max_z - min_z, 2));
-  //   double dist_threshold = diag * 0.01; // 1% of diagonal
-  //   std::cout << "[INFO] BBox Diagonal: " << diag
-  //             << ", Using dist_threshold: " << dist_threshold << std::endl;
-
-  //   std::vector<double> disps_edge;
-  //   std::vector<double> disps_face;
-
-  //   // Assume Pts (initial) and _sites (final) are aligned
-  //   size_t n = _sites.size();
-  //   if (n > Pts.size())
-  //     n = Pts.size();
-
-  //   for (size_t i = 0; i < n; ++i) {
-  //     double dx = _sites[i].x() - Pts[i].x();
-  //     double dy = _sites[i].y() - Pts[i].y();
-  //     double dz = _sites[i].z() - Pts[i].z();
-  //     double disp = std::sqrt(dx * dx + dy * dy + dz * dz);
-
-  //     Point_T pt(_sites[i].x(), _sites[i].y(), _sites[i].z());
-  //     double min_dist_sq = 1e30;
-
-  //     // Brute force check distance to feature edges
-  //     for (const auto &seg : feature_edges) {
-  //       double d2 = CGAL::squared_distance(pt, seg);
-  //       if (d2 < min_dist_sq)
-  //         min_dist_sq = d2;
-  //     }
-
-  //     if (min_dist_sq < dist_threshold * dist_threshold) {
-  //       disps_edge.push_back(disp);
-  //     } else {
-  //       disps_face.push_back(disp);
-  //     }
-  //   }
-
-  //   auto compute_median = [](std::vector<double> &v) -> double {
-  //     if (v.empty())
-  //       return 0.0;
-  //     size_t n = v.size();
-  //     std::sort(v.begin(), v.end());
-  //     if (n % 2 == 0)
-  //       return (v[n / 2 - 1] + v[n / 2]) / 2.0;
-  //     return v[n / 2];
-  //   };
-
-  //   auto compute_sum = [](const std::vector<double> &v) -> double {
-  //     double s = 0;
-  //     for (double d : v)
-  //       s += d;
-  //     return s;
-  //   };
-
-  //   double median_edge = compute_median(disps_edge);
-  //   double sum_edge = compute_sum(disps_edge);
-  //   double mean_edge = disps_edge.empty() ? 0.0 : sum_edge / disps_edge.size();
-
-  //   double median_face = compute_median(disps_face);
-  //   double sum_face = compute_sum(disps_face);
-  //   double mean_face = disps_face.empty() ? 0.0 : sum_face / disps_face.size();
-
-  //   std::cout << "Feature Edge Sites: " << disps_edge.size()
-  //             << " | Mean: " << mean_edge << " | Median: " << median_edge
-  //             << " | Total: " << sum_edge << std::endl;
-
-  //   // ... (existing logging code) ...
-  //   std::cout << "Face Sites: " << disps_face.size() << " | Mean: " << mean_face
-  //             << " | Median: " << median_face << " | Total: " << sum_face
-  //             << std::endl;
-
-  //   // --- Export Statistics to CSV ---
-  //   namespace fs = std::filesystem;
-  //   fs::path base_path = fs::current_path() / "data" / "Mobius";
-
-  //   // 1. Export Feature Edge Displacements
-  //   {
-  //     fs::path csv_path =
-  //         base_path / ("Displacement_FeatureEdges_" +
-  //                      std::to_string(num_sites) + "_" + modelname + ".csv");
-  //     std::ofstream out_edge(csv_path);
-  //     if (out_edge.is_open()) {
-  //       out_edge << "Displacement\n";
-  //       for (double d : disps_edge) {
-  //         out_edge << d << "\n";
-  //       }
-  //       out_edge.close();
-  //       std::cout << "[INFO] Written feature edge displacements to " << csv_path
-  //                 << std::endl;
-  //     } else {
-  //       std::cerr << "[ERROR] Failed to open " << csv_path << " for writing."
-  //                 << std::endl;
-  //     }
-  //   }
-
-  //   // 2. Export Face Displacements
-  //   {
-  //     fs::path csv_path =
-  //         base_path / ("Displacement_Faces_" + std::to_string(num_sites) + "_" +
-  //                      modelname + ".csv");
-  //     std::ofstream out_face(csv_path);
-  //     if (out_face.is_open()) {
-  //       out_face << "Displacement\n";
-  //       for (double d : disps_face) {
-  //         out_face << d << "\n";
-  //       }
-  //       out_face.close();
-  //       std::cout << "[INFO] Written face displacements to " << csv_path
-  //                 << std::endl;
-  //     } else {
-  //       std::cerr << "[ERROR] Failed to open " << csv_path << " for writing."
-  //                 << std::endl;
-  //     }
-  //   }
-  // } // end block
-
-  // // --- Power Diagram Partitioning (Added) ---
-  // {
-  //   std::cout << "\n[INFO] Starting Power Diagram Partitioning..." << std::endl;
-  //   namespace fs = std::filesystem;
-  //   fs::path base_path = fs::current_path() / "data" / "Mobius";
-
-  //   std::vector<double> all_displacements;
-  //   all_displacements.reserve(_sites.size());
-
-  //   // 1. Calculate all displacements
-  //   size_t n = _sites.size();
-  //   if (n > Pts.size())
-  //     n = Pts.size(); // Safety check
-
-  //   for (size_t i = 0; i < n; ++i) {
-  //     double dx = _sites[i].x() - Pts[i].x();
-  //     double dy = _sites[i].y() - Pts[i].y();
-  //     double dz = _sites[i].z() - Pts[i].z();
-  //     double disp = (dx * dx + dy * dy + dz * dz);
-  //     all_displacements.push_back(disp);
-  //   }
-
-  //   // 2. Compute Box Plot Statistics
-  //   std::vector<double> sorted_disp = all_displacements;
-  //   std::sort(sorted_disp.begin(), sorted_disp.end());
-
-  //   double Q1 = 0, Q3 = 0;
-  //   if (!sorted_disp.empty()) {
-  //     Q1 = sorted_disp[sorted_disp.size() / 4];
-  //     Q3 = sorted_disp[sorted_disp.size() * 3 / 4];
-  //   }
-  //   double IQR = Q3 - Q1;
-  //   double UpperFence = Q3 + 1.5 * IQR;
-
-  //   std::cout << "[INFO] Stats - Q1: " << Q1 << ", Q3: " << Q3
-  //             << ", IQR: " << IQR << ", Upper Fence: " << UpperFence
-  //             << std::endl;
-
-  //   // 3. Clamp Weights (Disabled per user request, using squared distance
-  //   // directly)
-  //   std::vector<double> weights;
-  //   weights.reserve(n);
-  //   for (double d_sq : all_displacements) {
-  //     // 'd_sq' is squared displacement
-  //     double d_linear = std::sqrt(d_sq);
-
-  //     // Apply thresholds
-  //     if (d_linear > 0.68) {
-  //       d_linear = 0.68;
-  //     }
-  //     if (d_linear < 0.003) {
-  //       d_linear = 0.0;
-  //     }
-
-  //     // Weight is squared clamped distance
-  //     double w = d_linear * d_linear;
-  //     weights.push_back(w);
-  //   }
-
-  //   // 4. Generate Power Diagram
-  //   _RVD.calculate_(_sites, weights);
-
-  //   // 5. Output
-  //   OutputMesh(_sites, _RVD, num_sites, base_path, modelname, 2500);
-
-  //   std::cout
-  //       << "[INFO] Power Diagram generation complete. Output with index 2500."
-  //       << std::endl;
-
-  //   // 6. Calculate Site-Centered Max-Radius Sphere for each cell
-  //   std::cout
-  //       << "[INFO] Calculating Site-Centered Max-Radius Spheres using Edges..."
-  //       << std::endl;
-  //   std::vector<Sphere::Sphere> meb_spheres;
-  //   const std::vector<std::map<int, std::vector<std::pair<int, int>>>> &edges =
-  //       _RVD.get_edges_();
-
-  //   // Resize to match number of sites
-  //   meb_spheres.resize(n);
-
-  //   for (int i = 0; i < (int)n; ++i) {
-  //     double max_dist_sq = 0.0;
-  //     bool has_vertices = false;
-
-  //     // Check if site i has valid edges
-  //     if (i < edges.size()) {
-  //       // Iterate over all neighbors (adjacent sites or -1 for boundary)
-  //       for (auto const &[neighbor_id, edge_segments] : edges[i]) {
-  //         // Iterate over segments of the edge between i and neighbor
-  //         for (auto const &seg : edge_segments) {
-  //           // seg.first and seg.second are indices into _RVD.vertex_()
-  //           int v_idx1 = seg.first;
-  //           int v_idx2 = seg.second;
-
-  //           // Check vertex 1
-  //           BGAL::_Point3 v1 = _RVD.vertex_(v_idx1);
-  //           double d2_1 = (v1 - _sites[i]).sqlength_();
-  //           if (d2_1 > max_dist_sq)
-  //             max_dist_sq = d2_1;
-
-  //           // Check vertex 2
-  //           BGAL::_Point3 v2 = _RVD.vertex_(v_idx2);
-  //           double d2_2 = (v2 - _sites[i]).sqlength_();
-  //           if (d2_2 > max_dist_sq)
-  //             max_dist_sq = d2_2;
-
-  //           has_vertices = true;
-  //         }
-  //       }
-  //     }
-
-  //     meb_spheres[i].c = decltype(meb_spheres[i].c)(
-  //         _sites[i].x(), _sites[i].y(), _sites[i].z());
-
-  //     if (!has_vertices) {
-  //       meb_spheres[i].r = 0;
-  //     } else {
-  //       meb_spheres[i].r = std::sqrt(max_dist_sq);
-  //     }
-  //   }
-
-  //   // 7. Output MEB to CSV
-  //   fs::path meb_csv = base_path / ("MEB_PowerDiagram_2500.csv");
-  //   std::ofstream out_meb(meb_csv);
-  //   if (out_meb.is_open()) {
-  //     out_meb << std::setprecision(17);
-  //     for (int i = 0; i < (int)n; ++i) {
-  //       // Format: cx,cy,cz,r,FaceID,nx,ny,nz
-  //       Eigen::Vector3d nor = Nors[i].normalized();
-  //       out_meb << meb_spheres[i].c.x() << "," << meb_spheres[i].c.y() << ","
-  //               << meb_spheres[i].c.z() << "," << meb_spheres[i].r << ","
-  //               << FaceIDs[i] << "," << nor.x() << "," << nor.y() << ","
-  //               << nor.z() << "\n";
-  //     }
-  //     out_meb.close();
-  //     std::cout << "[INFO] Written MEB to " << meb_csv << std::endl;
-  //   }
-  // }
 }
 } // namespace BGAL
