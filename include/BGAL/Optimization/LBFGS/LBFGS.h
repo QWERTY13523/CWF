@@ -122,6 +122,14 @@ namespace BGAL
       }
       l += num_linear;
       k++;
+      if (gradient.norm() < _parameter.epsilon)
+      {
+        if (_parameter.is_show)
+        {
+          std::cout << "reach the gradient tolerance" << std::endl;
+        }
+        return k;
+      }
       if (_parameter.is_show)
       {
         std::cout << k << "\t" << l << "\t" << (clock() - start_t) * 1.0 / CLOCKS_PER_SEC << "\t" << gradient.norm()
@@ -234,6 +242,14 @@ namespace BGAL
           }
           l += num_linear;
           k++;
+          if (gradient.norm() < _parameter.epsilon)
+          {
+              if (_parameter.is_show)
+              {
+                  std::cout << "reach the gradient tolerance" << std::endl;
+              }
+              return k;
+          }
           if (_parameter.is_show)
           {
               std::cout << k << "\t" << l << "\t" << (clock() - start_t) * 1.0 / CLOCKS_PER_SEC << "\t" << gradient.norm()

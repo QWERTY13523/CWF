@@ -96,20 +96,28 @@ def main():
         return 1
 
     min_angle = min(angles)
+    max_angle = max(angles)
     avg_angle = sum(angles) / len(angles)
     min_aspect = min(aspects) if aspects else float("inf")
     max_aspect = max(aspects) if aspects else float("inf")
     avg_aspect = sum(aspects) / len(aspects) if aspects else float("inf")
+    p95_aspect = float("inf")
+    if aspects:
+        aspects_sorted = sorted(aspects)
+        idx = int(0.95 * (len(aspects_sorted) - 1))
+        p95_aspect = aspects_sorted[idx]
 
     print("Mesh quality report")
     print(f"  Triangles: {len(faces)}")
     print(f"  Skipped:   {skipped}")
     print(f"  Min angle: {min_angle:.3f} deg")
+    print(f"  Max angle: {max_angle:.3f} deg")
     print(f"  Avg angle: {avg_angle:.3f} deg")
     print(
         "  Aspect ratio (max edge / min edge): "
         f"min {min_aspect:.3f}, avg {avg_aspect:.3f}, max {max_aspect:.3f}"
     )
+    print(f"  Aspect ratio p95: {p95_aspect:.3f}")
     return 0
 
 
