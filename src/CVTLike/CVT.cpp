@@ -147,7 +147,7 @@ static inline std::vector<FeatureSegment> collect_feature_segments(
 }
 
 // ============================
-// 数值稳定 softplus/sigmoid
+// 数值稳定 softplus/sigmoid (保留以备其他地方使用)
 // ============================
 static inline double stable_sigmoid(double x) {
   if (x >= 0.0) {
@@ -160,7 +160,6 @@ static inline double stable_sigmoid(double x) {
 }
 
 static inline double stable_softplus(double x) {
-  // log(1+exp(x))
   if (x > 50.0) return x;
   if (x < -50.0) return std::exp(x);
   return std::log1p(std::exp(x));
@@ -208,13 +207,85 @@ static inline bool intersect_three_spheres(
   return true;
 }
 
-// 用 64-bit key 去重三角形（假设点数 < 2^21 ~ 2M）
-static inline uint64_t tri_key_sorted(int a, int b, int c) {
-  int x=a,y=b,z=c;
-  if (x>y) std::swap(x,y);
-  if (y>z) std::swap(y,z);
-  if (x>y) std::swap(x,y);
-  return ( (uint64_t)x << 42 ) | ( (uint64_t)y << 21 ) | (uint64_t)z;
+static inline void build_spheres_from_rvd(
+    const std::vector<BGAL::_Point3> &sites,
+    const BGAL::_Restricted_Tessellation3D &rvd,
+    std::vector<Sphere::Sphere> &spheres) {
+  const auto &edges = rvd.get_edges_();
+  spheres.assign(sites.size(), Sphere::Sphere());
+  for (int i = 0; i < (int)sites.size(); ++i) {
+    const BGAL::_Point3 site = sites[i];
+    std::unordered_set<int> bnd;
+    if (i < (int)edges.size()) {
+      for (const auto &kv : edges[i]) {
+        for (const auto &e : kv.second) {
+          bnd.insert(e.first);
+          bnd.insert(e.second);
+        }
+      }
+    }
+
+    BGAL::_Point3 farp = site;
+    double best_dist = 0.0;
+    for (int vid : bnd) {
+      const BGAL::_Point3 pv = rvd.vertex_(vid);
+      const double dist = (pv - site).length_();
+      if (dist > best_dist) {
+        best_dist = dist;
+        farp = pv;
+      }
+    }
+
+    spheres[i].c = decltype(spheres[i].c)(site.x(), site.y(), site.z());
+    spheres[i].r = best_dist;
+    spheres[i].max_point =
+        decltype(spheres[i].max_point)(farp.x(), farp.y(), farp.z());
+  }
+}
+
+static inline std::vector<Eigen::Vector3i> build_rdt_faces_from_edges(
+    int num_sites,
+    const std::vector<std::map<int, std::vector<std::pair<int, int>>>> &edges) {
+  std::set<std::pair<int, int>> rdt_edges;
+  std::vector<std::set<int>> neighbors(num_sites);
+
+  for (int i = 0; i < (int)edges.size(); ++i) {
+    for (const auto &ee : edges[i]) {
+      const int j = ee.first;
+      if (j < 0 || j >= num_sites || j == i) continue;
+      rdt_edges.insert(std::make_pair(std::min(i, j), std::max(i, j)));
+      neighbors[i].insert(j);
+      neighbors[j].insert(i);
+    }
+  }
+
+  std::set<MyFace> rdt_faces;
+  for (const auto &e : rdt_edges) {
+    for (int pid : neighbors[e.first]) {
+      if (rdt_edges.find(std::make_pair(std::min(pid, e.first),
+                                        std::max(pid, e.first))) ==
+          rdt_edges.end()) {
+        continue;
+      }
+      if (rdt_edges.find(std::make_pair(std::min(pid, e.second),
+                                        std::max(pid, e.second))) ==
+          rdt_edges.end()) {
+        continue;
+      }
+
+      const int hi = std::max(pid, std::max(e.first, e.second));
+      const int lo = std::min(pid, std::min(e.first, e.second));
+      const int mid = pid + e.first + e.second - hi - lo;
+      rdt_faces.insert(MyFace(hi, mid, lo));
+    }
+  }
+
+  std::vector<Eigen::Vector3i> tris;
+  tris.reserve(rdt_faces.size());
+  for (const auto &f : rdt_faces) {
+    tris.emplace_back(f.p.x(), f.p.y(), f.p.z());
+  }
+  return tris;
 }
 } // namespace
 
@@ -298,62 +369,19 @@ void OutputMesh(std::vector<_Point3> &sites, _Restricted_Tessellation3D RVD,
     std::ofstream outRDT(filepath);
     std::ofstream outRDT1(filepath1);
 
-    auto Vs = sites;
-    auto Edges = RVD.get_edges_();
-    std::set<std::pair<int, int>> RDT_Edges;
-    std::vector<std::set<int>> neibors;
-    neibors.resize(Vs.size());
+    const auto rdt_faces =
+        build_rdt_faces_from_edges((int)sites.size(), RVD.get_edges_());
 
-    for (int i = 0; i < (int)Edges.size(); i++) {
-      for (const auto ee : Edges[i]) {
-        RDT_Edges.insert(
-            std::make_pair(std::min(i, ee.first), std::max(i, ee.first)));
-        neibors[i].insert(ee.first);
-        neibors[ee.first].insert(i);
-      }
-    }
-
-    for (auto v : Vs) {
+    for (auto v : sites) {
       outRDT << "v " << v << std::endl;
       outRDT1 << "v " << v << std::endl;
     }
 
-    std::set<MyFace> rdtFaces;
-    for (auto e : RDT_Edges) {
-      for (int pid : neibors[e.first]) {
-        if (RDT_Edges.find(std::make_pair(std::min(pid, e.first),
-                                          std::max(pid, e.first))) !=
-            RDT_Edges.end()) {
-          if (RDT_Edges.find(std::make_pair(std::min(pid, e.second),
-                                            std::max(pid, e.second))) !=
-              RDT_Edges.end()) {
-            int f1 = pid, f2 = e.first, f3 = e.second;
-
-            int mid;
-            if (f1 != std::max(f1, std::max(f2, f3)) &&
-                f1 != std::min(f1, std::min(f2, f3))) {
-              mid = f1;
-            }
-            if (f2 != std::max(f1, std::max(f2, f3)) &&
-                f2 != std::min(f1, std::min(f2, f3))) {
-              mid = f2;
-            }
-            if (f3 != std::max(f1, std::max(f2, f3)) &&
-                f3 != std::min(f1, std::min(f2, f3))) {
-              mid = f3;
-            }
-            rdtFaces.insert(MyFace(std::max(f1, std::max(f2, f3)), mid,
-                                   std::min(f1, std::min(f2, f3))));
-          }
-        }
-      }
-    }
-
-    for (auto f : rdtFaces) {
-      outRDT << "f " << f.p.x() + 1 << " " << f.p.y() + 1 << " "
-             << f.p.z() + 1 << std::endl;
-      outRDT1 << "f " << f.p.x() + 1 << " " << f.p.y() + 1 << " "
-              << f.p.z() + 1 << std::endl;
+    for (const auto &f : rdt_faces) {
+      outRDT << "f " << f.x() + 1 << " " << f.y() + 1 << " "
+             << f.z() + 1 << std::endl;
+      outRDT1 << "f " << f.x() + 1 << " " << f.y() + 1 << " "
+              << f.z() + 1 << std::endl;
     }
     outRDT.close();
     outRDT1.close();
@@ -381,7 +409,7 @@ _CVT3D::_CVT3D(const _ManifoldModel &model)
   const double sigma = std::max(1e-12, kFeatureBandScale * bbox_diag);
   const double inv_two_sigma2 = 0.5 / (sigma * sigma);
 
-  _rho = [feature_segments, inv_two_sigma2, kBaseDensity,
+  _rho =[feature_segments, inv_two_sigma2, kBaseDensity,
           kFeatureSparsityRatio](BGAL::_Point3 &p) -> double {
     if (feature_segments->empty()) return kBaseDensity;
 
@@ -454,27 +482,25 @@ void _CVT3D::calculate_(int num_sites, char *modelNamee, char *pointsName) {
   // ======= 参数（你可以调）=======
   int Fnum = 4;
   double alpha = 1.0, eplison = 1.0, lambda = 1.0;
-  double decay = 0.965;
+  double decay = 0.95;
 
   // 覆盖惩罚项参数（核心新增）
   const auto bbox = _model.bounding_box_();
   const double bbox_diag = (bbox.second - bbox.first).length_();
-  const double cover_weight = 0.15;          // μ：覆盖惩罚强度（建议 0.05~1 试）
+  const double cover_weight = 0.15;          // μ：覆盖惩罚强度（若 v^3 惩罚不够，可适当调大至 1.0~100.0）
   const double cover_margin = 0.0;           // margin：留点余量避免擦边抖动
-  const double cover_beta   = std::max(1e-12, 1e-3 * bbox_diag); // softplus 平滑尺度
+  const double cover_beta   = std::max(1e-12, 1e-3 * bbox_diag); 
   const double cover_damp   = 1e-10;         // 解 J^T y = dE/ds 的阻尼
-  const int cover_neighbor_ring = 2;         // 第四球候选范围：从 1-ring 略微放宽到 2-ring
+  const double cover_violation_tolerance = 1e-6;
+  const int cover_neighbor_ring = 1;         // 第四球候选范围：从 1-ring 略微放宽到 2-ring
   const bool cover_global_fallback = true;   // 局部候选没命中时，退化到全局第四球检查
-  const int cover_start_iter = 55;
+  const int cvt_qem_warmup_iterations = 50;
 
   std::vector<int> FaceIDs(num, -1);
-  int eval_count = 0;
+  bool suppress_intermediate_output = false;
 
   std::function<double(const Eigen::VectorXd &X, Eigen::VectorXd &g)> fgm2 =
       [&](const Eigen::VectorXd &X, Eigen::VectorXd &g) {
-        ++eval_count;
-        const bool enable_cover = (eval_count > cover_start_iter);
-
         eplison = eplison * decay;
         double lossCVT = 0, loss = 0;
         double lossCover = 0;
@@ -510,8 +536,8 @@ void _CVT3D::calculate_(int num_sites, char *modelNamee, char *pointsName) {
         // 2) RVD
         this->_RVD.calculate_(this->_sites);
 
-        Fnum++;
-        if (Fnum % 1 == 0) {
+        if (!suppress_intermediate_output) {
+          Fnum++;
           OutputMesh(this->_sites, this->_RVD, num_sites,
                      (std::filesystem::current_path() / "data" / "Block").string(),
                      modelname, Fnum);
@@ -529,7 +555,6 @@ void _CVT3D::calculate_(int num_sites, char *modelNamee, char *pointsName) {
         std::vector<Eigen::Vector3d> gi(num, Eigen::Vector3d::Zero());
 
         // 3) CVT + QE 主项（原逻辑）
-        //    注意：你这里把 rho 固定成 rho(site)，不是 rho(p)，我保持你的写法不动
         omp_set_num_threads(128);
 #pragma omp parallel for reduction(+ : lossCVT, loss)
         for (int i = 0; i < num; ++i) {
@@ -548,7 +573,7 @@ void _CVT3D::calculate_(int num_sites, char *modelNamee, char *pointsName) {
                   NorTriM.normalized_();
 
                   r(0) = (eplison * rho_val * ((site - p).sqlength_()));
-                  r(1) = lambda * (NorTriM.dot_(p - site)) * (NorTriM.dot_(p - site)) +
+                  r(1) = lambda * (NorTriM.dot_(p - site)) * (NorTriM.dot_(p - site))+
                          eplison * rho_val * ((p - site).sqlength_());
 
                   r(2) = lambda * -2 * NorTriM.x() * (NorTriM.dot_(p - site)) +
@@ -605,47 +630,23 @@ void _CVT3D::calculate_(int num_sites, char *modelNamee, char *pointsName) {
         // ============================================================
         // 5) 新增：覆盖约束 E_cover（严格：对三球交点做隐式微分传梯度）
         // ============================================================
-        if (enable_cover && cover_weight > 0.0) {
+        // 注意：如果你想在主优化中开启它，请把这里的 false && 删掉
+        if (false && cover_weight > 0.0) {
           // 5.1 建邻接（RDT 图）
           std::vector<std::vector<int>> nbr(num);
-          std::vector<std::unordered_set<int>> nbr_set(num);
+          double maxCoverViolation = 0.0;
+          int invalidSeedCount = 0;
           for (int i = 0; i < (int)edges.size(); ++i) {
             nbr[i].reserve(edges[i].size());
-            nbr_set[i].reserve(edges[i].size() * 2 + 8);
             for (const auto &kv : edges[i]) {
               int j = kv.first;
               if (j < 0 || j >= num || j == i) continue;
               nbr[i].push_back(j);
-              nbr_set[i].insert(j);
             }
           }
 
-          // 5.2 枚举三角形（i<j<k）并去重
-          std::vector<Eigen::Vector3i> rdt_tris;
-          rdt_tris.reserve(num * 4);
-
-          std::unordered_set<uint64_t> tri_seen;
-          tri_seen.reserve(num * 8);
-
-          for (int i = 0; i < num; ++i) {
-            auto &ni = nbr[i];
-            // 为了更好控制唯一性，做一个排序（可选）
-            std::sort(ni.begin(), ni.end());
-            for (int idxj = 0; idxj < (int)ni.size(); ++idxj) {
-              int j = ni[idxj];
-              if (j <= i) continue;
-              for (int idxk = idxj + 1; idxk < (int)ni.size(); ++idxk) {
-                int k = ni[idxk];
-                if (k <= j) continue;
-                if (nbr_set[j].find(k) == nbr_set[j].end()) continue;
-
-                uint64_t key = tri_key_sorted(i, j, k);
-                if (tri_seen.insert(key).second) {
-                  rdt_tris.emplace_back(i, j, k);
-                }
-              }
-            }
-          }
+          const std::vector<Eigen::Vector3i> rdt_tris =
+              build_rdt_faces_from_edges(num, edges);
 
           // 5.3 预取中心和半径（半径在本次评估里当常量）
           std::vector<Eigen::Vector3d> C(num);
@@ -662,17 +663,16 @@ void _CVT3D::calculate_(int num_sites, char *modelNamee, char *pointsName) {
 
             Eigen::Vector3d s1, s2;
             if (!intersect_three_spheres(C[i], R[i], C[j], R[j], C[k], R[k], s1, s2)) {
-              // 这里你若想把“必须形成种子点(约束1)”也软化，可以在这里加惩罚
               continue;
             }
 
             // 两个解都检查
             Eigen::Vector3d seeds[2] = {s1, s2};
 
-            for (int si = 0; si < 2; ++si) {
+           for (int si = 0; si < 2; ++si) {
               const Eigen::Vector3d s = seeds[si];
 
-              // 候选第四球：默认 1-ring，这里额外并入一层 2-ring 以减少漏检
+              // 候选第四球：默认 1-ring，额外并入一层 2-ring
               std::unordered_set<int> cand;
               cand.reserve((nbr[i].size() + nbr[j].size() + nbr[k].size()) *
                            cover_neighbor_ring * 2 + 8);
@@ -693,57 +693,58 @@ void _CVT3D::calculate_(int num_sites, char *modelNamee, char *pointsName) {
               add_candidate_ring(k);
               cand.erase(i); cand.erase(j); cand.erase(k);
 
-              int best_l = -1;
-              double best_v = 0.0; // v = (r_l - margin) - dist
-              auto try_update_best = [&](int l) {
-                if (l < 0 || l >= num) return;
-                if (l == i || l == j || l == k) return;
-                if (R[l] <= 0) return;
-                double dist = (s - C[l]).norm();
+              double best_v_for_tracking = 0.0; 
+              bool has_violation = false;
+              Eigen::Vector3d seed_grad_s = Eigen::Vector3d::Zero();
+
+              // 定义一个 Lambda 来评估并累加所有候选球的能量（使用 v^3 保证平滑截断）
+              auto eval_and_accumulate = [&](int l) {
+                if (l < 0 || l >= num || l == i || l == j || l == k || R[l] <= 0) return;
+                Eigen::Vector3d d = (s - C[l]);
+                double dist = d.norm();
                 if (dist < 1e-12) return;
 
                 double v = (R[l] - cover_margin) - dist;
-                if (v > best_v) {
-                  best_v = v;
-                  best_l = l;
+                best_v_for_tracking = std::max(best_v_for_tracking, v);
+
+                // 严格判定：只有真正进入第四个球内部才产生能量和梯度！
+                if (v > 0.0) {
+                  has_violation = true;
+                  
+                  // 使用 v^3 保证 v=0 处能量为0且二阶导连续
+                  double v2 = v * v;
+                  double v3 = v2 * v;
+                  double dE_dv = 3.0 * cover_weight * v2; 
+                  
+                  lossCover += cover_weight * v3;
+
+                  Eigen::Vector3d dir = d / dist;
+                  // 累加到交点 s 的总梯度上
+                  seed_grad_s += -dE_dv * dir;
+                  // 直接项：对第四球中心 c_l 的梯度
+                  gi[l] += (+dE_dv) * dir;
                 }
               };
+
+              // 遍历所有候选并累加
               for (int l : cand) {
-                try_update_best(l);
+                eval_and_accumulate(l);
               }
-              if (cover_global_fallback && best_v <= 0.0) {
+
+              // 全局 Fallback
+              if (cover_global_fallback && !has_violation) {
                 for (int l = 0; l < num; ++l) {
-                  try_update_best(l);
+                  eval_and_accumulate(l);
                 }
               }
 
-              if (best_l < 0 || best_v <= 0.0) continue;
+              // 如果没有任何球产生惩罚，直接跳过隐式微分
+              if (!has_violation) continue;
 
-              // ---- softplus barrier: E = μ * (β log(1+exp(v/β)))^2 ----
-              double tval = best_v / cover_beta;
-              double sp = cover_beta * stable_softplus(tval);
-              double sig = stable_sigmoid(tval); // d/dv softplus(v/β) = sigmoid(v/β)/β; 乘回 cover_beta 后就是 sigmoid(v/β)
-              double dE_dv = 2.0 * cover_weight * sp * sig; // dE/dv
-              lossCover += cover_weight * sp * sp;
+              ++invalidSeedCount;
+              maxCoverViolation = std::max(maxCoverViolation, best_v_for_tracking);
 
-              // v = (r_l - margin) - ||s-c_l||
-              // dv/ds = -(s-c_l)/dist
-              Eigen::Vector3d d = (s - C[best_l]);
-              double dist = d.norm();
-              if (dist < 1e-12) continue;
-              Eigen::Vector3d dir = d / dist;
-
-              // dE/ds
-              Eigen::Vector3d grad_s = -dE_dv * dir;
-
-              // 直接项：对第四球中心 c_l 的梯度
-              // dv/dc_l = +(s-c_l)/dist = dir
-              gi[best_l] += (+dE_dv) * dir;
-
-              // --------- 隐式微分回传到 (c_i,c_j,c_k) ----------
-              // F1 = ||s-ci||^2 - ri^2, ...
-              // J = dF/ds, row1 = 2(s-ci)^T, row2 = 2(s-cj)^T, row3 = 2(s-ck)^T
-              // Solve J^T y = dE/ds
+              // --------- 修正后的隐式微分回传到 (c_i,c_j,c_k) ----------
               Eigen::Vector3d di = (s - C[i]);
               Eigen::Vector3d dj = (s - C[j]);
               Eigen::Vector3d dk = (s - C[k]);
@@ -753,12 +754,15 @@ void _CVT3D::calculate_(int num_sites, char *modelNamee, char *pointsName) {
               JT.col(1) = 2.0 * dj;
               JT.col(2) = 2.0 * dk;
 
-              // 阻尼避免奇异
-              JT(0,0) += cover_damp;
-              JT(1,1) += cover_damp;
-              JT(2,2) += cover_damp;
+              // 【关键修复】：正确的 Tikhonov 正则化求解 (J * J^T + damp * I) y = J * g_s
+              Eigen::Matrix3d J = JT.transpose();
+              Eigen::Matrix3d JJT = J * JT; 
+              
+              // 阻尼加在 J*J^T 的对角线上，这保证了梯度的方向不会被扭曲！
+              JJT.diagonal().array() += cover_damp; 
 
-              Eigen::Vector3d yvec = JT.colPivHouseholderQr().solve(grad_s);
+              // 求解 yvec
+              Eigen::Vector3d yvec = JJT.ldlt().solve(J * seed_grad_s);
 
               // dE/dci = 2(s-ci)*y1, dE/dcj = 2(s-cj)*y2, dE/dck = 2(s-ck)*y3
               gi[i] += 2.0 * di * yvec(0);
@@ -787,26 +791,255 @@ void _CVT3D::calculate_(int num_sites, char *modelNamee, char *pointsName) {
                   << std::endl;
 
         // dump sphere info（你原来就有）
-        namespace fs = std::filesystem;
-        fs::path file =
-            fs::absolute(fs::current_path() / "data" / "Block" /
-                         ("Sphere_8000_" + std::to_string(Fnum) + ".csv"));
-        std::ofstream out(file, std::ios::out | std::ios::trunc);
-        if (!out) {
-          std::cerr << "[io] open failed, errno=" << errno << " ("
-                    << std::strerror(errno) << ")\n";
-        } else {
-          out << std::setprecision(17);
-          for (int i = 0; i < (int)spheres.size(); ++i) {
-            Eigen::Vector3d n = Nors[i].normalized();
-            out << spheres[i].c.x() << "," << spheres[i].c.y() << ","
-                << spheres[i].c.z() << "," << spheres[i].r << "," << FaceIDs[i]
-                << "," << n.x() << "," << n.y() << "," << n.z() << "\n";
+        if (!suppress_intermediate_output) {
+          namespace fs = std::filesystem;
+          fs::path file =
+              fs::absolute(fs::current_path() / "data" / "Block" /
+                           ("Sphere_8000_" + std::to_string(Fnum) + ".csv"));
+          std::ofstream out(file, std::ios::out | std::ios::trunc);
+          if (!out) {
+            std::cerr << "[io] open failed, errno=" << errno << " ("
+                      << std::strerror(errno) << ")\n";
+          } else {
+            out << std::setprecision(17);
+            for (int i = 0; i < (int)spheres.size(); ++i) {
+              Eigen::Vector3d n = Nors[i].normalized();
+              out << spheres[i].c.x() << "," << spheres[i].c.y() << ","
+                  << spheres[i].c.z() << "," << spheres[i].r << "," << FaceIDs[i]
+                  << "," << n.x() << "," << n.y() << "," << n.z() << "\n";
+            }
           }
-          out.close();
         }
 
         return energy;
+      };
+
+  bool cover_satisfied = false;
+  int cover_invalid_seed_count = -1;
+  int current_cover_previous_invalid_seed_count = -1;
+  int current_cover_same_invalid_seed_count_rounds = 0;
+  double last_cover_loss = 0.0;
+  int cover_nonzero_loss_rounds = 0;
+  bool skip_cover_after_six_nonzero_rounds = false;
+  std::function<double(const Eigen::VectorXd &X, Eigen::VectorXd &g)> fgm_cover =
+      [&](const Eigen::VectorXd &X, Eigen::VectorXd &g) {
+        double lossCover = 0.0;
+
+        startRVD = clock();
+        std::vector<Sphere::Sphere> spheres(num);
+        for (int i = 0; i < num; ++i) {
+          Point_T query(X(i * 3), X(i * 3 + 1), X(i * 3 + 2));
+          Point_T closest = tree.closest_point(query);
+          auto tri = tree.closest_point_and_primitive(query);
+
+          Polyhedron::Face_handle f = tri.second;
+          int fid = -1;
+          auto it = face_id_map.find(static_cast<const void *>(&*f));
+          if (it != face_id_map.end()) fid = it->second;
+          FaceIDs[i] = fid;
+
+          auto p1 = f->halfedge()->vertex()->point();
+          auto p2 = f->halfedge()->next()->vertex()->point();
+          auto p3 = f->halfedge()->next()->next()->vertex()->point();
+          Eigen::Vector3d v1(p1.x(), p1.y(), p1.z());
+          Eigen::Vector3d v2(p2.x(), p2.y(), p2.z());
+          Eigen::Vector3d v3(p3.x(), p3.y(), p3.z());
+          Eigen::Vector3d N = (v2 - v1).cross(v3 - v1);
+          N.normalize();
+          Nors[i] = N;
+
+          this->_sites[i] = BGAL::_Point3(closest.x(), closest.y(), closest.z());
+        }
+
+        this->_RVD.calculate_(this->_sites);
+
+        endRVD = clock();
+        RVDtime += (double)(endRVD - startRVD) / CLOCKS_PER_SEC;
+
+        const auto &edges = this->_RVD.get_edges_();
+        build_spheres_from_rvd(this->_sites, this->_RVD, spheres);
+
+        std::vector<std::vector<int>> nbr(num);
+        for (int i = 0; i < (int)edges.size(); ++i) {
+          nbr[i].reserve(edges[i].size());
+          for (const auto &kv : edges[i]) {
+            int j = kv.first;
+            if (j < 0 || j >= num || j == i) continue;
+            nbr[i].push_back(j);
+          }
+        }
+
+        const std::vector<Eigen::Vector3i> rdt_tris =
+            build_rdt_faces_from_edges(num, edges);
+
+        std::vector<Eigen::Vector3d> C(num);
+        std::vector<double> R(num);
+        for (int i = 0; i < num; ++i) {
+          C[i] = Eigen::Vector3d(this->_sites[i].x(), this->_sites[i].y(), this->_sites[i].z());
+          R[i] = std::max(0.0, (double)spheres[i].r);
+        }
+
+        g.setZero();
+        double maxCoverViolation = 0.0;
+        int invalidSeedCount = 0;
+        std::vector<Eigen::Vector3d> gi(num, Eigen::Vector3d::Zero());
+        #pragma omp parallel
+        {
+          double localLossCover = 0.0;
+          double localMaxCoverViolation = 0.0;
+          int localInvalidSeedCount = 0;
+          std::vector<Eigen::Vector3d> localGi(num, Eigen::Vector3d::Zero());
+
+          #pragma omp for nowait
+          for (int tidx = 0; tidx < (int)rdt_tris.size(); ++tidx) {
+            const auto &t = rdt_tris[tidx];
+            const int i = t.x();
+            const int j = t.y();
+            const int k = t.z();
+            if (R[i] <= 0 || R[j] <= 0 || R[k] <= 0) continue;
+
+            Eigen::Vector3d s1, s2;
+            if (!intersect_three_spheres(C[i], R[i], C[j], R[j], C[k], R[k],
+                                         s1, s2)) {
+              continue;
+            }
+
+            Eigen::Vector3d seeds[2] = {s1, s2};
+            for (int si = 0; si < 2; ++si) {
+              const Eigen::Vector3d s = seeds[si];
+              std::unordered_set<int> cand;
+              cand.reserve((nbr[i].size() + nbr[j].size() + nbr[k].size()) *
+                           cover_neighbor_ring * 2 + 8);
+              auto add_candidate_ring = [&](int center) {
+                for (int u : nbr[center]) {
+                  if (u < 0 || u >= num) continue;
+                  cand.insert(u);
+                  if (cover_neighbor_ring >= 2) {
+                    for (int uu : nbr[u]) {
+                      if (uu < 0 || uu >= num) continue;
+                      cand.insert(uu);
+                    }
+                  }
+                }
+              };
+              add_candidate_ring(i);
+              add_candidate_ring(j);
+              add_candidate_ring(k);
+              cand.erase(i);
+              cand.erase(j);
+              cand.erase(k);
+
+              double best_v_for_tracking = 0.0;
+              bool has_violation = false;
+              Eigen::Vector3d seed_grad_s = Eigen::Vector3d::Zero();
+
+              auto eval_and_accumulate = [&](int l) {
+                if (l < 0 || l >= num || l == i || l == j || l == k ||
+                    R[l] <= 0) {
+                  return;
+                }
+                Eigen::Vector3d d = (s - C[l]);
+                double dist = d.norm();
+                if (dist < 1e-12) return;
+
+                double v = (R[l] - cover_margin) - dist;
+                best_v_for_tracking = std::max(best_v_for_tracking, v);
+
+                if (v > 0.0) {
+                  has_violation = true;
+
+                  double v2 = v * v;
+                  double v3 = v2 * v;
+                  double dE_dv = 3.0 * cover_weight * v2;
+
+                  localLossCover += cover_weight * v3;
+
+                  Eigen::Vector3d dir = d / dist;
+                  seed_grad_s += -dE_dv * dir;
+                  localGi[l] += (+dE_dv) * dir;
+                }
+              };
+
+              for (int l : cand) {
+                eval_and_accumulate(l);
+              }
+              if (cover_global_fallback && !has_violation) {
+                for (int l = 0; l < num; ++l) {
+                  eval_and_accumulate(l);
+                }
+              }
+              if (!has_violation) continue;
+
+              ++localInvalidSeedCount;
+              localMaxCoverViolation =
+                  std::max(localMaxCoverViolation, best_v_for_tracking);
+
+              Eigen::Vector3d di = (s - C[i]);
+              Eigen::Vector3d dj = (s - C[j]);
+              Eigen::Vector3d dk = (s - C[k]);
+              Eigen::Matrix3d JT;
+              JT.col(0) = 2.0 * di;
+              JT.col(1) = 2.0 * dj;
+              JT.col(2) = 2.0 * dk;
+
+              Eigen::Matrix3d J = JT.transpose();
+              Eigen::Matrix3d JJT = J * JT;
+              JJT.diagonal().array() += cover_damp;
+              Eigen::Vector3d yvec = JJT.ldlt().solve(J * seed_grad_s);
+              localGi[i] += 2.0 * di * yvec(0);
+              localGi[j] += 2.0 * dj * yvec(1);
+              localGi[k] += 2.0 * dk * yvec(2);
+            }
+          }
+
+          #pragma omp critical
+          {
+            lossCover += localLossCover;
+            invalidSeedCount += localInvalidSeedCount;
+            maxCoverViolation =
+                std::max(maxCoverViolation, localMaxCoverViolation);
+            for (int i = 0; i < num; ++i) {
+              gi[i] += localGi[i];
+            }
+          }
+        }
+
+        for (int i = 0; i < num; ++i) {
+          gi[i] = gi[i] - Nors[i] * (gi[i].dot(Nors[i]) / Nors[i].dot(Nors[i]));
+          g(i * 3 + 0) += gi[i].x();
+          g(i * 3 + 1) += gi[i].y();
+          g(i * 3 + 2) += gi[i].z();
+        }
+
+        if (invalidSeedCount == 0 ||
+            maxCoverViolation < cover_violation_tolerance) {
+          cover_satisfied = true;
+          g.setZero();
+        } else {
+          cover_satisfied = false;
+        }
+        cover_invalid_seed_count = invalidSeedCount;
+        last_cover_loss = lossCover;
+        if (cover_invalid_seed_count ==
+            current_cover_previous_invalid_seed_count) {
+          ++current_cover_same_invalid_seed_count_rounds;
+        } else {
+          current_cover_previous_invalid_seed_count = cover_invalid_seed_count;
+          current_cover_same_invalid_seed_count_rounds = 1;
+        }
+
+        std::cout << std::setprecision(7)
+                  << "cover-only energy: " << lossCover
+                  << " LossCover: " << lossCover
+                  << " maxViolation: " << maxCoverViolation
+                  << " invalidSeeds: " << invalidSeedCount << std::endl;
+        if (current_cover_same_invalid_seed_count_rounds >= 3 &&
+            !cover_satisfied) {
+          std::cout << "stop current cover-only optimization: invalidSeeds unchanged for 3 evaluations"
+                    << " (" << invalidSeedCount << ")" << std::endl;
+          g.setZero();
+        }
+        return lossCover;
       };
 
   // ======= LBFGS 初始化（原逻辑）=======
@@ -816,8 +1049,6 @@ void _CVT3D::calculate_(int num_sites, char *modelNamee, char *pointsName) {
 
   _sites.resize(num);
   _para.max_linearsearch = 20;
-
-  BGAL::_LBFGS lbfgs2(_para);
   Eigen::VectorXd iterX2(num * 3);
 
   for (int i = 0; i < num; ++i) {
@@ -828,45 +1059,122 @@ void _CVT3D::calculate_(int num_sites, char *modelNamee, char *pointsName) {
   }
 
   _RVD.calculate_(_sites);
+  const std::string final_outdir =
+      (std::filesystem::current_path() / "data" / "Block").string();
+  auto flush_final_outputs = [&]() {
+    for (int i = 0; i < num; ++i) {
+      Point_T query(iterX2(i * 3 + 0), iterX2(i * 3 + 1), iterX2(i * 3 + 2));
+      Point_T closest = tree.closest_point(query);
+      auto tri = tree.closest_point_and_primitive(query);
+
+      Polyhedron::Face_handle f = tri.second;
+      int fid = -1;
+      auto it = face_id_map.find(static_cast<const void *>(&*tri.second));
+      if (it != face_id_map.end()) fid = it->second;
+      FaceIDs[i] = fid;
+
+      auto p1 = f->halfedge()->vertex()->point();
+      auto p2 = f->halfedge()->next()->vertex()->point();
+      auto p3 = f->halfedge()->next()->next()->vertex()->point();
+      Eigen::Vector3d v1(p1.x(), p1.y(), p1.z());
+      Eigen::Vector3d v2(p2.x(), p2.y(), p2.z());
+      Eigen::Vector3d v3(p3.x(), p3.y(), p3.z());
+      Eigen::Vector3d N = (v2 - v1).cross(v3 - v1);
+      N.normalize();
+      Nors[i] = N;
+
+      _sites[i] = BGAL::_Point3(closest.x(), closest.y(), closest.z());
+    }
+
+    _RVD.calculate_(_sites);
+    std::vector<Sphere::Sphere> final_spheres;
+    build_spheres_from_rvd(_sites, _RVD, final_spheres);
+
+    std::ofstream out(final_outdir + "/Sphere_" + modelname + ".csv",
+                      std::ios::out | std::ios::trunc);
+    if (!out) {
+      std::cerr << "[io] open failed, errno=" << errno << " ("
+                << std::strerror(errno) << ")\n";
+    } else {
+      out << std::setprecision(17);
+      for (int i = 0; i < (int)final_spheres.size(); ++i) {
+        Eigen::Vector3d n = Nors[i].normalized();
+        out << final_spheres[i].c.x() << "," << final_spheres[i].c.y() << ","
+            << final_spheres[i].c.z() << "," << final_spheres[i].r << ","
+            << FaceIDs[i] << "," << n.x() << "," << n.y() << "," << n.z()
+            << "\n";
+      }
+    }
+
+    OutputMesh(_sites, _RVD, num_sites, final_outdir, modelname, 2);
+  };
 
   start = clock();
-  lbfgs2.minimize(fgm2, iterX2);
+  const bool unlimited_qem_iterations = (_para.max_iteration == 0);
+  const int total_qem_iterations =
+      unlimited_qem_iterations ? std::numeric_limits<int>::max()
+                               : _para.max_iteration;
+  int qem_iterations_done = 0;
+
+  BGAL::_LBFGS::_Parameter warmup_para(_para);
+  warmup_para.max_iteration =
+      std::min(cvt_qem_warmup_iterations, total_qem_iterations);
+  BGAL::_LBFGS warmup_lbfgs(warmup_para);
+  qem_iterations_done += warmup_lbfgs.minimize(fgm2, iterX2);
+
+  BGAL::_LBFGS::_Parameter one_step_para(_para);
+  one_step_para.max_iteration = 1;
+  BGAL::_LBFGS one_step_lbfgs(one_step_para);
+
+  BGAL::_LBFGS::_Parameter cover_para(_para);
+  cover_para.max_iteration = 10;
+  BGAL::_LBFGS cover_lbfgs(cover_para);
+
+  suppress_intermediate_output = true;
+  while (qem_iterations_done < total_qem_iterations) {
+    const int qem_step = one_step_lbfgs.minimize(fgm2, iterX2);
+    qem_iterations_done += qem_step;
+
+    int cover_step = 0;
+    if (skip_cover_after_six_nonzero_rounds) {
+      std::cout << "skip cover-only optimization: lossCover stayed nonzero for 6 runs"
+                << std::endl;
+    } else {
+      current_cover_previous_invalid_seed_count = -1;
+      current_cover_same_invalid_seed_count_rounds = 0;
+      cover_step = cover_lbfgs.minimize(fgm_cover, iterX2);
+      if (last_cover_loss > 0.0) {
+        ++cover_nonzero_loss_rounds;
+        if (cover_nonzero_loss_rounds >= 6) {
+          skip_cover_after_six_nonzero_rounds = true;
+        }
+      } else {
+        cover_nonzero_loss_rounds = 0;
+      }
+    }
+    flush_final_outputs();
+
+    if (cover_satisfied) {
+      std::cout << "stop alternating optimization: maxViolation < "
+                << cover_violation_tolerance << std::endl;
+      break;
+    }
+
+    if (qem_step == 0 && cover_step == 0) {
+      break;
+    }
+
+    if (qem_iterations_done >= total_qem_iterations) {
+      break;
+    }
+  }
   end = clock();
 
   allTime += (double)(end - start) / CLOCKS_PER_SEC;
   std::cout << "allTime: " << allTime << " RVDtime: " << RVDtime
             << " L-BFGS time: " << allTime - RVDtime << std::endl;
 
-  // 最终投影回面 + 输出
-  for (int i = 0; i < num; ++i) {
-    Point_T query(iterX2(i * 3 + 0), iterX2(i * 3 + 1), iterX2(i * 3 + 2));
-    Point_T closest = tree.closest_point(query);
-    auto tri = tree.closest_point_and_primitive(query);
-
-    Polyhedron::Face_handle f = tri.second;
-    int fid = -1;
-    auto it = face_id_map.find(static_cast<const void *>(&*tri.second));
-    if (it != face_id_map.end()) fid = it->second;
-    FaceIDs[i] = fid;
-
-    auto p1 = f->halfedge()->vertex()->point();
-    auto p2 = f->halfedge()->next()->vertex()->point();
-    auto p3 = f->halfedge()->next()->next()->vertex()->point();
-    Eigen::Vector3d v1(p1.x(), p1.y(), p1.z());
-    Eigen::Vector3d v2(p2.x(), p2.y(), p2.z());
-    Eigen::Vector3d v3(p3.x(), p3.y(), p3.z());
-    Eigen::Vector3d N = (v2 - v1).cross(v3 - v1);
-    N.normalize();
-    Nors[i] = N;
-
-    _sites[i] = BGAL::_Point3(closest.x(), closest.y(), closest.z());
-  }
-
-  _RVD.calculate_(_sites);
-
-  OutputMesh(_sites, _RVD, num_sites,
-             (std::filesystem::current_path() / "data" / "Block").string(),
-             modelname, 2);
+  flush_final_outputs();
 }
 
 } // namespace BGAL

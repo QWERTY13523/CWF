@@ -1,1672 +1,1126 @@
 CWD: "/home/yiming/research/CWF"
 ====================CWF3DTest
 Now file: block
-8000   block   
+50000   block   
 OBJ: "/home/yiming/research/CWF/data/block.obj"
 "/home/yiming/research/CWF"
-Pts.size(): 7860
+Pts.size(): 50011
 
 Begin CWF.
 
-7860  7860
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter2_RVD.obj
-energy: 303.9743 LossCVT: 313.9037 LossQE: 5.765809 LossCenter: 0 Lambda_CVT: 0.95
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_8000_5.csv
-[io] ok
-[io] write = /home/yiming/research/CWF/data/Block/Edges/Center2Max_8000_5.obj
-[io] ok (OBJ)
-0	0	11.80403	5.641956	303.9743
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter3_RVD.obj
-energy: 284.2475 LossCVT: 309.0874 LossQE: 5.296101 LossCenter: 0 Lambda_CVT: 0.9025
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_8000_6.csv
-[io] ok
-[io] write = /home/yiming/research/CWF/data/Block/Edges/Center2Max_8000_6.obj
-[io] ok (OBJ)
-1	1	23.39654	4.781647	284.2475
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter4_RVD.obj
-energy: 252.1479 LossCVT: 291.137 LossQE: 2.534358 LossCenter: 0 Lambda_CVT: 0.857375
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_8000_7.csv
-[io] ok
-[io] write = /home/yiming/research/CWF/data/Block/Edges/Center2Max_8000_7.obj
-[io] ok (OBJ)
-2	2	34.92679	1.774275	252.1479
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter5_RVD.obj
-energy: 235.7818 LossCVT: 286.782 LossQE: 2.196039 LossCenter: 0 Lambda_CVT: 0.8145062
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_8000_8.csv
-[io] ok
-[io] write = /home/yiming/research/CWF/data/Block/Edges/Center2Max_8000_8.obj
-[io] ok (OBJ)
-3	3	46.314	1.253648	235.7818
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter6_RVD.obj
-energy: 222.2297 LossCVT: 284.8983 LossQE: 1.780823 LossCenter: 0 Lambda_CVT: 0.7737809
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_8000_9.csv
-[io] ok
-[io] write = /home/yiming/research/CWF/data/Block/Edges/Center2Max_8000_9.obj
-[io] ok (OBJ)
-4	4	57.65407	1.044365	222.2297
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter7_RVD.obj
-energy: 209.7714 LossCVT: 283.1264 LossQE: 1.647455 LossCenter: 0 Lambda_CVT: 0.7350919
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_8000_10.csv
-[io] ok
-[io] write = /home/yiming/research/CWF/data/Block/Edges/Center2Max_8000_10.obj
-[io] ok (OBJ)
-5	5	69.10083	0.8217884	209.7714
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter8_RVD.obj
-energy: 198.438 LossCVT: 281.8033 LossQE: 1.644272 LossCenter: 0 Lambda_CVT: 0.6983373
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_8000_11.csv
-[io] ok
-[io] write = /home/yiming/research/CWF/data/Block/Edges/Center2Max_8000_11.obj
-[io] ok (OBJ)
-6	6	80.40228	0.6690797	198.438
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter9_RVD.obj
-energy: 187.9738 LossCVT: 281.0808 LossQE: 1.499109 LossCenter: 0 Lambda_CVT: 0.6634204
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_8000_12.csv
-[io] ok
-[io] write = /home/yiming/research/CWF/data/Block/Edges/Center2Max_8000_12.obj
-[io] ok (OBJ)
-7	7	91.77648	0.4970709	187.9738
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter10_RVD.obj
-energy: 178.1821 LossCVT: 280.6284 LossQE: 1.316199 LossCenter: 0 Lambda_CVT: 0.6302494
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_8000_13.csv
-[io] ok
-[io] write = /home/yiming/research/CWF/data/Block/Edges/Center2Max_8000_13.obj
-[io] ok (OBJ)
-8	8	103.1621	0.4722164	178.1821
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter11_RVD.obj
-energy: 168.9855 LossCVT: 280.1619 LossQE: 1.242238 LossCenter: 0 Lambda_CVT: 0.5987369
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_8000_14.csv
-[io] ok
-[io] write = /home/yiming/research/CWF/data/Block/Edges/Center2Max_8000_14.obj
-[io] ok (OBJ)
-9	9	114.5418	0.3972761	168.9855
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter12_RVD.obj
-energy: 160.3264 LossCVT: 279.8348 LossQE: 1.156368 LossCenter: 0 Lambda_CVT: 0.5688001
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_8000_15.csv
-[io] ok
-[io] write = /home/yiming/research/CWF/data/Block/Edges/Center2Max_8000_15.obj
-[io] ok (OBJ)
-10	10	125.9551	0.3036686	160.3264
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter13_RVD.obj
-energy: 152.13 LossCVT: 279.6473 LossQE: 1.019805 LossCenter: 0 Lambda_CVT: 0.5403601
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_8000_16.csv
-[io] ok
-[io] write = /home/yiming/research/CWF/data/Block/Edges/Center2Max_8000_16.obj
-[io] ok (OBJ)
-11	11	137.3672	0.3182227	152.13
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter14_RVD.obj
-energy: 144.4107 LossCVT: 279.2636 LossQE: 1.05289 LossCenter: 0 Lambda_CVT: 0.5133421
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_8000_17.csv
-[io] ok
-[io] write = /home/yiming/research/CWF/data/Block/Edges/Center2Max_8000_17.obj
-[io] ok (OBJ)
-12	12	148.8064	0.2839763	144.4107
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter15_RVD.obj
-energy: 137.1056 LossCVT: 279.1402 LossQE: 0.9758709 LossCenter: 0 Lambda_CVT: 0.487675
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_8000_18.csv
-[io] ok
-[io] write = /home/yiming/research/CWF/data/Block/Edges/Center2Max_8000_18.obj
-[io] ok (OBJ)
-13	13	160.1933	0.2169422	137.1056
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter16_RVD.obj
-energy: 130.1787 LossCVT: 279.1447 LossQE: 0.8533989 LossCenter: 0 Lambda_CVT: 0.4632912
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_8000_19.csv
-[io] ok
-[io] write = /home/yiming/research/CWF/data/Block/Edges/Center2Max_8000_19.obj
-[io] ok (OBJ)
-14	14	171.4862	0.2091944	130.1787
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter17_RVD.obj
-energy: 123.6293 LossCVT: 278.9252 LossQE: 0.866905 LossCenter: 0 Lambda_CVT: 0.4401267
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_8000_20.csv
-[io] ok
-[io] write = /home/yiming/research/CWF/data/Block/Edges/Center2Max_8000_20.obj
-[io] ok (OBJ)
-15	15	182.8394	0.1861156	123.6293
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter18_RVD.obj
-energy: 117.42 LossCVT: 278.9348 LossQE: 0.7916647 LossCenter: 0 Lambda_CVT: 0.4181203
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_8000_21.csv
-[io] ok
-[io] write = /home/yiming/research/CWF/data/Block/Edges/Center2Max_8000_21.obj
-[io] ok (OBJ)
-16	16	194.2506	0.1702554	117.42
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter19_RVD.obj
-energy: 111.5207 LossCVT: 278.9547 LossQE: 0.7158781 LossCenter: 0 Lambda_CVT: 0.3972143
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_8000_22.csv
-[io] ok
-[io] write = /home/yiming/research/CWF/data/Block/Edges/Center2Max_8000_22.obj
-[io] ok (OBJ)
-17	17	205.5716	0.1655001	111.5207
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter20_RVD.obj
-energy: 105.9292 LossCVT: 278.819 LossQE: 0.7158899 LossCenter: 0 Lambda_CVT: 0.3773536
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_8000_23.csv
-[io] ok
-[io] write = /home/yiming/research/CWF/data/Block/Edges/Center2Max_8000_23.obj
-[io] ok (OBJ)
-18	18	216.9067	0.1311135	105.9292
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter21_RVD.obj
-energy: 100.6177 LossCVT: 278.87 LossQE: 0.6467356 LossCenter: 0 Lambda_CVT: 0.3584859
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_8000_24.csv
-[io] ok
-[io] write = /home/yiming/research/CWF/data/Block/Edges/Center2Max_8000_24.obj
-[io] ok (OBJ)
-19	19	228.1324	0.1172972	100.6177
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter22_RVD.obj
-energy: 95.57363 LossCVT: 278.8664 LossQE: 0.6024305 LossCenter: 0 Lambda_CVT: 0.3405616
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_8000_25.csv
-[io] ok
-[io] write = /home/yiming/research/CWF/data/Block/Edges/Center2Max_8000_25.obj
-[io] ok (OBJ)
-20	20	239.4409	0.1514113	95.57363
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter23_RVD.obj
-energy: 90.78976 LossCVT: 278.7282 LossQE: 0.6118225 LossCenter: 0 Lambda_CVT: 0.3235335
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_8000_26.csv
-[io] ok
-[io] write = /home/yiming/research/CWF/data/Block/Edges/Center2Max_8000_26.obj
-[io] ok (OBJ)
-21	21	250.7322	0.1515775	90.78976
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter24_RVD.obj
-energy: 86.24438 LossCVT: 278.7363 LossQE: 0.572874 LossCenter: 0 Lambda_CVT: 0.3073569
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_8000_27.csv
-[io] ok
-[io] write = /home/yiming/research/CWF/data/Block/Edges/Center2Max_8000_27.obj
-[io] ok (OBJ)
-22	22	262.099	0.1140107	86.24438
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter25_RVD.obj
-energy: 81.93787 LossCVT: 279.0069 LossQE: 0.470925 LossCenter: 0 Lambda_CVT: 0.291989
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_8000_28.csv
-[io] ok
-[io] write = /home/yiming/research/CWF/data/Block/Edges/Center2Max_8000_28.obj
-[io] ok (OBJ)
-23	23	273.4206	0.156079	81.93787
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter26_RVD.obj
-energy: 77.83619 LossCVT: 278.8069 LossQE: 0.4980572 LossCenter: 0 Lambda_CVT: 0.2773896
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_8000_29.csv
-[io] ok
-[io] write = /home/yiming/research/CWF/data/Block/Edges/Center2Max_8000_29.obj
-[io] ok (OBJ)
-24	24	284.7844	0.09786002	77.83619
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter27_RVD.obj
-energy: 73.94943 LossCVT: 278.815 LossQE: 0.4760836 LossCenter: 0 Lambda_CVT: 0.2635201
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_8000_30.csv
-[io] ok
-[io] write = /home/yiming/research/CWF/data/Block/Edges/Center2Max_8000_30.obj
-[io] ok (OBJ)
-25	25	296.1862	0.07956663	73.94943
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter28_RVD.obj
-energy: 70.25784 LossCVT: 278.9928 LossQE: 0.4136294 LossCenter: 0 Lambda_CVT: 0.2503441
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_8000_31.csv
-[io] ok
-[io] write = /home/yiming/research/CWF/data/Block/Edges/Center2Max_8000_31.obj
-[io] ok (OBJ)
-26	26	307.5036	0.1100858	70.25784
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter29_RVD.obj
-energy: 66.74963 LossCVT: 278.9122 LossQE: 0.4168194 LossCenter: 0 Lambda_CVT: 0.2378269
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_8000_32.csv
-[io] ok
-[io] write = /home/yiming/research/CWF/data/Block/Edges/Center2Max_8000_32.obj
-[io] ok (OBJ)
-27	27	318.8894	0.05512346	66.74963
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter30_RVD.obj
-energy: 63.42454 LossCVT: 278.9773 LossQE: 0.3936509 LossCenter: 0 Lambda_CVT: 0.2259355
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_8000_33.csv
-[io] ok
-[io] write = /home/yiming/research/CWF/data/Block/Edges/Center2Max_8000_33.obj
-[io] ok (OBJ)
-28	28	330.3228	0.09725648	63.42454
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter31_RVD.obj
-energy: 60.25576 LossCVT: 279.0016 LossQE: 0.3712096 LossCenter: 0 Lambda_CVT: 0.2146388
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_8000_34.csv
-[io] ok
-[io] write = /home/yiming/research/CWF/data/Block/Edges/Center2Max_8000_34.obj
-[io] ok (OBJ)
-29	29	341.9425	0.05716063	60.25576
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter32_RVD.obj
-energy: 57.25017 LossCVT: 279.0955 LossQE: 0.3406874 LossCenter: 0 Lambda_CVT: 0.2039068
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_8000_35.csv
-[io] ok
-[io] write = /home/yiming/research/CWF/data/Block/Edges/Center2Max_8000_35.obj
-[io] ok (OBJ)
-30	30	353.4027	0.05541629	57.25017
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter33_RVD.obj
-energy: 54.39286 LossCVT: 279.1139 LossQE: 0.3252975 LossCenter: 0 Lambda_CVT: 0.1937115
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_8000_36.csv
-[io] ok
-[io] write = /home/yiming/research/CWF/data/Block/Edges/Center2Max_8000_36.obj
-[io] ok (OBJ)
-31	31	364.7484	0.05783415	54.39286
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter34_RVD.obj
-energy: 51.68233 LossCVT: 279.2251 LossQE: 0.2976881 LossCenter: 0 Lambda_CVT: 0.1840259
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_8000_37.csv
-[io] ok
-[io] write = /home/yiming/research/CWF/data/Block/Edges/Center2Max_8000_37.obj
-[io] ok (OBJ)
-32	32	376.0274	0.06797985	51.68233
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter35_RVD.obj
-energy: 49.11003 LossCVT: 279.1108 LossQE: 0.3145904 LossCenter: 0 Lambda_CVT: 0.1748246
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_8000_38.csv
-[io] ok
-[io] write = /home/yiming/research/CWF/data/Block/Edges/Center2Max_8000_38.obj
-[io] ok (OBJ)
-33	33	387.3075	0.09864719	49.11003
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter36_RVD.obj
-energy: 46.65982 LossCVT: 279.1045 LossQE: 0.3051924 LossCenter: 0 Lambda_CVT: 0.1660834
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_8000_39.csv
-[io] ok
-[io] write = /home/yiming/research/CWF/data/Block/Edges/Center2Max_8000_39.obj
-[io] ok (OBJ)
-34	34	398.7031	0.05526332	46.65982
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter37_RVD.obj
-energy: 44.33602 LossCVT: 279.3648 LossQE: 0.2580572 LossCenter: 0 Lambda_CVT: 0.1577792
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_8000_40.csv
-[io] ok
-[io] write = /home/yiming/research/CWF/data/Block/Edges/Center2Max_8000_40.obj
-[io] ok (OBJ)
-35	35	409.9804	0.0398506	44.33602
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter38_RVD.obj
-energy: 42.12852 LossCVT: 279.3942 LossQE: 0.250052 LossCenter: 0 Lambda_CVT: 0.1498903
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_8000_41.csv
-[io] ok
-[io] write = /home/yiming/research/CWF/data/Block/Edges/Center2Max_8000_41.obj
-[io] ok (OBJ)
-36	36	421.3278	0.02837185	42.12852
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter39_RVD.obj
-energy: 40.033 LossCVT: 279.6112 LossQE: 0.2175571 LossCenter: 0 Lambda_CVT: 0.1423957
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_8000_42.csv
-[io] ok
-[io] write = /home/yiming/research/CWF/data/Block/Edges/Center2Max_8000_42.obj
-[io] ok (OBJ)
-37	37	432.5989	0.079276	40.033
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter40_RVD.obj
-energy: 38.03718 LossCVT: 279.4572 LossQE: 0.2333437 LossCenter: 0 Lambda_CVT: 0.135276
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_8000_43.csv
-[io] ok
-[io] write = /home/yiming/research/CWF/data/Block/Edges/Center2Max_8000_43.obj
-[io] ok (OBJ)
-38	38	444.0409	0.04354403	38.03718
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter41_RVD.obj
-energy: 36.14442 LossCVT: 279.4615 LossQE: 0.2302232 LossCenter: 0 Lambda_CVT: 0.1285122
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_8000_44.csv
-[io] ok
-[io] write = /home/yiming/research/CWF/data/Block/Edges/Center2Max_8000_44.obj
-[io] ok (OBJ)
-39	39	455.4277	0.03575184	36.14442
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter42_RVD.obj
-energy: 34.34803 LossCVT: 279.6817 LossQE: 0.2026604 LossCenter: 0 Lambda_CVT: 0.1220865
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_8000_45.csv
-[io] ok
-[io] write = /home/yiming/research/CWF/data/Block/Edges/Center2Max_8000_45.obj
-[io] ok (OBJ)
-40	40	466.8324	0.04318823	34.34803
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter43_RVD.obj
-energy: 32.63473 LossCVT: 279.593 LossQE: 0.2069046 LossCenter: 0 Lambda_CVT: 0.1159822
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_8000_46.csv
-[io] ok
-[io] write = /home/yiming/research/CWF/data/Block/Edges/Center2Max_8000_46.obj
-[io] ok (OBJ)
-41	41	478.6134	0.043372	32.63473
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter44_RVD.obj
-energy: 31.00962 LossCVT: 279.6375 LossQE: 0.1982918 LossCenter: 0 Lambda_CVT: 0.1101831
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_8000_47.csv
-[io] ok
-[io] write = /home/yiming/research/CWF/data/Block/Edges/Center2Max_8000_47.obj
-[io] ok (OBJ)
-42	42	489.966	0.03986628	31.00962
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter45_RVD.obj
-energy: 29.46594 LossCVT: 279.7081 LossQE: 0.1877868 LossCenter: 0 Lambda_CVT: 0.104674
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_8000_48.csv
-[io] ok
-[io] write = /home/yiming/research/CWF/data/Block/Edges/Center2Max_8000_48.obj
-[io] ok (OBJ)
-43	43	501.3062	0.03581733	29.46594
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter46_RVD.obj
-energy: 27.99859 LossCVT: 279.785 LossQE: 0.1766992 LossCenter: 0 Lambda_CVT: 0.09944026
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_8000_49.csv
-[io] ok
-[io] write = /home/yiming/research/CWF/data/Block/Edges/Center2Max_8000_49.obj
-[io] ok (OBJ)
-44	44	512.5489	0.02996176	27.99859
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter47_RVD.obj
-energy: 26.60585 LossCVT: 279.8974 LossQE: 0.1644375 LossCenter: 0 Lambda_CVT: 0.09446824
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_8000_50.csv
-[io] ok
-[io] write = /home/yiming/research/CWF/data/Block/Edges/Center2Max_8000_50.obj
-[io] ok (OBJ)
-45	45	524.028	0.03385729	26.60585
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter48_RVD.obj
-energy: 25.28379 LossCVT: 279.8951 LossQE: 0.1646527 LossCenter: 0 Lambda_CVT: 0.08974483
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_8000_51.csv
-[io] ok
-[io] write = /home/yiming/research/CWF/data/Block/Edges/Center2Max_8000_51.obj
-[io] ok (OBJ)
-46	46	535.4132	0.05844292	25.28379
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter49_RVD.obj
-energy: 24.024 LossCVT: 279.8662 LossQE: 0.163278 LossCenter: 0 Lambda_CVT: 0.08525759
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_8000_52.csv
-[io] ok
-[io] write = /home/yiming/research/CWF/data/Block/Edges/Center2Max_8000_52.obj
-[io] ok (OBJ)
-47	47	546.8725	0.03317479	24.024
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter50_RVD.obj
-energy: 22.82888 LossCVT: 280.0035 LossQE: 0.1500781 LossCenter: 0 Lambda_CVT: 0.08099471
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_8000_53.csv
-[io] ok
-[io] write = /home/yiming/research/CWF/data/Block/Edges/Center2Max_8000_53.obj
-[io] ok (OBJ)
-48	48	558.4162	0.02633133	22.82888
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter51_RVD.obj
-energy: 21.69369 LossCVT: 280.0514 LossQE: 0.1451392 LossCenter: 0 Lambda_CVT: 0.07694498
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_8000_54.csv
-[io] ok
-[io] write = /home/yiming/research/CWF/data/Block/Edges/Center2Max_8000_54.obj
-[io] ok (OBJ)
-49	49	570.1179	0.02789137	21.69369
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter52_RVD.obj
-energy: 20.61537 LossCVT: 280.0702 LossQE: 0.1428729 LossCenter: 0 Lambda_CVT: 0.07309773
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_8000_55.csv
-[io] ok
-[io] write = /home/yiming/research/CWF/data/Block/Edges/Center2Max_8000_55.obj
-[io] ok (OBJ)
-50	50	581.6364	0.03074436	20.61537
+50011  50011
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter2_RVD.obj
+energy: 46.70027 LossCVT: 48.02646 LossQE: 0.3547329 LossCover: 0 Lambda_CVT: 0.965
+0	0	59.94272	0.6370334	46.70027
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter3_RVD.obj
+energy: 44.52934 LossCVT: 47.48162 LossQE: 0.3132617 LossCover: 0 Lambda_CVT: 0.931225
+1	1	119.7323	0.5295396	44.52934
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter4_RVD.obj
+energy: 41.20564 LossCVT: 45.68811 LossQE: 0.1488321 LossCover: 0 Lambda_CVT: 0.8986321
+2	2	177.8292	0.2449351	41.20564
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter5_RVD.obj
+energy: 39.33583 LossCVT: 45.19851 LossQE: 0.1405811 LossCover: 0 Lambda_CVT: 0.86718
+3	3	234.9888	0.1838824	39.33583
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter6_RVD.obj
+energy: 37.67057 LossCVT: 44.88178 LossQE: 0.1122084 LossCover: 0 Lambda_CVT: 0.8368287
+4	4	292.9919	0.151408	37.67057
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter7_RVD.obj
+energy: 36.16372 LossCVT: 44.64387 LossQE: 0.1120211 LossCover: 0 Lambda_CVT: 0.8075397
+5	5	350.7752	0.1320008	36.16372
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter8_RVD.obj
+energy: 34.76936 LossCVT: 44.47472 LossQE: 0.1112835 LossCover: 0 Lambda_CVT: 0.7792758
+6	6	408.5732	0.09731499	34.76936
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter9_RVD.obj
+energy: 33.46461 LossCVT: 44.36994 LossQE: 0.09836192 LossCover: 0 Lambda_CVT: 0.7520012
+7	7	466.9126	0.08197004	33.46461
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter10_RVD.obj
+energy: 32.2261 LossCVT: 44.28601 LossQE: 0.08858083 LossCover: 0 Lambda_CVT: 0.7256811
+8	8	524.7542	0.07684811	32.2261
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter11_RVD.obj
+energy: 31.04517 LossCVT: 44.20813 LossQE: 0.08699374 LossCover: 0 Lambda_CVT: 0.7002823
+9	9	583.1681	0.06596923	31.04517
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter12_RVD.obj
+energy: 29.917 LossCVT: 44.15204 LossQE: 0.08027482 LossCover: 0 Lambda_CVT: 0.6757724
+10	10	641.0789	0.05407711	29.917
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter13_RVD.obj
+energy: 28.83771 LossCVT: 44.10568 LossQE: 0.07550133 LossCover: 0 Lambda_CVT: 0.6521204
+11	11	698.094	0.04915118	28.83771
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter14_RVD.obj
+energy: 27.80294 LossCVT: 44.06212 LossQE: 0.0748222 LossCover: 0 Lambda_CVT: 0.6292961
+12	12	755.2223	0.0465768	27.80294
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter15_RVD.obj
+energy: 26.80726 LossCVT: 44.02674 LossQE: 0.07111123 LossCover: 0 Lambda_CVT: 0.6072708
+13	13	812.8527	0.03955264	26.80726
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter16_RVD.obj
+energy: 25.85052 LossCVT: 43.99797 LossQE: 0.06698998 LossCover: 0 Lambda_CVT: 0.5860163
+14	14	870.9462	0.0344933	25.85052
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter17_RVD.obj
+energy: 24.93179 LossCVT: 43.97227 LossQE: 0.06522505 LossCover: 0 Lambda_CVT: 0.5655057
+15	15	928.5483	0.03794515	24.93179
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter18_RVD.obj
+energy: 24.04681 LossCVT: 43.95121 LossQE: 0.06206013 LossCover: 0 Lambda_CVT: 0.545713
+16	16	986.9008	0.02936988	24.04681
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter19_RVD.obj
+energy: 23.19525 LossCVT: 43.93323 LossQE: 0.05943015 LossCover: 0 Lambda_CVT: 0.5266131
+17	17	1045.494	0.02619559	23.19525
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter20_RVD.obj
+energy: 22.3744 LossCVT: 43.91674 LossQE: 0.05671525 LossCover: 0 Lambda_CVT: 0.5081816
+18	18	1103.429	0.02751151	22.3744
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter21_RVD.obj
+energy: 21.58368 LossCVT: 43.90098 LossQE: 0.05484109 LossCover: 0 Lambda_CVT: 0.4903953
+19	19	1161.633	0.02508319	21.58368
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter22_RVD.obj
+energy: 20.82154 LossCVT: 43.88684 LossQE: 0.05290962 LossCover: 0 Lambda_CVT: 0.4732314
+20	20	1219.689	0.02098213	20.82154
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter23_RVD.obj
+energy: 20.08716 LossCVT: 43.87782 LossQE: 0.04954928 LossCover: 0 Lambda_CVT: 0.4566683
+21	21	1277.678	0.02070307	20.08716
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter24_RVD.obj
+energy: 19.37958 LossCVT: 43.86633 LossQE: 0.04835292 LossCover: 0 Lambda_CVT: 0.4406849
+22	22	1335.699	0.02048822	19.37958
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter25_RVD.obj
+energy: 18.69734 LossCVT: 43.85509 LossQE: 0.04748456 LossCover: 0 Lambda_CVT: 0.425261
+23	23	1393.709	0.01697593	18.69734
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter26_RVD.obj
+energy: 18.0392 LossCVT: 43.85207 LossQE: 0.0433245 LossCover: 0 Lambda_CVT: 0.4103768
+24	24	1451.273	0.01809224	18.0392
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter27_RVD.obj
+energy: 17.40508 LossCVT: 43.84164 LossQE: 0.04319726 LossCover: 0 Lambda_CVT: 0.3960136
+25	25	1509.327	0.01610049	17.40508
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter28_RVD.obj
+energy: 16.79315 LossCVT: 43.8354 LossQE: 0.04131234 LossCover: 0 Lambda_CVT: 0.3821532
+26	26	1567.831	0.01461812	16.79315
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter29_RVD.obj
+energy: 16.20309 LossCVT: 43.83268 LossQE: 0.03857037 LossCover: 0 Lambda_CVT: 0.3687778
+27	27	1625.223	0.01341172	16.20309
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter30_RVD.obj
+energy: 15.63428 LossCVT: 43.82506 LossQE: 0.03822823 LossCover: 0 Lambda_CVT: 0.3558706
+28	28	1682.827	0.01496341	15.63428
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter31_RVD.obj
+energy: 15.08521 LossCVT: 43.81958 LossQE: 0.03690392 LossCover: 0 Lambda_CVT: 0.3434151
+29	29	1740.862	0.01219827	15.08521
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter32_RVD.obj
+energy: 14.55546 LossCVT: 43.82026 LossQE: 0.03362371 LossCover: 0 Lambda_CVT: 0.3313956
+30	30	1799.438	0.01136039	14.55546
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter33_RVD.obj
+energy: 14.04481 LossCVT: 43.81293 LossQE: 0.03358002 LossCover: 0 Lambda_CVT: 0.3197967
+31	31	1857.355	0.01422977	14.04481
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter34_RVD.obj
+energy: 13.55186 LossCVT: 43.80834 LossQE: 0.03244045 LossCover: 0 Lambda_CVT: 0.3086039
+32	32	1915.018	0.01036041	13.55186
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter35_RVD.obj
+energy: 13.07628 LossCVT: 43.80859 LossQE: 0.02996065 LossCover: 0 Lambda_CVT: 0.2978027
+33	33	1973.351	0.009387203	13.07628
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter36_RVD.obj
+energy: 12.61786 LossCVT: 43.80263 LossQE: 0.02987415 LossCover: 0 Lambda_CVT: 0.2873796
+34	34	2030.535	0.01098386	12.61786
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter37_RVD.obj
+energy: 12.17546 LossCVT: 43.80097 LossQE: 0.02851258 LossCover: 0 Lambda_CVT: 0.2773213
+35	35	2088.624	0.008713432	12.17546
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter38_RVD.obj
+energy: 11.74867 LossCVT: 43.79996 LossQE: 0.02713845 LossCover: 0 Lambda_CVT: 0.2676151
+36	36	2146.274	0.007818774	11.74867
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter39_RVD.obj
+energy: 11.33714 LossCVT: 43.80174 LossQE: 0.02540976 LossCover: 0 Lambda_CVT: 0.2582486
+37	37	2204.457	0.01068287	11.33714
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter40_RVD.obj
+energy: 10.93989 LossCVT: 43.79528 LossQE: 0.02567904 LossCover: 0 Lambda_CVT: 0.2492099
+38	38	2262.727	0.00831963	10.93989
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter41_RVD.obj
+energy: 10.55681 LossCVT: 43.79442 LossQE: 0.02480343 LossCover: 0 Lambda_CVT: 0.2404875
+39	39	2320.927	0.006960523	10.55681
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter42_RVD.obj
+energy: 10.18708 LossCVT: 43.80002 LossQE: 0.02238602 LossCover: 0 Lambda_CVT: 0.2320705
+40	40	2378.971	0.008933182	10.18708
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter43_RVD.obj
+energy: 9.830434 LossCVT: 43.7907 LossQE: 0.02359534 LossCover: 0 Lambda_CVT: 0.223948
+41	41	2437.153	0.008798594	9.830434
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter44_RVD.obj
+energy: 9.486382 LossCVT: 43.79046 LossQE: 0.02283409 LossCover: 0 Lambda_CVT: 0.2161098
+42	42	2495.396	0.006419873	9.486382
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter45_RVD.obj
+energy: 9.154246 LossCVT: 43.80596 LossQE: 0.01869111 LossCover: 0 Lambda_CVT: 0.208546
+43	43	2553.311	0.0074531	9.154246
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter46_RVD.obj
+energy: 8.833937 LossCVT: 43.79461 LossQE: 0.02040944 LossCover: 0 Lambda_CVT: 0.2012469
+44	44	2611.249	0.005506569	8.833937
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter47_RVD.obj
+energy: 8.52494 LossCVT: 43.79046 LossQE: 0.02069159 LossCover: 0 Lambda_CVT: 0.1942032
+45	45	2669.509	0.006182052	8.52494
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter48_RVD.obj
+energy: 8.226959 LossCVT: 43.7939 LossQE: 0.01971536 LossCover: 0 Lambda_CVT: 0.1874061
+46	46	2727.574	0.009303225	8.226959
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter49_RVD.obj
+energy: 7.938842 LossCVT: 43.79316 LossQE: 0.0189851 LossCover: 0 Lambda_CVT: 0.1808469
+47	47	2785.568	0.005498097	7.938842
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter50_RVD.obj
+energy: 7.661086 LossCVT: 43.7969 LossQE: 0.01777057 LossCover: 0 Lambda_CVT: 0.1745172
+48	48	2843.748	0.004770396	7.661086
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter51_RVD.obj
+energy: 7.392982 LossCVT: 43.80583 LossQE: 0.01567895 LossCover: 0 Lambda_CVT: 0.1684091
+49	49	2901.917	0.006120388	7.392982
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter52_RVD.obj
+energy: 7.134387 LossCVT: 43.80314 LossQE: 0.01572781 LossCover: 0 Lambda_CVT: 0.1625148
+50	50	2960.203	0.004494978	7.134387
 reach the max itertion time
-allTime: 581.6471 RVDtime: 407.1392 L-BFGS time: 174.5078
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_RVD.obj
-[INFO] Calculating displacement on feature edges vs faces...
-[INFO] Identified 728 feature edges.
-Feature Edge Sites: 3 | Total Displacement: 1.26919
-Face Sites: 7857 | Total Displacement: 2177.329
+energy: 6.885234 LossCVT: 43.80314 LossQE: 0.01572781 LossCover: 0 Lambda_CVT: 0.1568268
+0	0	52.40253	0.004253818	6.885234
+energy: 6.650828 LossCVT: 43.81049 LossQE: 0.02064195 LossCover: 0 Lambda_CVT: 0.1513379
+energy: 6.41425 LossCVT: 43.80217 LossQE: 0.01733587 LossCover: 0 Lambda_CVT: 0.146041
+energy: 6.188986 LossCVT: 43.80118 LossQE: 0.0161027 LossCover: 0 Lambda_CVT: 0.1409296
+1	3	210.1529	0.009878649	6.188986
+reach the max itertion time
+cover-only energy: 0.01376365 LossCover: 0.01376365 maxViolation: 0.03171643 invalidSeeds: 60
+0	0	3574.907	205.4035	0.01376365
+cover-only energy: 0.01786526 LossCover: 0.01786526 maxViolation: 0.06069786 invalidSeeds: 68
+cover-only energy: 0.02734783 LossCover: 0.02734783 maxViolation: 0.1212395 invalidSeeds: 76
+cover-only energy: 0.01412703 LossCover: 0.01412703 maxViolation: 0.03168372 invalidSeeds: 60
+cover-only energy: 0.01436016 LossCover: 0.01436016 maxViolation: 0.03170008 invalidSeeds: 62
+cover-only energy: 0.01340912 LossCover: 0.01340912 maxViolation: 0.03170825 invalidSeeds: 58
+1	5	21440.5	0.09607018	0.01340912
+cover-only energy: 0.01340637 LossCover: 0.01340637 maxViolation: 0.03170008 invalidSeeds: 58
+cover-only energy: 0.01340363 LossCover: 0.01340363 maxViolation: 0.0316919 invalidSeeds: 58
+cover-only energy: 0.01339814 LossCover: 0.01339814 maxViolation: 0.03167555 invalidSeeds: 58
+cover-only energy: 0.01338717 LossCover: 0.01338717 maxViolation: 0.03164285 invalidSeeds: 58
 CWD: "/home/yiming/research/CWF"
 ====================CWF3DTest
 Now file: block
-6000   block   
+30000   block   
 OBJ: "/home/yiming/research/CWF/data/block.obj"
+"/home/yiming/research/CWF"
+Pts.size(): 29930
+
+Begin CWF.
+
+29930  29930
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter2_RVD.obj
+energy: 77.51227 LossCVT: 79.57631 LossQE: 0.7211315 LossCover: 0 Lambda_CVT: 0.965
+0	0	37.81504	0.9999068	77.51227
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter3_RVD.obj
+energy: 73.97623 LossCVT: 78.75874 LossQE: 0.634117 LossCover: 0 Lambda_CVT: 0.931225
+1	1	74.93542	0.8290349	73.97623
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter4_RVD.obj
+energy: 68.82754 LossCVT: 76.24684 LossQE: 0.3096759 LossCover: 0 Lambda_CVT: 0.8986321
+2	2	112.4203	0.4475071	68.82754
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter5_RVD.obj
+energy: 65.70384 LossCVT: 75.41532 LossQE: 0.3051825 LossCover: 0 Lambda_CVT: 0.86718
+3	3	150.006	0.3013941	65.70384
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter6_RVD.obj
+energy: 62.91963 LossCVT: 74.88326 LossQE: 0.2551677 LossCover: 0 Lambda_CVT: 0.8368287
+4	4	187.7652	0.2384943	62.91963
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter7_RVD.obj
+energy: 60.40938 LossCVT: 74.49306 LossQE: 0.2532733 LossCover: 0 Lambda_CVT: 0.8075397
+5	5	225.1543	0.2311897	60.40938
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter8_RVD.obj
+energy: 58.0747 LossCVT: 74.22019 LossQE: 0.2367009 LossCover: 0 Lambda_CVT: 0.7792758
+6	6	263.0961	0.1684139	58.0747
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter9_RVD.obj
+energy: 55.88857 LossCVT: 74.04251 LossQE: 0.2085156 LossCover: 0 Lambda_CVT: 0.7520012
+7	7	300.8378	0.1324807	55.88857
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter10_RVD.obj
+energy: 53.82248 LossCVT: 73.90863 LossQE: 0.1883753 LossCover: 0 Lambda_CVT: 0.7256811
+8	8	338.447	0.125455	53.82248
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter11_RVD.obj
+energy: 51.8536 LossCVT: 73.77288 LossQE: 0.1917676 LossCover: 0 Lambda_CVT: 0.7002823
+9	9	376.0076	0.1073605	51.8536
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter12_RVD.obj
+energy: 49.96965 LossCVT: 73.68525 LossQE: 0.1751946 LossCover: 0 Lambda_CVT: 0.6757724
+10	10	413.6916	0.08869159	49.96965
+reach the max itertion time
+energy: 48.22685 LossCVT: 73.68525 LossQE: 0.1751946 LossCover: 0 Lambda_CVT: 0.6521204
+0	0	33.76793	0.08597501	48.22685
+energy: 46.50671 LossCVT: 73.62862 LossQE: 0.1725062 LossCover: 0 Lambda_CVT: 0.6292961
+1	1	67.59873	0.08825785	46.50671
+reach the max itertion time
+CWD: "/home/yiming/research/CWF"
+====================CWF3DTest
+Now file: block
+30000   block   
+OBJ: "/home/yiming/research/CWF/data/block.obj"
+"/home/yiming/research/CWF"
+Pts.size(): 29930
+
+Begin CWF.
+
+29930  29930
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter2_RVD.obj
+energy: 77.51227 LossCVT: 79.57631 LossQE: 0.7211315 LossCover: 0 Lambda_CVT: 0.965
+0	0	38.43237	0.9999068	77.51227
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter3_RVD.obj
+energy: 73.97623 LossCVT: 78.75874 LossQE: 0.634117 LossCover: 0 Lambda_CVT: 0.931225
+1	1	75.94814	0.8290349	73.97623
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter4_RVD.obj
+energy: 68.82754 LossCVT: 76.24684 LossQE: 0.3096759 LossCover: 0 Lambda_CVT: 0.8986321
+2	2	113.5225	0.4475071	68.82754
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter5_RVD.obj
+energy: 65.70384 LossCVT: 75.41532 LossQE: 0.3051825 LossCover: 0 Lambda_CVT: 0.86718
+3	3	151.1013	0.3013941	65.70384
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter6_RVD.obj
+energy: 62.91963 LossCVT: 74.88326 LossQE: 0.2551677 LossCover: 0 Lambda_CVT: 0.8368287
+4	4	188.6175	0.2384943	62.91963
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter7_RVD.obj
+energy: 60.40938 LossCVT: 74.49306 LossQE: 0.2532733 LossCover: 0 Lambda_CVT: 0.8075397
+5	5	225.8025	0.2311897	60.40938
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter8_RVD.obj
+energy: 58.0747 LossCVT: 74.22019 LossQE: 0.2367009 LossCover: 0 Lambda_CVT: 0.7792758
+6	6	263.0946	0.1684139	58.0747
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter9_RVD.obj
+energy: 55.88857 LossCVT: 74.04251 LossQE: 0.2085156 LossCover: 0 Lambda_CVT: 0.7520012
+7	7	300.3104	0.1324807	55.88857
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter10_RVD.obj
+energy: 53.82248 LossCVT: 73.90863 LossQE: 0.1883753 LossCover: 0 Lambda_CVT: 0.7256811
+8	8	337.5018	0.125455	53.82248
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter11_RVD.obj
+energy: 51.8536 LossCVT: 73.77288 LossQE: 0.1917676 LossCover: 0 Lambda_CVT: 0.7002823
+9	9	375.0179	0.1073605	51.8536
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter12_RVD.obj
+energy: 49.96965 LossCVT: 73.68525 LossQE: 0.1751946 LossCover: 0 Lambda_CVT: 0.6757724
+10	10	412.6057	0.08869159	49.96965
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter13_RVD.obj
+energy: 48.17014 LossCVT: 73.60712 LossQE: 0.1694408 LossCover: 0 Lambda_CVT: 0.6521204
+11	11	450.4966	0.08715836	48.17014
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter14_RVD.obj
+energy: 46.44533 LossCVT: 73.54206 LossQE: 0.1655961 LossCover: 0 Lambda_CVT: 0.6292961
+12	12	487.9012	0.07275734	46.44533
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter15_RVD.obj
+energy: 44.78642 LossCVT: 73.49573 LossQE: 0.1546162 LossCover: 0 Lambda_CVT: 0.6072708
+13	13	525.2099	0.06105167	44.78642
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter16_RVD.obj
+energy: 43.19107 LossCVT: 73.45552 LossQE: 0.1449396 LossCover: 0 Lambda_CVT: 0.5860163
+14	14	562.5656	0.06785851	43.19107
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter17_RVD.obj
+energy: 41.65637 LossCVT: 73.40478 LossQE: 0.1455426 LossCover: 0 Lambda_CVT: 0.5655057
+15	15	599.7679	0.05710617	41.65637
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter18_RVD.obj
+energy: 40.17983 LossCVT: 73.37882 LossQE: 0.1360477 LossCover: 0 Lambda_CVT: 0.545713
+16	16	637.1936	0.04275486	40.17983
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter19_RVD.obj
+energy: 38.75452 LossCVT: 73.35594 LossQE: 0.124324 LossCover: 0 Lambda_CVT: 0.5266131
+17	17	674.8608	0.04572321	38.75452
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter20_RVD.obj
+energy: 37.38661 LossCVT: 73.30575 LossQE: 0.13398 LossCover: 0 Lambda_CVT: 0.5081816
+18	18	712.6475	0.05354793	37.38661
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter21_RVD.obj
+energy: 36.06509 LossCVT: 73.29238 LossQE: 0.1228556 LossCover: 0 Lambda_CVT: 0.4903953
+19	19	750.1253	0.03594774	36.06509
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter22_RVD.obj
+energy: 34.79194 LossCVT: 73.29165 LossQE: 0.1080272 LossCover: 0 Lambda_CVT: 0.4732314
+20	20	787.5667	0.03636729	34.79194
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter23_RVD.obj
+energy: 33.56825 LossCVT: 73.2639 LossQE: 0.1109476 LossCover: 0 Lambda_CVT: 0.4566683
+21	21	824.8999	0.03885596	33.56825
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter24_RVD.obj
+energy: 32.38746 LossCVT: 73.25137 LossQE: 0.1066849 LossCover: 0 Lambda_CVT: 0.4406849
+22	22	862.2916	0.03418667	32.38746
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter25_RVD.obj
+energy: 31.24569 LossCVT: 73.24584 LossQE: 0.09708858 LossCover: 0 Lambda_CVT: 0.425261
+23	23	899.7608	0.02854711	31.24569
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter26_RVD.obj
+energy: 30.14831 LossCVT: 73.22056 LossQE: 0.1002906 LossCover: 0 Lambda_CVT: 0.4103768
+24	24	937.2751	0.03015027	30.14831
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter27_RVD.obj
+energy: 29.0884 LossCVT: 73.21571 LossQE: 0.09398544 LossCover: 0 Lambda_CVT: 0.3960136
+25	25	974.8075	0.02374376	29.0884
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter28_RVD.obj
+energy: 28.06528 LossCVT: 73.21037 LossQE: 0.08770362 LossCover: 0 Lambda_CVT: 0.3821532
+26	26	1012.22	0.02691811	28.06528
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter29_RVD.obj
+energy: 27.08133 LossCVT: 73.19666 LossQE: 0.08802937 LossCover: 0 Lambda_CVT: 0.3687778
+27	27	1050.91	0.03320545	27.08133
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter30_RVD.obj
+energy: 26.13031 LossCVT: 73.19287 LossQE: 0.08312096 LossCover: 0 Lambda_CVT: 0.3558706
+28	28	1088.768	0.02016746	26.13031
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter31_RVD.obj
+energy: 25.21403 LossCVT: 73.2014 LossQE: 0.07556501 LossCover: 0 Lambda_CVT: 0.3434151
+29	29	1126.189	0.01751442	25.21403
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter32_RVD.obj
+energy: 24.33025 LossCVT: 73.19227 LossQE: 0.07465165 LossCover: 0 Lambda_CVT: 0.3313956
+30	30	1165.947	0.02049853	24.33025
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter33_RVD.obj
+energy: 23.47712 LossCVT: 73.19179 LossQE: 0.07062142 LossCover: 0 Lambda_CVT: 0.3197967
+31	31	1205.44	0.02076302	23.47712
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter34_RVD.obj
+energy: 22.65376 LossCVT: 73.17933 LossQE: 0.07033205 LossCover: 0 Lambda_CVT: 0.3086039
+32	32	1242.557	0.01721468	22.65376
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter35_RVD.obj
+energy: 21.85957 LossCVT: 73.18159 LossQE: 0.06589733 LossCover: 0 Lambda_CVT: 0.2978027
+33	33	1280.041	0.01562636	21.85957
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter36_RVD.obj
+energy: 21.09382 LossCVT: 73.17037 LossQE: 0.06614816 LossCover: 0 Lambda_CVT: 0.2873796
+34	34	1317.605	0.01754035	21.09382
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter37_RVD.obj
+energy: 20.35485 LossCVT: 73.17571 LossQE: 0.06166393 LossCover: 0 Lambda_CVT: 0.2773213
+35	35	1354.927	0.015701	20.35485
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter38_RVD.obj
+energy: 19.64167 LossCVT: 73.17446 LossQE: 0.05908611 LossCover: 0 Lambda_CVT: 0.2676151
+36	36	1392.346	0.01706121	19.64167
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter39_RVD.obj
+energy: 18.9538 LossCVT: 73.17384 LossQE: 0.05675526 LossCover: 0 Lambda_CVT: 0.2582486
+37	37	1430.063	0.01339476	18.9538
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter40_RVD.obj
+energy: 18.29024 LossCVT: 73.18112 LossQE: 0.05278615 LossCover: 0 Lambda_CVT: 0.2492099
+38	38	1467.216	0.01132099	18.29024
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter41_RVD.obj
+energy: 17.64988 LossCVT: 73.17697 LossQE: 0.0517337 LossCover: 0 Lambda_CVT: 0.2404875
+39	39	1504.118	0.01371991	17.64988
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter42_RVD.obj
+energy: 17.03244 LossCVT: 73.17559 LossQE: 0.05054864 LossCover: 0 Lambda_CVT: 0.2320705
+40	40	1541.729	0.01552926	17.03244
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter43_RVD.obj
+energy: 16.43629 LossCVT: 73.16995 LossQE: 0.05002411 LossCover: 0 Lambda_CVT: 0.223948
+41	41	1579.065	0.009604802	16.43629
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter44_RVD.obj
+energy: 15.86122 LossCVT: 73.18808 LossQE: 0.04456149 LossCover: 0 Lambda_CVT: 0.2161098
+42	42	1616.775	0.01052588	15.86122
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter45_RVD.obj
+energy: 15.30657 LossCVT: 73.1742 LossQE: 0.04638267 LossCover: 0 Lambda_CVT: 0.208546
+43	43	1654.08	0.01273221	15.30657
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter46_RVD.obj
+energy: 14.77134 LossCVT: 73.17504 LossQE: 0.04509177 LossCover: 0 Lambda_CVT: 0.2012469
+44	44	1691.287	0.009030653	14.77134
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter47_RVD.obj
+energy: 14.25495 LossCVT: 73.18734 LossQE: 0.04172886 LossCover: 0 Lambda_CVT: 0.1942032
+45	45	1728.94	0.009281708	14.25495
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter48_RVD.obj
+energy: 13.75669 LossCVT: 73.19531 LossQE: 0.03944412 LossCover: 0 Lambda_CVT: 0.1874061
+46	46	1767.539	0.01364598	13.75669
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter49_RVD.obj
+energy: 13.27551 LossCVT: 73.19078 LossQE: 0.0391852 LossCover: 0 Lambda_CVT: 0.1808469
+47	47	1805.523	0.007732052	13.27551
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter50_RVD.obj
+energy: 12.81147 LossCVT: 73.19584 LossQE: 0.0375307 LossCover: 0 Lambda_CVT: 0.1745172
+48	48	1843.096	0.00728405	12.81147
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter51_RVD.obj
+energy: 12.36424 LossCVT: 73.22523 LossQE: 0.03244292 LossCover: 0 Lambda_CVT: 0.1684091
+49	49	1880.374	0.01636882	12.36424
+filepath = /home/yiming/research/CWF/data/Block/Ours_30000_block_Iter52_RVD.obj
+energy: 11.93133 LossCVT: 73.18709 LossQE: 0.03734471 LossCover: 0 Lambda_CVT: 0.1625148
+50	50	1918.165	0.008597686	11.93133
+reach the max itertion time
+energy: 11.51504 LossCVT: 73.18709 LossQE: 0.03734471 LossCover: 0 Lambda_CVT: 0.1568268
+0	0	33.73346	0.01002138	11.51504
+energy: 11.13097 LossCVT: 73.42249 LossQE: 0.01936706 LossCover: 0 Lambda_CVT: 0.1513379
+energy: 10.73099 LossCVT: 73.33528 LossQE: 0.02103145 LossCover: 0 Lambda_CVT: 0.146041
+energy: 10.35126 LossCVT: 73.25902 LossQE: 0.02689583 LossCover: 0 Lambda_CVT: 0.1409296
+energy: 9.989505 LossCVT: 73.22232 LossQE: 0.03148446 LossCover: 0 Lambda_CVT: 0.1359971
+1	4	168.0615	0.006642331	9.989505
+reach the max itertion time
+cover-only energy: 4.318761e-05 LossCover: 4.318761e-05 maxViolation: 0.05093346 invalidSeeds: 40
+0	0	2126.82	0.003344078	4.318761e-05
+CWD: "/home/yiming/research/CWF"
+====================CWF3DTest
+Now file: block
+50000   block   
+OBJ: "/home/yiming/research/CWF/data/block.obj"
+"/home/yiming/research/CWF"
+Pts.size(): 50011
+
+Begin CWF.
+
+50011  50011
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter2_RVD.obj
+energy: 45.97987 LossCVT: 48.02646 LossQE: 0.3547329 LossCover: 0 Lambda_CVT: 0.95
+0	0	59.05997	0.6281779	45.97987
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter3_RVD.obj
+energy: 43.16563 LossCVT: 47.4823 LossQE: 0.3128524 LossCover: 0 Lambda_CVT: 0.9025
+1	1	118.5217	0.5149811	43.16563
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter4_RVD.obj
+energy: 39.37234 LossCVT: 45.7439 LossQE: 0.1526632 LossCover: 0 Lambda_CVT: 0.857375
+2	2	177.9156	0.2311523	39.37234
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter5_RVD.obj
+energy: 36.96503 LossCVT: 45.21983 LossQE: 0.1331959 LossCover: 0 Lambda_CVT: 0.8145062
+3	3	237.8269	0.1756961	36.96503
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter6_RVD.obj
+energy: 34.86121 LossCVT: 44.92104 LossQE: 0.1021668 LossCover: 0 Lambda_CVT: 0.7737809
+4	4	296.2975	0.1476856	34.86121
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter7_RVD.obj
+energy: 32.9387 LossCVT: 44.66957 LossQE: 0.1024599 LossCover: 0 Lambda_CVT: 0.7350919
+5	5	354.6406	0.1193002	32.9387
+CWD: "/home/yiming/research/CWF"
+====================CWF3DTest
+Now file: block
+50000   block   
+OBJ: "/home/yiming/research/CWF/data/block.obj"
+"/home/yiming/research/CWF"
+Pts.size(): 50011
+
+Begin CWF.
+
+50011  50011
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter2_RVD.obj
+energy: 45.97987 LossCVT: 48.02646 LossQE: 0.3547329 LossCover: 0 Lambda_CVT: 0.95
+0	0	58.73861	0.6281779	45.97987
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter3_RVD.obj
+energy: 43.16563 LossCVT: 47.4823 LossQE: 0.3128524 LossCover: 0 Lambda_CVT: 0.9025
+1	1	117.577	0.5149811	43.16563
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter4_RVD.obj
+energy: 39.37234 LossCVT: 45.7439 LossQE: 0.1526632 LossCover: 0 Lambda_CVT: 0.857375
+2	2	176.062	0.2311523	39.37234
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter5_RVD.obj
+energy: 36.96503 LossCVT: 45.21983 LossQE: 0.1331959 LossCover: 0 Lambda_CVT: 0.8145062
+3	3	236.4868	0.1756961	36.96503
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter6_RVD.obj
+energy: 34.86121 LossCVT: 44.92104 LossQE: 0.1021668 LossCover: 0 Lambda_CVT: 0.7737809
+4	4	295.9167	0.1476856	34.86121
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter7_RVD.obj
+energy: 32.9387 LossCVT: 44.66957 LossQE: 0.1024599 LossCover: 0 Lambda_CVT: 0.7350919
+5	5	353.9457	0.1193002	32.9387
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter8_RVD.obj
+energy: 31.17876 LossCVT: 44.50063 LossQE: 0.1023152 LossCover: 0 Lambda_CVT: 0.6983373
+6	6	412.1298	0.09188049	31.17876
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter9_RVD.obj
+energy: 29.54492 LossCVT: 44.39781 LossQE: 0.09050947 LossCover: 0 Lambda_CVT: 0.6634204
+7	7	470.7768	0.07313416	29.54492
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter10_RVD.obj
+energy: 28.00764 LossCVT: 44.31385 LossQE: 0.07886438 LossCover: 0 Lambda_CVT: 0.6302494
+8	8	529.437	0.06706222	28.00764
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter11_RVD.obj
+energy: 26.56261 LossCVT: 44.23833 LossQE: 0.07548891 LossCover: 0 Lambda_CVT: 0.5987369
+9	9	587.7696	0.06087031	26.56261
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter12_RVD.obj
+energy: 25.20073 LossCVT: 44.1828 LossQE: 0.06955425 LossCover: 0 Lambda_CVT: 0.5688001
+10	10	646.5077	0.04791248	25.20073
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter13_RVD.obj
+energy: 23.91472 LossCVT: 44.14053 LossQE: 0.06293753 LossCover: 0 Lambda_CVT: 0.5403601
+11	11	705.6044	0.04078229	23.91472
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter14_RVD.obj
+energy: 22.70012 LossCVT: 44.10162 LossQE: 0.0609058 LossCover: 0 Lambda_CVT: 0.5133421
+12	12	765.5863	0.04132336	22.70012
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter15_RVD.obj
+energy: 21.54911 LossCVT: 44.06911 LossQE: 0.05771294 LossCover: 0 Lambda_CVT: 0.487675
+13	13	823.9447	0.03233043	21.54911
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter16_RVD.obj
+energy: 20.45755 LossCVT: 44.04274 LossQE: 0.0529314 LossCover: 0 Lambda_CVT: 0.4632912
+14	14	882.6839	0.02861369	20.45755
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter17_RVD.obj
+energy: 19.42424 LossCVT: 44.01873 LossQE: 0.05042595 LossCover: 0 Lambda_CVT: 0.4401267
+15	15	940.8405	0.03174019	19.42424
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter18_RVD.obj
+energy: 18.44407 LossCVT: 43.99611 LossQE: 0.04840675 LossCover: 0 Lambda_CVT: 0.4181203
+16	16	999.9285	0.02458577	18.44407
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter19_RVD.obj
+energy: 17.5147 LossCVT: 43.98211 LossQE: 0.04437255 LossCover: 0 Lambda_CVT: 0.3972143
+17	17	1059.191	0.02115704	17.5147
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter20_RVD.obj
+energy: 16.63322 LossCVT: 43.97023 LossQE: 0.04089769 LossCover: 0 Lambda_CVT: 0.3773536
+18	18	1117.512	0.02318334	16.63322
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter21_RVD.obj
+energy: 15.7969 LossCVT: 43.95306 LossQE: 0.04034522 LossCover: 0 Lambda_CVT: 0.3584859
+19	19	1175.843	0.02031903	15.7969
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter22_RVD.obj
+energy: 15.00308 LossCVT: 43.94284 LossQE: 0.03783448 LossCover: 0 Lambda_CVT: 0.3405616
+20	20	1234.358	0.01512198	15.00308
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter23_RVD.obj
+energy: 14.24956 LossCVT: 43.94278 LossQE: 0.03259822 LossCover: 0 Lambda_CVT: 0.3235335
+21	21	1293.063	0.01968706	14.24956
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter24_RVD.obj
+energy: 13.53421 LossCVT: 43.9224 LossQE: 0.03435856 LossCover: 0 Lambda_CVT: 0.3073569
+22	22	1351.552	0.01600285	13.53421
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter25_RVD.obj
+energy: 12.85573 LossCVT: 43.9174 LossQE: 0.03233476 LossCover: 0 Lambda_CVT: 0.291989
+23	23	1413.444	0.01322579	12.85573
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter26_RVD.obj
+energy: 12.21053 LossCVT: 43.92002 LossQE: 0.02757199 LossCover: 0 Lambda_CVT: 0.2773896
+24	24	1472.054	0.01177796	12.21053
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter27_RVD.obj
+energy: 11.59868 LossCVT: 43.89965 LossQE: 0.03023883 LossCover: 0 Lambda_CVT: 0.2635201
+25	25	1531.491	0.01515591	11.59868
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter28_RVD.obj
+energy: 11.01749 LossCVT: 43.90044 LossQE: 0.02727086 LossCover: 0 Lambda_CVT: 0.2503441
+26	26	1590.488	0.01052456	11.01749
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter29_RVD.obj
+energy: 10.46559 LossCVT: 43.90592 LossQE: 0.02358079 LossCover: 0 Lambda_CVT: 0.2378269
+27	27	1649.089	0.01046349	10.46559
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter30_RVD.obj
+energy: 9.941487 LossCVT: 43.89955 LossQE: 0.02301729 LossCover: 0 Lambda_CVT: 0.2259355
+28	28	1708.027	0.0107405	9.941487
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter31_RVD.obj
+energy: 9.443789 LossCVT: 43.89552 LossQE: 0.02210958 LossCover: 0 Lambda_CVT: 0.2146388
+29	29	1766.849	0.009255518	9.443789
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter32_RVD.obj
+energy: 8.970967 LossCVT: 43.89486 LossQE: 0.02050613 LossCover: 0 Lambda_CVT: 0.2039068
+30	30	1826.509	0.008347831	8.970967
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter33_RVD.obj
+energy: 8.521967 LossCVT: 43.88992 LossQE: 0.01998481 LossCover: 0 Lambda_CVT: 0.1937115
+31	31	1884.877	0.01128831	8.521967
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter34_RVD.obj
+energy: 8.095293 LossCVT: 43.88375 LossQE: 0.01954523 LossCover: 0 Lambda_CVT: 0.1840259
+32	32	1943.982	0.007372596	8.095293
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter35_RVD.obj
+energy: 7.690286 LossCVT: 43.88745 LossQE: 0.01767985 LossCover: 0 Lambda_CVT: 0.1748246
+33	33	2003.239	0.0069173	7.690286
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter36_RVD.obj
+energy: 7.305561 LossCVT: 43.88694 LossQE: 0.01666997 LossCover: 0 Lambda_CVT: 0.1660834
+34	34	2062.322	0.009011573	7.305561
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter37_RVD.obj
+energy: 6.940129 LossCVT: 43.88032 LossQE: 0.01672691 LossCover: 0 Lambda_CVT: 0.1577792
+35	35	2121.075	0.007371569	6.940129
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter38_RVD.obj
+energy: 6.593086 LossCVT: 43.88303 LossQE: 0.01544703 LossCover: 0 Lambda_CVT: 0.1498903
+36	36	2180.9	0.005752996	6.593086
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter39_RVD.obj
+energy: 6.26357 LossCVT: 43.88402 LossQE: 0.01467237 LossCover: 0 Lambda_CVT: 0.1423957
+37	37	2239.322	0.004898088	6.26357
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter40_RVD.obj
+energy: 5.950586 LossCVT: 43.89095 LossQE: 0.01319627 LossCover: 0 Lambda_CVT: 0.135276
+38	38	2298.123	0.008539687	5.950586
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter41_RVD.obj
+energy: 5.653031 LossCVT: 43.88005 LossQE: 0.01391091 LossCover: 0 Lambda_CVT: 0.1285122
+39	39	2356.57	0.00466581	5.653031
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter42_RVD.obj
+energy: 5.370655 LossCVT: 43.8824 LossQE: 0.013204 LossCover: 0 Lambda_CVT: 0.1220865
+40	40	2415.574	0.004407307	5.370655
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter43_RVD.obj
+energy: 5.102227 LossCVT: 43.89312 LossQE: 0.01140599 LossCover: 0 Lambda_CVT: 0.1159822
+41	41	2473.482	0.006163699	5.102227
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter44_RVD.obj
+energy: 4.847252 LossCVT: 43.88444 LossQE: 0.01192817 LossCover: 0 Lambda_CVT: 0.1101831
+42	42	2531.483	0.004729533	4.847252
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter45_RVD.obj
+energy: 4.605204 LossCVT: 43.88347 LossQE: 0.01174699 LossCover: 0 Lambda_CVT: 0.104674
+43	43	2590.456	0.003790885	4.605204
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter46_RVD.obj
+energy: 4.375139 LossCVT: 43.89001 LossQE: 0.01070483 LossCover: 0 Lambda_CVT: 0.09944026
+44	44	2649.286	0.006274463	4.375139
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter47_RVD.obj
+energy: 4.1567 LossCVT: 43.88679 LossQE: 0.01079232 LossCover: 0 Lambda_CVT: 0.09446824
+45	45	2708.145	0.005027778	4.1567
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter48_RVD.obj
+energy: 3.949243 LossCVT: 43.88368 LossQE: 0.01090971 LossCover: 0 Lambda_CVT: 0.08974483
+46	46	2766.92	0.005152992	3.949243
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter49_RVD.obj
+energy: 3.75208 LossCVT: 43.89046 LossQE: 0.0100847 LossCover: 0 Lambda_CVT: 0.08525759
+47	47	2825.796	0.004046165	3.75208
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter50_RVD.obj
+energy: 3.564922 LossCVT: 43.90654 LossQE: 0.008724637 LossCover: 0 Lambda_CVT: 0.08099471
+48	48	2884.332	0.00564848	3.564922
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter51_RVD.obj
+energy: 3.386875 LossCVT: 43.89864 LossQE: 0.009095147 LossCover: 0 Lambda_CVT: 0.07694498
+49	49	2943.15	0.003584538	3.386875
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_Iter52_RVD.obj
+energy: 3.217854 LossCVT: 43.89527 LossQE: 0.009210134 LossCover: 0 Lambda_CVT: 0.07309773
+50	50	3002.24	0.003598491	3.217854
+reach the max itertion time
+energy: 3.057422 LossCVT: 43.89527 LossQE: 0.009210134 LossCover: 0 Lambda_CVT: 0.06944284
+0	0	52.22503	0.003994366	3.057422
+energy: 2.907285 LossCVT: 43.95552 LossQE: 0.007508368 LossCover: 0 Lambda_CVT: 0.0659707
+energy: 2.761637 LossCVT: 43.9499 LossQE: 0.007202275 LossCover: 0 Lambda_CVT: 0.06267216
+energy: 2.622825 LossCVT: 43.92849 LossQE: 0.007385815 LossCover: 0 Lambda_CVT: 0.05953856
+energy: 2.49173 LossCVT: 43.9116 LossQE: 0.00801864 LossCover: 0 Lambda_CVT: 0.05656163
+1	4	260.4931	0.002270569	2.49173
+reach the max itertion time
+cover-only energy: 1.088652e-05 LossCover: 1.088652e-05 maxViolation: 0.02031611 invalidSeeds: 78
+0	0	10065.41	0.0008815496	1.088652e-05
+cover-only energy: 0.00105113 LossCover: 0.00105113 maxViolation: 0.08070447 invalidSeeds: 119
+cover-only energy: 9.891605e-05 LossCover: 9.891605e-05 maxViolation: 0.04819535 invalidSeeds: 44
+cover-only energy: 1.874164e-10 LossCover: 1.874164e-10 maxViolation: 0.0006148653 invalidSeeds: 20
+1	3	40290.86	6.992803e-07	1.874164e-10
+cover-only energy: 8.494164e-11 LossCover: 8.494164e-11 maxViolation: 0.0004609157 invalidSeeds: 20
+2	4	50364.77	4.097973e-07	8.494164e-11
+cover-only energy: 1.592884e-11 LossCover: 1.592884e-11 maxViolation: 0.0002613242 invalidSeeds: 20
+stop current cover-only optimization: invalidSeeds unchanged for 3 evaluations (20)
+reach the gradient tolerance
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_RVD.obj
+energy: 2.367691 LossCVT: 43.91449 LossQE: 0.008009783 LossCover: 0 Lambda_CVT: 0.05373355
+0	0	51.4154	0.00296902	2.367691
+energy: 2.255826 LossCVT: 43.94985 LossQE: 0.01232446 LossCover: 0 Lambda_CVT: 0.05104687
+energy: 2.139476 LossCVT: 43.92785 LossQE: 0.009215413 LossCover: 0 Lambda_CVT: 0.04849453
+energy: 2.03143 LossCVT: 43.91961 LossQE: 0.008062679 LossCover: 0 Lambda_CVT: 0.0460698
+energy: 1.929928 LossCVT: 43.91671 LossQE: 0.007855466 LossCover: 0 Lambda_CVT: 0.04376631
+1	4	260.3979	0.004641701	1.929928
+reach the max itertion time
+cover-only energy: 1.896914e-07 LossCover: 1.896914e-07 maxViolation: 0.007540967 invalidSeeds: 34
+0	0	10067.49	0.0001477711	1.896914e-07
+cover-only energy: 0.001233621 LossCover: 0.001233621 maxViolation: 0.111042 invalidSeeds: 13
+cover-only energy: 0.0005958442 LossCover: 0.0005958442 maxViolation: 0.1136692 invalidSeeds: 14
+cover-only energy: 5.513606e-05 LossCover: 5.513606e-05 maxViolation: 0.05916847 invalidSeeds: 8
+cover-only energy: 9.896326e-12 LossCover: 9.896326e-12 maxViolation: 0.000207348 invalidSeeds: 18
+1	4	50308.44	9.330735e-08	9.896326e-12
+cover-only energy: 4.533174e-12 LossCover: 4.533174e-12 maxViolation: 0.0001594486 invalidSeeds: 18
+2	5	60381.1	5.483674e-08	4.533174e-12
+cover-only energy: 8.06203e-13 LossCover: 8.06203e-13 maxViolation: 8.942821e-05 invalidSeeds: 16
+3	6	70457.46	1.745203e-08	8.06203e-13
+cover-only energy: 2.110247e-13 LossCover: 2.110247e-13 maxViolation: 5.715567e-05 invalidSeeds: 16
+4	7	80540.82	7.122333e-09	2.110247e-13
+cover-only energy: 9.599458e-14 LossCover: 9.599458e-14 maxViolation: 5.429158e-05 invalidSeeds: 18
+5	8	90608.61	4.055981e-09	9.599458e-14
+cover-only energy: 6.144379e-15 LossCover: 6.144379e-15 maxViolation: 2.52141e-05 invalidSeeds: 18
+6	9	100661.9	7.050656e-10	6.144379e-15
+reach the max itertion time
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_RVD.obj
+energy: 1.833832 LossCVT: 43.91691 LossQE: 0.007855029 LossCover: 0 Lambda_CVT: 0.04157799
+0	0	53.03081	0.004885453	1.833832
+energy: 1.743991 LossCVT: 43.96966 LossQE: 0.007228907 LossCover: 0 Lambda_CVT: 0.03949909
+energy: 1.65633 LossCVT: 43.95705 LossQE: 0.006879298 LossCover: 0 Lambda_CVT: 0.03752414
+energy: 1.573399 LossCVT: 43.94406 LossQE: 0.0068842 LossCover: 0 Lambda_CVT: 0.03564793
+1	3	210.3321	0.006978788	1.573399
+reach the max itertion time
+cover-only energy: 1.726783e-08 LossCover: 1.726783e-08 maxViolation: 0.002789012 invalidSeeds: 34
+0	0	10018.55	1.716143e-05	1.726783e-08
+cover-only energy: 0.006106109 LossCover: 0.006106109 maxViolation: 0.1726776 invalidSeeds: 79
+cover-only energy: 0.0003579717 LossCover: 0.0003579717 maxViolation: 0.08107836 invalidSeeds: 35
+cover-only energy: 1.782169e-07 LossCover: 1.782169e-07 maxViolation: 0.008204376 invalidSeeds: 6
+cover-only energy: 1.519649e-15 LossCover: 1.519649e-15 maxViolation: 1.551403e-05 invalidSeeds: 4
+1	4	50263.68	3.232013e-10	1.519649e-15
+cover-only energy: 8.527278e-16 LossCover: 8.527278e-16 maxViolation: 1.259756e-05 invalidSeeds: 4
+2	5	60338.21	2.209788e-10	8.527278e-16
+cover-only energy: 1.399021e-16 LossCover: 1.399021e-16 maxViolation: 6.896023e-06 invalidSeeds: 4
+stop current cover-only optimization: invalidSeeds unchanged for 3 evaluations (4)
+reach the gradient tolerance
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_RVD.obj
+energy: 1.495121 LossCVT: 43.94452 LossQE: 0.006916504 LossCover: 0 Lambda_CVT: 0.03386554
+0	0	52.67139	0.007045246	1.495121
+energy: 1.43452 LossCVT: 43.87024 LossQE: 0.02311504 LossCover: 0 Lambda_CVT: 0.03217226
+energy: 1.353446 LossCVT: 43.90013 LossQE: 0.01169776 LossCover: 0 Lambda_CVT: 0.03056365
+energy: 1.283194 LossCVT: 43.92096 LossQE: 0.007928613 LossCover: 0 Lambda_CVT: 0.02903546
+energy: 1.218843 LossCVT: 43.93242 LossQE: 0.00702445 LossCover: 0 Lambda_CVT: 0.02758369
+1	4	264.6754	0.003971787	1.218843
+reach the max itertion time
+cover-only energy: 1.735304e-13 LossCover: 1.735304e-13 maxViolation: 7.982898e-05 invalidSeeds: 4
+0	0	10067.29	7.348184e-09	1.735304e-13
+cover-only energy: 0.0004490761 LossCover: 0.0004490761 maxViolation: 0.06625989 invalidSeeds: 43
+cover-only energy: 0.0006708355 LossCover: 0.0006708355 maxViolation: 0.1034999 invalidSeeds: 25
+cover-only energy: 0.0001791813 LossCover: 0.0001791813 maxViolation: 0.07690181 invalidSeeds: 10
+cover-only energy: 5.941351e-07 LossCover: 5.941351e-07 maxViolation: 0.0128168 invalidSeeds: 2
+cover-only energy: 0 LossCover: 0 maxViolation: 0 invalidSeeds: 0
+reach the gradient tolerance
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_RVD.obj
+stop alternating optimization: maxViolation < 1e-06
+allTime: 296150.1 RVDtime: 3623.172 L-BFGS time: 292526.9
+filepath = /home/yiming/research/CWF/data/Block/Ours_50000_block_RVD.obj
+CWD: "/home/yiming/research/CWF"
+====================CWF3DTest
+Now file: mobius1
+6000   mobius1   
+OBJ: "/home/yiming/research/CWF/data/mobius1.obj"
 "/home/yiming/research/CWF"
 Pts.size(): 5999
 
 Begin CWF.
 
 5999  5999
-filepath = /home/yiming/research/CWF/data/Block/Ours_6000_block_Iter2_RVD.obj
-energy: 398.9587 LossCVT: 410.3989 LossQE: 9.079687 Lambda_CVT: 0.95
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_6000_5.csv
-[io] ok
-0	0	9.559642	7.612882	398.9587
-filepath = /home/yiming/research/CWF/data/Block/Ours_6000_block_Iter3_RVD.obj
-energy: 372.984 LossCVT: 404.0997 LossQE: 8.283953 Lambda_CVT: 0.9025
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_6000_6.csv
-[io] ok
-1	1	18.87464	6.447842	372.984
-filepath = /home/yiming/research/CWF/data/Block/Ours_6000_block_Iter4_RVD.obj
-energy: 330.8234 LossCVT: 381.1145 LossQE: 4.06529 Lambda_CVT: 0.857375
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_6000_7.csv
-[io] ok
-2	2	28.22826	2.400252	330.8234
-filepath = /home/yiming/research/CWF/data/Block/Ours_6000_block_Iter5_RVD.obj
-energy: 309.3342 LossCVT: 375.5685 LossQE: 3.431284 Lambda_CVT: 0.8145062
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_6000_8.csv
-[io] ok
-3	3	37.57274	1.677865	309.3342
-filepath = /home/yiming/research/CWF/data/Block/Ours_6000_block_Iter6_RVD.obj
-energy: 291.4609 LossCVT: 373.1545 LossQE: 2.721138 Lambda_CVT: 0.7737809
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_6000_9.csv
-[io] ok
-4	4	46.88936	1.404804	291.4609
-filepath = /home/yiming/research/CWF/data/Block/Ours_6000_block_Iter7_RVD.obj
-energy: 274.9868 LossCVT: 370.8507 LossQE: 2.377533 Lambda_CVT: 0.7350919
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_6000_10.csv
-[io] ok
-5	5	56.49753	1.142546	274.9868
-filepath = /home/yiming/research/CWF/data/Block/Ours_6000_block_Iter8_RVD.obj
-energy: 260.071 LossCVT: 368.9464 LossQE: 2.421965 Lambda_CVT: 0.6983373
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_6000_11.csv
-[io] ok
-6	6	65.82864	0.9029533	260.071
-filepath = /home/yiming/research/CWF/data/Block/Ours_6000_block_Iter9_RVD.obj
-energy: 246.385 LossCVT: 368.0199 LossQE: 2.233126 Lambda_CVT: 0.6634204
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_6000_12.csv
-[io] ok
-7	7	74.96077	0.6657633	246.385
-filepath = /home/yiming/research/CWF/data/Block/Ours_6000_block_Iter10_RVD.obj
-energy: 233.5873 LossCVT: 367.5654 LossQE: 1.929437 Lambda_CVT: 0.6302494
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_6000_13.csv
-[io] ok
-8	8	84.17413	0.5454527	233.5873
-filepath = /home/yiming/research/CWF/data/Block/Ours_6000_block_Iter11_RVD.obj
-energy: 221.5501 LossCVT: 366.9289 LossQE: 1.856197 Lambda_CVT: 0.5987369
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_6000_14.csv
-[io] ok
-9	9	93.39827	0.5057943	221.5501
-filepath = /home/yiming/research/CWF/data/Block/Ours_6000_block_Iter12_RVD.obj
-energy: 210.2233 LossCVT: 366.6304 LossQE: 1.683889 Lambda_CVT: 0.5688001
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_6000_15.csv
-[io] ok
-10	10	102.5188	0.4358404	210.2233
-filepath = /home/yiming/research/CWF/data/Block/Ours_6000_block_Iter13_RVD.obj
-energy: 199.514 LossCVT: 366.307 LossQE: 1.576321 Lambda_CVT: 0.5403601
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_6000_16.csv
-[io] ok
-11	11	111.7433	0.3442265	199.514
-filepath = /home/yiming/research/CWF/data/Block/Ours_6000_block_Iter14_RVD.obj
-energy: 189.4071 LossCVT: 366.0425 LossQE: 1.502066 Lambda_CVT: 0.5133421
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_6000_17.csv
-[io] ok
-12	12	120.9055	0.3323034	189.4071
-filepath = /home/yiming/research/CWF/data/Block/Ours_6000_block_Iter15_RVD.obj
-energy: 179.8292 LossCVT: 365.8585 LossQE: 1.409179 Lambda_CVT: 0.487675
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_6000_18.csv
-[io] ok
-13	13	130.0378	0.3510088	179.8292
-filepath = /home/yiming/research/CWF/data/Block/Ours_6000_block_Iter16_RVD.obj
-energy: 170.7246 LossCVT: 365.5674 LossQE: 1.36039 Lambda_CVT: 0.4632912
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_6000_19.csv
-[io] ok
-14	14	139.1482	0.2796589	170.7246
-filepath = /home/yiming/research/CWF/data/Block/Ours_6000_block_Iter17_RVD.obj
-energy: 162.1089 LossCVT: 365.5393 LossQE: 1.225326 Lambda_CVT: 0.4401267
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_6000_20.csv
-[io] ok
-15	15	148.2948	0.2468679	162.1089
-filepath = /home/yiming/research/CWF/data/Block/Ours_6000_block_Iter18_RVD.obj
-energy: 153.9584 LossCVT: 365.4236 LossQE: 1.167322 Lambda_CVT: 0.4181203
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_6000_21.csv
-[io] ok
-16	16	157.432	0.2241652	153.9584
-filepath = /home/yiming/research/CWF/data/Block/Ours_6000_block_Iter19_RVD.obj
-energy: 146.2393 LossCVT: 365.3557 LossQE: 1.11479 Lambda_CVT: 0.3972143
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_6000_22.csv
-[io] ok
-17	17	166.5071	0.1778954	146.2393
-filepath = /home/yiming/research/CWF/data/Block/Ours_6000_block_Iter20_RVD.obj
-energy: 138.9029 LossCVT: 365.5022 LossQE: 0.9793367 Lambda_CVT: 0.3773536
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_6000_23.csv
-[io] ok
-18	18	175.6383	0.1773461	138.9029
-filepath = /home/yiming/research/CWF/data/Block/Ours_6000_block_Iter21_RVD.obj
-energy: 131.9515 LossCVT: 365.2287 LossQE: 1.022177 Lambda_CVT: 0.3584859
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_6000_24.csv
-[io] ok
-19	19	184.8996	0.2203125	131.9515
-filepath = /home/yiming/research/CWF/data/Block/Ours_6000_block_Iter22_RVD.obj
-energy: 125.3505 LossCVT: 365.2295 LossQE: 0.9673649 Lambda_CVT: 0.3405616
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_6000_25.csv
-[io] ok
-20	20	194.0683	0.1500964	125.3505
-filepath = /home/yiming/research/CWF/data/Block/Ours_6000_block_Iter23_RVD.obj
-energy: 119.0779 LossCVT: 365.604 LossQE: 0.7927241 Lambda_CVT: 0.3235335
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_6000_26.csv
-[io] ok
-21	21	203.2018	0.1473931	119.0779
-filepath = /home/yiming/research/CWF/data/Block/Ours_6000_block_Iter24_RVD.obj
-energy: 113.1303 LossCVT: 365.2766 LossQE: 0.8600461 Lambda_CVT: 0.3073569
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_6000_27.csv
-[io] ok
-22	22	212.2999	0.1455273	113.1303
-filepath = /home/yiming/research/CWF/data/Block/Ours_6000_block_Iter25_RVD.obj
-energy: 107.4882 LossCVT: 365.3021 LossQE: 0.8239407 Lambda_CVT: 0.291989
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_6000_28.csv
-[io] ok
-23	23	221.3686	0.1447007	107.4882
-filepath = /home/yiming/research/CWF/data/Block/Ours_6000_block_Iter26_RVD.obj
-energy: 102.1199 LossCVT: 365.4835 LossQE: 0.7386085 Lambda_CVT: 0.2773896
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_6000_29.csv
-[io] ok
-24	24	230.3599	0.09827749	102.1199
-filepath = /home/yiming/research/CWF/data/Block/Ours_6000_block_Iter27_RVD.obj
-energy: 97.02627 LossCVT: 365.6807 LossQE: 0.6620495 Lambda_CVT: 0.2635201
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_6000_30.csv
-[io] ok
-25	25	239.4176	0.09269141	97.02627
-filepath = /home/yiming/research/CWF/data/Block/Ours_6000_block_Iter28_RVD.obj
-energy: 92.18585 LossCVT: 365.7166 LossQE: 0.6308461 Lambda_CVT: 0.2503441
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_6000_31.csv
-[io] ok
-26	26	248.5485	0.08261848	92.18585
-filepath = /home/yiming/research/CWF/data/Block/Ours_6000_block_Iter29_RVD.obj
-energy: 87.58666 LossCVT: 365.717 LossQE: 0.6093181 Lambda_CVT: 0.2378269
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_6000_32.csv
-[io] ok
-27	27	257.5373	0.0817499	87.58666
-filepath = /home/yiming/research/CWF/data/Block/Ours_6000_block_Iter30_RVD.obj
-energy: 83.22169 LossCVT: 365.8744 LossQE: 0.5576576 Lambda_CVT: 0.2259355
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_6000_33.csv
-[io] ok
-28	28	266.4852	0.1067077	83.22169
-filepath = /home/yiming/research/CWF/data/Block/Ours_6000_block_Iter31_RVD.obj
-energy: 79.07218 LossCVT: 365.7347 LossQE: 0.5713314 Lambda_CVT: 0.2146388
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_6000_34.csv
-[io] ok
-29	29	275.4355	0.07203126	79.07218
-filepath = /home/yiming/research/CWF/data/Block/Ours_6000_block_Iter32_RVD.obj
-energy: 75.13443 LossCVT: 365.8684 LossQE: 0.5313611 Lambda_CVT: 0.2039068
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_6000_35.csv
-[io] ok
-30	30	285.0108	0.06873665	75.13443
-filepath = /home/yiming/research/CWF/data/Block/Ours_6000_block_Iter33_RVD.obj
-energy: 71.39189 LossCVT: 365.9176 LossQE: 0.5094398 Lambda_CVT: 0.1937115
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_6000_36.csv
-[io] ok
-31	31	294.5381	0.07347856	71.39189
-filepath = /home/yiming/research/CWF/data/Block/Ours_6000_block_Iter34_RVD.obj
-energy: 67.8394 LossCVT: 366.2277 LossQE: 0.4440055 Lambda_CVT: 0.1840259
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_6000_37.csv
-[io] ok
-32	32	303.9121	0.09347273	67.8394
-filepath = /home/yiming/research/CWF/data/Block/Ours_6000_block_Iter35_RVD.obj
-energy: 64.45838 LossCVT: 366.1164 LossQE: 0.4522182 Lambda_CVT: 0.1748246
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_6000_38.csv
-[io] ok
-33	33	313.2881	0.04967799	64.45838
-filepath = /home/yiming/research/CWF/data/Block/Ours_6000_block_Iter36_RVD.obj
-energy: 61.25145 LossCVT: 366.2176 LossQE: 0.4287898 Lambda_CVT: 0.1660834
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_6000_39.csv
-[io] ok
-34	34	322.7327	0.0552226	61.25145
-filepath = /home/yiming/research/CWF/data/Block/Ours_6000_block_Iter37_RVD.obj
-energy: 58.20157 LossCVT: 366.3768 LossQE: 0.3949293 Lambda_CVT: 0.1577792
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_6000_40.csv
-[io] ok
-35	35	332.1781	0.0597758	58.20157
-filepath = /home/yiming/research/CWF/data/Block/Ours_6000_block_Iter38_RVD.obj
-energy: 55.30702 LossCVT: 366.1487 LossQE: 0.4248964 Lambda_CVT: 0.1498903
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_6000_41.csv
-[io] ok
-36	36	341.6816	0.09960094	55.30702
-filepath = /home/yiming/research/CWF/data/Block/Ours_6000_block_Iter39_RVD.obj
-energy: 52.5531 LossCVT: 366.2793 LossQE: 0.3964938 Lambda_CVT: 0.1423957
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_6000_42.csv
-[io] ok
-37	37	351.0939	0.06604452	52.5531
-filepath = /home/yiming/research/CWF/data/Block/Ours_6000_block_Iter40_RVD.obj
-energy: 49.93792 LossCVT: 366.6826 LossQE: 0.3345831 Lambda_CVT: 0.135276
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_6000_43.csv
-[io] ok
-38	38	360.3924	0.06005693	49.93792
-filepath = /home/yiming/research/CWF/data/Block/Ours_6000_block_Iter41_RVD.obj
-energy: 47.4544 LossCVT: 366.621 LossQE: 0.339144 Lambda_CVT: 0.1285122
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_6000_44.csv
-[io] ok
-39	39	369.4436	0.03389243	47.4544
-filepath = /home/yiming/research/CWF/data/Block/Ours_6000_block_Iter42_RVD.obj
-energy: 45.09615 LossCVT: 366.7079 LossQE: 0.3260515 Lambda_CVT: 0.1220865
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_6000_45.csv
-[io] ok
-40	40	378.4802	0.04652007	45.09615
-filepath = /home/yiming/research/CWF/data/Block/Ours_6000_block_Iter43_RVD.obj
-energy: 42.85341 LossCVT: 366.7582 LossQE: 0.3159747 Lambda_CVT: 0.1159822
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_6000_46.csv
-[io] ok
-41	41	387.785	0.04086864	42.85341
-filepath = /home/yiming/research/CWF/data/Block/Ours_6000_block_Iter44_RVD.obj
-energy: 40.72628 LossCVT: 366.9997 LossQE: 0.2891182 Lambda_CVT: 0.1101831
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_6000_47.csv
-[io] ok
-42	42	396.9681	0.05714088	40.72628
-filepath = /home/yiming/research/CWF/data/Block/Ours_6000_block_Iter45_RVD.obj
-energy: 38.69883 LossCVT: 366.9032 LossQE: 0.2936163 Lambda_CVT: 0.104674
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_6000_48.csv
-[io] ok
-43	43	406.1674	0.03859358	38.69883
-filepath = /home/yiming/research/CWF/data/Block/Ours_6000_block_Iter46_RVD.obj
-energy: 36.77592 LossCVT: 366.9817 LossQE: 0.2831665 Lambda_CVT: 0.09944026
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_6000_49.csv
-[io] ok
-44	44	415.1907	0.0325053	36.77592
-filepath = /home/yiming/research/CWF/data/Block/Ours_6000_block_Iter47_RVD.obj
-energy: 34.95196 LossCVT: 367.4602 LossQE: 0.2386433 Lambda_CVT: 0.09446824
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_6000_50.csv
-[io] ok
-45	45	424.3326	0.06847314	34.95196
-filepath = /home/yiming/research/CWF/data/Block/Ours_6000_block_Iter48_RVD.obj
-energy: 33.21267 LossCVT: 367.1484 LossQE: 0.2629996 Lambda_CVT: 0.08974483
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_6000_51.csv
-[io] ok
-46	46	433.44	0.04112374	33.21267
-filepath = /home/yiming/research/CWF/data/Block/Ours_6000_block_Iter49_RVD.obj
-energy: 31.56374 LossCVT: 367.157 LossQE: 0.2608252 Lambda_CVT: 0.08525759
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_6000_52.csv
-[io] ok
-47	47	442.4874	0.0393572	31.56374
-filepath = /home/yiming/research/CWF/data/Block/Ours_6000_block_Iter50_RVD.obj
-energy: 30.00282 LossCVT: 367.522 LossQE: 0.2354732 Lambda_CVT: 0.08099471
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_6000_53.csv
-[io] ok
-48	48	451.5859	0.08359778	30.00282
-filepath = /home/yiming/research/CWF/data/Block/Ours_6000_block_Iter51_RVD.obj
-energy: 28.50773 LossCVT: 367.4484 LossQE: 0.2344211 Lambda_CVT: 0.07694498
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_6000_54.csv
-[io] ok
-49	49	460.6985	0.0302084	28.50773
-filepath = /home/yiming/research/CWF/data/Block/Ours_6000_block_Iter52_RVD.obj
-energy: 27.09419 LossCVT: 367.5061 LossQE: 0.2303287 Lambda_CVT: 0.07309773
-[io] cwd   = /home/yiming/research/CWF
-[io] write = /home/yiming/research/CWF/data/Block/Sphere_6000_55.csv
-[io] ok
-50	50	469.7076	0.04233261	27.09419
+filepath = /home/yiming/research/CWF/data/Mobius/Ours_6000_mobius1_Iter2_RVD.obj
+energy: 0.2924079 LossCVT: 0.306881 LossQE: 0.0008710075 LossCover: 0 Lambda_CVT: 0.95
+0	0	29.79633	0.03029766	0.2924079
+filepath = /home/yiming/research/CWF/data/Mobius/Ours_6000_mobius1_Iter3_RVD.obj
+energy: 0.2595706 LossCVT: 0.2868149 LossQE: 0.0007201348 LossCover: 0 Lambda_CVT: 0.9025
+1	1	57.58207	0.01183848	0.2595706
+filepath = /home/yiming/research/CWF/data/Mobius/Ours_6000_mobius1_Iter4_RVD.obj
+energy: 0.2414109 LossCVT: 0.2807922 LossQE: 0.0006667139 LossCover: 0 Lambda_CVT: 0.857375
+2	2	85.40622	0.006920284	0.2414109
+filepath = /home/yiming/research/CWF/data/Mobius/Ours_6000_mobius1_Iter5_RVD.obj
+energy: 0.226604 LossCVT: 0.2774298 LossQE: 0.0006356876 LossCover: 0 Lambda_CVT: 0.8145062
+3	3	112.3673	0.005189679	0.226604
+filepath = /home/yiming/research/CWF/data/Mobius/Ours_6000_mobius1_Iter6_RVD.obj
+energy: 0.2137492 LossCVT: 0.2754342 LossQE: 0.0006234446 LossCover: 0 Lambda_CVT: 0.7737809
+4	4	139.8939	0.004485453	0.2137492
+filepath = /home/yiming/research/CWF/data/Mobius/Ours_6000_mobius1_Iter7_RVD.obj
+energy: 0.2021792 LossCVT: 0.2742036 LossQE: 0.0006144063 LossCover: 0 Lambda_CVT: 0.7350919
+5	5	167.4629	0.002926531	0.2021792
+filepath = /home/yiming/research/CWF/data/Mobius/Ours_6000_mobius1_Iter8_RVD.obj
+energy: 0.1915586 LossCVT: 0.2734334 LossQE: 0.000609902 LossCover: 0 Lambda_CVT: 0.6983373
+6	6	194.9187	0.002170312	0.1915586
+filepath = /home/yiming/research/CWF/data/Mobius/Ours_6000_mobius1_Iter9_RVD.obj
+energy: 0.1815535 LossCVT: 0.2727494 LossQE: 0.0006059544 LossCover: 0 Lambda_CVT: 0.6634204
+7	7	222.1871	0.002051405	0.1815535
+filepath = /home/yiming/research/CWF/data/Mobius/Ours_6000_mobius1_Iter10_RVD.obj
+energy: 0.1722237 LossCVT: 0.2723124 LossQE: 0.0005990117 LossCover: 0 Lambda_CVT: 0.6302494
+8	8	249.412	0.002176422	0.1722237
+filepath = /home/yiming/research/CWF/data/Mobius/Ours_6000_mobius1_Iter11_RVD.obj
+energy: 0.1633978 LossCVT: 0.2719096 LossQE: 0.0005955249 LossCover: 0 Lambda_CVT: 0.5987369
+9	9	276.797	0.001297856	0.1633978
+filepath = /home/yiming/research/CWF/data/Mobius/Ours_6000_mobius1_Iter12_RVD.obj
+energy: 0.1550733 LossCVT: 0.2715916 LossQE: 0.0005919447 LossCover: 0 Lambda_CVT: 0.5688001
+10	10	303.9891	0.001086017	0.1550733
+filepath = /home/yiming/research/CWF/data/Mobius/Ours_6000_mobius1_Iter13_RVD.obj
+energy: 0.1472241 LossCVT: 0.2713662 LossQE: 0.0005886216 LossCover: 0 Lambda_CVT: 0.5403601
+11	11	331.2022	0.001162161	0.1472241
+filepath = /home/yiming/research/CWF/data/Mobius/Ours_6000_mobius1_Iter14_RVD.obj
+energy: 0.1397777 LossCVT: 0.2711554 LossQE: 0.0005822281 LossCover: 0 Lambda_CVT: 0.5133421
+12	12	358.5436	0.0009644091	0.1397777
+filepath = /home/yiming/research/CWF/data/Mobius/Ours_6000_mobius1_Iter15_RVD.obj
+energy: 0.1327198 LossCVT: 0.2709575 LossQE: 0.000580568 LossCover: 0 Lambda_CVT: 0.487675
+13	13	386.1561	0.0007821328	0.1327198
+filepath = /home/yiming/research/CWF/data/Mobius/Ours_6000_mobius1_Iter16_RVD.obj
+energy: 0.1260361 LossCVT: 0.270802 LossQE: 0.0005759442 LossCover: 0 Lambda_CVT: 0.4632912
+14	14	413.5893	0.0007325916	0.1260361
+filepath = /home/yiming/research/CWF/data/Mobius/Ours_6000_mobius1_Iter17_RVD.obj
+energy: 0.1197029 LossCVT: 0.2706717 LossQE: 0.0005731005 LossCover: 0 Lambda_CVT: 0.4401267
+15	15	440.833	0.0006714061	0.1197029
+filepath = /home/yiming/research/CWF/data/Mobius/Ours_6000_mobius1_Iter18_RVD.obj
+energy: 0.1136884 LossCVT: 0.2705402 LossQE: 0.0005700414 LossCover: 0 Lambda_CVT: 0.4181203
+16	16	468.0899	0.0005972842	0.1136884
+filepath = /home/yiming/research/CWF/data/Mobius/Ours_6000_mobius1_Iter19_RVD.obj
+energy: 0.1079866 LossCVT: 0.2704299 LossQE: 0.0005680243 LossCover: 0 Lambda_CVT: 0.3972143
+17	17	495.7557	0.0006269626	0.1079866
+filepath = /home/yiming/research/CWF/data/Mobius/Ours_6000_mobius1_Iter20_RVD.obj
+energy: 0.1025744 LossCVT: 0.2703289 LossQE: 0.0005648465 LossCover: 0 Lambda_CVT: 0.3773536
+18	18	523.2536	0.0004786165	0.1025744
+filepath = /home/yiming/research/CWF/data/Mobius/Ours_6000_mobius1_Iter21_RVD.obj
+energy: 0.09743937 LossCVT: 0.2702426 LossQE: 0.0005612003 LossCover: 0 Lambda_CVT: 0.3584859
+19	19	550.7036	0.0004040896	0.09743937
+filepath = /home/yiming/research/CWF/data/Mobius/Ours_6000_mobius1_Iter22_RVD.obj
+energy: 0.09256913 LossCVT: 0.2701743 LossQE: 0.0005581203 LossCover: 0 Lambda_CVT: 0.3405616
+20	20	578.1047	0.0004763568	0.09256913
+filepath = /home/yiming/research/CWF/data/Mobius/Ours_6000_mobius1_Iter23_RVD.obj
+energy: 0.08794446 LossCVT: 0.2701076 LossQE: 0.0005555975 LossCover: 0 Lambda_CVT: 0.3235335
+21	21	605.4585	0.0003713586	0.08794446
+filepath = /home/yiming/research/CWF/data/Mobius/Ours_6000_mobius1_Iter24_RVD.obj
+energy: 0.08355405 LossCVT: 0.2700493 LossQE: 0.0005525399 LossCover: 0 Lambda_CVT: 0.3073569
+22	22	632.8287	0.000303557	0.08355405
+filepath = /home/yiming/research/CWF/data/Mobius/Ours_6000_mobius1_Iter25_RVD.obj
+energy: 0.07938805 LossCVT: 0.2700059 LossQE: 0.0005492965 LossCover: 0 Lambda_CVT: 0.291989
+23	23	660.0333	0.0003542264	0.07938805
+filepath = /home/yiming/research/CWF/data/Mobius/Ours_6000_mobius1_Iter26_RVD.obj
+energy: 0.07543263 LossCVT: 0.2699649 LossQE: 0.0005471753 LossCover: 0 Lambda_CVT: 0.2773896
+24	24	687.1948	0.000319404	0.07543263
+filepath = /home/yiming/research/CWF/data/Mobius/Ours_6000_mobius1_Iter27_RVD.obj
+energy: 0.07167443 LossCVT: 0.2699226 LossQE: 0.0005443892 LossCover: 0 Lambda_CVT: 0.2635201
+25	25	714.3352	0.0002790555	0.07167443
+filepath = /home/yiming/research/CWF/data/Mobius/Ours_6000_mobius1_Iter28_RVD.obj
+energy: 0.06810681 LossCVT: 0.2699025 LossQE: 0.0005383292 LossCover: 0 Lambda_CVT: 0.2503441
+26	26	741.3762	0.0003350796	0.06810681
+filepath = /home/yiming/research/CWF/data/Mobius/Ours_6000_mobius1_Iter29_RVD.obj
+energy: 0.06471766 LossCVT: 0.2698623 LossQE: 0.0005371528 LossCover: 0 Lambda_CVT: 0.2378269
+27	27	768.6362	0.0002783294	0.06471766
+filepath = /home/yiming/research/CWF/data/Mobius/Ours_6000_mobius1_Iter30_RVD.obj
+energy: 0.06150021 LossCVT: 0.2698351 LossQE: 0.0005348676 LossCover: 0 Lambda_CVT: 0.2259355
+28	28	796.6485	0.0002359644	0.06150021
+filepath = /home/yiming/research/CWF/data/Mobius/Ours_6000_mobius1_Iter31_RVD.obj
+energy: 0.0584423 LossCVT: 0.2698237 LossQE: 0.0005276758 LossCover: 0 Lambda_CVT: 0.2146388
+29	29	823.8439	0.0002753754	0.0584423
+filepath = /home/yiming/research/CWF/data/Mobius/Ours_6000_mobius1_Iter32_RVD.obj
+energy: 0.05553919 LossCVT: 0.2698 LossQE: 0.0005251287 LossCover: 0 Lambda_CVT: 0.2039068
+30	30	850.8871	0.0002711195	0.05553919
+filepath = /home/yiming/research/CWF/data/Mobius/Ours_6000_mobius1_Iter33_RVD.obj
+energy: 0.05278104 LossCVT: 0.2697673 LossQE: 0.0005240112 LossCover: 0 Lambda_CVT: 0.1937115
+31	31	877.7546	0.0002125967	0.05278104
+filepath = /home/yiming/research/CWF/data/Mobius/Ours_6000_mobius1_Iter34_RVD.obj
+energy: 0.05016204 LossCVT: 0.2697507 LossQE: 0.0005209135 LossCover: 0 Lambda_CVT: 0.1840259
+32	32	904.9535	0.0002903189	0.05016204
+filepath = /home/yiming/research/CWF/data/Mobius/Ours_6000_mobius1_Iter35_RVD.obj
+energy: 0.04767565 LossCVT: 0.2697497 LossQE: 0.0005167635 LossCover: 0 Lambda_CVT: 0.1748246
+33	33	931.9007	0.000247036	0.04767565
+filepath = /home/yiming/research/CWF/data/Mobius/Ours_6000_mobius1_Iter36_RVD.obj
+energy: 0.04531367 LossCVT: 0.2697386 LossQE: 0.0005145692 LossCover: 0 Lambda_CVT: 0.1660834
+34	34	959.1422	0.0002188255	0.04531367
+filepath = /home/yiming/research/CWF/data/Mobius/Ours_6000_mobius1_Iter37_RVD.obj
+energy: 0.04307152 LossCVT: 0.269732 LossQE: 0.0005134165 LossCover: 0 Lambda_CVT: 0.1577792
+35	35	985.984	0.0002514505	0.04307152
+filepath = /home/yiming/research/CWF/data/Mobius/Ours_6000_mobius1_Iter38_RVD.obj
+energy: 0.04094075 LossCVT: 0.2697329 LossQE: 0.0005104246 LossCover: 0 Lambda_CVT: 0.1498903
+36	36	1013.056	0.0002307832	0.04094075
+filepath = /home/yiming/research/CWF/data/Mobius/Ours_6000_mobius1_Iter39_RVD.obj
+energy: 0.03891637 LossCVT: 0.269743 LossQE: 0.0005061196 LossCover: 0 Lambda_CVT: 0.1423957
+37	37	1040.485	0.000247296	0.03891637
+filepath = /home/yiming/research/CWF/data/Mobius/Ours_6000_mobius1_Iter40_RVD.obj
+energy: 0.036994 LossCVT: 0.2697463 LossQE: 0.0005038187 LossCover: 0 Lambda_CVT: 0.135276
+38	38	1067.792	0.0002215849	0.036994
+filepath = /home/yiming/research/CWF/data/Mobius/Ours_6000_mobius1_Iter41_RVD.obj
+energy: 0.03516773 LossCVT: 0.269752 LossQE: 0.0005013177 LossCover: 0 Lambda_CVT: 0.1285122
+39	39	1095.048	0.0002237686	0.03516773
+filepath = /home/yiming/research/CWF/data/Mobius/Ours_6000_mobius1_Iter42_RVD.obj
+energy: 0.03343289 LossCVT: 0.2697605 LossQE: 0.00049877 LossCover: 0 Lambda_CVT: 0.1220865
+40	40	1122.778	0.000221047	0.03343289
+filepath = /home/yiming/research/CWF/data/Mobius/Ours_6000_mobius1_Iter43_RVD.obj
+energy: 0.03178511 LossCVT: 0.2697755 LossQE: 0.0004959434 LossCover: 0 Lambda_CVT: 0.1159822
+41	41	1149.931	0.0002380322	0.03178511
+filepath = /home/yiming/research/CWF/data/Mobius/Ours_6000_mobius1_Iter44_RVD.obj
+energy: 0.03021909 LossCVT: 0.2697849 LossQE: 0.0004933462 LossCover: 0 Lambda_CVT: 0.1101831
+42	42	1177.016	0.0002148795	0.03021909
+filepath = /home/yiming/research/CWF/data/Mobius/Ours_6000_mobius1_Iter45_RVD.obj
+energy: 0.02873159 LossCVT: 0.2698035 LossQE: 0.0004901984 LossCover: 0 Lambda_CVT: 0.104674
+43	43	1204.075	0.000250982	0.02873159
+filepath = /home/yiming/research/CWF/data/Mobius/Ours_6000_mobius1_Iter46_RVD.obj
+energy: 0.02731843 LossCVT: 0.2698128 LossQE: 0.0004881773 LossCover: 0 Lambda_CVT: 0.09944026
+44	44	1231.12	0.0002552407	0.02731843
+filepath = /home/yiming/research/CWF/data/Mobius/Ours_6000_mobius1_Iter47_RVD.obj
+energy: 0.02597561 LossCVT: 0.2698307 LossQE: 0.0004851788 LossCover: 0 Lambda_CVT: 0.09446824
+45	45	1258.102	0.0002394338	0.02597561
+filepath = /home/yiming/research/CWF/data/Mobius/Ours_6000_mobius1_Iter48_RVD.obj
+energy: 0.02470019 LossCVT: 0.2698738 LossQE: 0.0004804109 LossCover: 0 Lambda_CVT: 0.08974483
+46	46	1285.174	0.000265101	0.02470019
+filepath = /home/yiming/research/CWF/data/Mobius/Ours_6000_mobius1_Iter49_RVD.obj
+energy: 0.02348811 LossCVT: 0.2698952 LossQE: 0.0004775031 LossCover: 0 Lambda_CVT: 0.08525759
+47	47	1312.262	0.0002602939	0.02348811
+filepath = /home/yiming/research/CWF/data/Mobius/Ours_6000_mobius1_Iter50_RVD.obj
+energy: 0.02233646 LossCVT: 0.2699211 LossQE: 0.0004742792 LossCover: 0 Lambda_CVT: 0.08099471
+48	48	1339.441	0.0002365659	0.02233646
+filepath = /home/yiming/research/CWF/data/Mobius/Ours_6000_mobius1_Iter51_RVD.obj
+energy: 0.021242 LossCVT: 0.269952 LossQE: 0.0004705532 LossCover: 0 Lambda_CVT: 0.07694498
+49	49	1366.627	0.0002405924	0.021242
+filepath = /home/yiming/research/CWF/data/Mobius/Ours_6000_mobius1_Iter52_RVD.obj
+energy: 0.02020275 LossCVT: 0.2699835 LossQE: 0.0004675749 LossCover: 0 Lambda_CVT: 0.07309773
+50	50	1393.601	0.0002611181	0.02020275
 reach the max itertion time
-allTime: 469.7162 RVDtime: 328.8656 L-BFGS time: 140.8506
-filepath = /home/yiming/research/CWF/data/Block/Ours_6000_block_RVD.obj
-CWD: "/home/yiming/research/CWF"
-====================CWF3DTest
-Now file: block
-8000   block   
-OBJ: "/home/yiming/research/CWF/data/block.obj"
-"/home/yiming/research/CWF"
-Pts.size(): 7992
-
-Begin CWF.
-
-7992  7992
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter2_RVD.obj
-energy: 1583.905 LossCVT: 1661.099 LossQE: 5.861224 Lambda_CVT: 0.95
-0	0	315.3418	46.64857	1583.905
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter3_RVD.obj
-energy: 1464.512 LossCVT: 1616.761 LossQE: 5.385227 Lambda_CVT: 0.9025
-1	1	628.8124	37.22255	1464.512
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter4_RVD.obj
-energy: 1273.067 LossCVT: 1480.482 LossQE: 3.738827 Lambda_CVT: 0.857375
-2	2	939.7487	17.08805	1273.067
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter5_RVD.obj
-energy: 1157.248 LossCVT: 1417.285 LossQE: 2.859901 Lambda_CVT: 0.8145062
-3	3	1252.958	13.69824	1157.248
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter6_RVD.obj
-energy: 1056.798 LossCVT: 1362.835 LossQE: 2.262193 Lambda_CVT: 0.7737809
-4	4	1567.421	12.04424	1056.798
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter7_RVD.obj
-energy: 973.4002 LossCVT: 1321.716 LossQE: 1.817151 Lambda_CVT: 0.7350919
-5	5	1879.942	11.46129	973.4002
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter8_RVD.obj
-energy: 902.6704 LossCVT: 1289.775 LossQE: 1.972263 Lambda_CVT: 0.6983373
-6	6	2193.475	7.289914	902.6704
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter9_RVD.obj
-energy: 844.4079 LossCVT: 1269.639 LossQE: 2.103252 Lambda_CVT: 0.6634204
-7	7	2508.22	5.537591	844.4079
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter10_RVD.obj
-energy: 792.0598 LossCVT: 1253.38 LossQE: 2.117527 Lambda_CVT: 0.6302494
-8	8	2821.154	5.369161	792.0598
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter11_RVD.obj
-energy: 744.1504 LossCVT: 1239.489 LossQE: 2.02241 Lambda_CVT: 0.5987369
-9	9	3131.637	4.98496	744.1504
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter12_RVD.obj
-energy: 700.3464 LossCVT: 1227.927 LossQE: 1.901159 Lambda_CVT: 0.5688001
-10	10	3443.33	3.615904	700.3464
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter13_RVD.obj
-energy: 660.093 LossCVT: 1218.366 LossQE: 1.736766 Lambda_CVT: 0.5403601
-11	11	3754.466	3.183723	660.093
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter14_RVD.obj
-energy: 623.1995 LossCVT: 1210.662 LossQE: 1.71582 Lambda_CVT: 0.5133421
-12	12	4068.59	3.001799	623.1995
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter15_RVD.obj
-energy: 588.6236 LossCVT: 1203.498 LossQE: 1.707699 Lambda_CVT: 0.487675
-13	13	4380.428	2.391955	588.6236
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter16_RVD.obj
-energy: 556.3735 LossCVT: 1197.155 LossQE: 1.742241 Lambda_CVT: 0.4632912
-14	14	4692.705	2.133266	556.3735
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter17_RVD.obj
-energy: 526.4301 LossCVT: 1192.105 LossQE: 1.753122 Lambda_CVT: 0.4401267
-15	15	5005.543	2.036123	526.4301
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter18_RVD.obj
-energy: 498.333 LossCVT: 1187.693 LossQE: 1.734212 Lambda_CVT: 0.4181203
-16	16	5320.51	1.647325	498.333
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter19_RVD.obj
-energy: 471.8687 LossCVT: 1183.707 LossQE: 1.683286 Lambda_CVT: 0.3972143
-17	17	5632.871	1.4827	471.8687
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter20_RVD.obj
-energy: 446.9967 LossCVT: 1180.158 LossQE: 1.659629 Lambda_CVT: 0.3773536
-18	18	5944.87	1.463775	446.9967
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter21_RVD.obj
-energy: 423.5613 LossCVT: 1177.011 LossQE: 1.619467 Lambda_CVT: 0.3584859
-19	19	6254.245	1.26	423.5613
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter22_RVD.obj
-energy: 401.4478 LossCVT: 1174.09 LossQE: 1.597991 Lambda_CVT: 0.3405616
-20	20	6563.783	1.072304	401.4478
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter23_RVD.obj
-energy: 380.6219 LossCVT: 1171.547 LossQE: 1.587282 Lambda_CVT: 0.3235335
-21	21	6877.422	0.9886078	380.6219
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter24_RVD.obj
-energy: 360.9859 LossCVT: 1169.332 LossQE: 1.583536 Lambda_CVT: 0.3073569
-22	22	7187.52	0.9692225	360.9859
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter25_RVD.obj
-energy: 342.4244 LossCVT: 1167.384 LossQE: 1.560971 Lambda_CVT: 0.291989
-23	23	7498.07	0.7996943	342.4244
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter26_RVD.obj
-energy: 324.8729 LossCVT: 1165.625 LossQE: 1.54062 Lambda_CVT: 0.2773896
-24	24	7808.32	0.7018195	324.8729
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter27_RVD.obj
-energy: 308.2764 LossCVT: 1164.111 LossQE: 1.509626 Lambda_CVT: 0.2635201
-25	25	8121.835	0.7329467	308.2764
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter28_RVD.obj
-energy: 292.5508 LossCVT: 1162.646 LossQE: 1.489346 Lambda_CVT: 0.2503441
-26	26	8432.505	0.6264139	292.5508
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter29_RVD.obj
-energy: 277.6777 LossCVT: 1161.383 LossQE: 1.469589 Lambda_CVT: 0.2378269
-27	27	8741.604	0.5422882	277.6777
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter30_RVD.obj
-energy: 263.5852 LossCVT: 1160.234 LossQE: 1.447095 Lambda_CVT: 0.2259355
-28	28	9050.842	0.4921329	263.5852
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter31_RVD.obj
-energy: 250.2528 LossCVT: 1159.263 LossQE: 1.429969 Lambda_CVT: 0.2146388
-29	29	9361.235	0.4783682	250.2528
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter32_RVD.obj
-energy: 237.6037 LossCVT: 1158.346 LossQE: 1.409108 Lambda_CVT: 0.2039068
-30	30	9677.44	0.3957816	237.6037
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter33_RVD.obj
-energy: 225.6219 LossCVT: 1157.594 LossQE: 1.382547 Lambda_CVT: 0.1937115
-31	31	9993.269	0.3339083	225.6219
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter34_RVD.obj
-energy: 214.2843 LossCVT: 1157.074 LossQE: 1.352761 Lambda_CVT: 0.1840259
-32	32	10301.95	0.3750168	214.2843
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter35_RVD.obj
-energy: 203.5165 LossCVT: 1156.481 LossQE: 1.335235 Lambda_CVT: 0.1748246
-33	33	10610.39	0.3135302	203.5165
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter36_RVD.obj
-energy: 193.3062 LossCVT: 1155.993 LossQE: 1.315012 Lambda_CVT: 0.1660834
-34	34	10921.25	0.2866435	193.3062
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter37_RVD.obj
-energy: 183.6208 LossCVT: 1155.626 LossQE: 1.287072 Lambda_CVT: 0.1577792
-35	35	11230.82	0.2421036	183.6208
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter38_RVD.obj
-energy: 174.4593 LossCVT: 1155.526 LossQE: 1.257173 Lambda_CVT: 0.1498903
-36	36	11539.93	0.3378108	174.4593
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter39_RVD.obj
-energy: 165.7258 LossCVT: 1155.077 LossQE: 1.247662 Lambda_CVT: 0.1423957
-37	37	11848.3	0.1935385	165.7258
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter40_RVD.obj
-energy: 157.4498 LossCVT: 1154.963 LossQE: 1.211152 Lambda_CVT: 0.135276
-38	38	12158.34	0.1730104	157.4498
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter41_RVD.obj
-energy: 149.5949 LossCVT: 1154.846 LossQE: 1.183191 Lambda_CVT: 0.1285122
-39	39	12467.65	0.1809573	149.5949
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter42_RVD.obj
-energy: 142.1317 LossCVT: 1154.92 LossQE: 1.131578 Lambda_CVT: 0.1220865
-40	40	12775.79	0.2208938	142.1317
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter43_RVD.obj
-energy: 135.0304 LossCVT: 1154.335 LossQE: 1.148116 Lambda_CVT: 0.1159822
-41	41	13084.27	0.1649561	135.0304
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter44_RVD.obj
-energy: 128.2993 LossCVT: 1154.231 LossQE: 1.122592 Lambda_CVT: 0.1101831
-42	42	13392.8	0.126667	128.2993
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter45_RVD.obj
-energy: 121.9089 LossCVT: 1154.59 LossQE: 1.053478 Lambda_CVT: 0.104674
-43	43	13700.4	0.1517713	121.9089
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter46_RVD.obj
-energy: 115.8487 LossCVT: 1154.454 LossQE: 1.049508 Lambda_CVT: 0.09944026
-44	44	14008.13	0.1733461	115.8487
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter47_RVD.obj
-energy: 110.0809 LossCVT: 1154.288 LossQE: 1.037312 Lambda_CVT: 0.09446824
-45	45	14316.93	0.1218395	110.0809
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter48_RVD.obj
-energy: 104.6068 LossCVT: 1154.602 LossQE: 0.9871573 Lambda_CVT: 0.08974483
-46	46	14625.98	0.125396	104.6068
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter49_RVD.obj
-energy: 99.44177 LossCVT: 1155.75 LossQE: 0.9053284 Lambda_CVT: 0.08525759
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter50_RVD.obj
-energy: 94.49095 LossCVT: 1154.977 LossQE: 0.9439476 Lambda_CVT: 0.08099471
-47	48	15243.27	0.1192652	94.49095
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter51_RVD.obj
-energy: 89.79764 LossCVT: 1155.239 LossQE: 0.9077809 Lambda_CVT: 0.07694498
-48	49	15551.86	0.09429408	89.79764
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter52_RVD.obj
-energy: 85.33994 LossCVT: 1155.507 LossQE: 0.8750073 Lambda_CVT: 0.07309773
-49	50	15859.97	0.08661928	85.33994
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter53_RVD.obj
-energy: 81.10834 LossCVT: 1156.36 LossQE: 0.8074313 Lambda_CVT: 0.06944284
-50	51	16168.18	0.1108502	81.10834
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter54_RVD.obj
-energy: 77.07884 LossCVT: 1155.775 LossQE: 0.8315535 Lambda_CVT: 0.0659707
-51	52	16475.99	0.09969066	77.07884
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter55_RVD.obj
-energy: 73.2573 LossCVT: 1155.997 LossQE: 0.8084838 Lambda_CVT: 0.06267216
-52	53	16783.91	0.09032723	73.2573
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter56_RVD.obj
-energy: 69.62878 LossCVT: 1156.871 LossQE: 0.7503806 Lambda_CVT: 0.05953856
-53	54	17091.76	0.1151256	69.62878
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter57_RVD.obj
-energy: 66.17447 LossCVT: 1156.989 LossQE: 0.733271 Lambda_CVT: 0.05656163
-54	55	17399.95	0.06798421	66.17447
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter58_RVD.obj
-energy: 62.89609 LossCVT: 1157.495 LossQE: 0.6997977 Lambda_CVT: 0.05373355
-55	56	17707.78	0.05943238	62.89609
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter59_RVD.obj
-energy: 59.78178 LossCVT: 1157.841 LossQE: 0.6776345 Lambda_CVT: 0.05104687
-56	57	18017.85	0.05968395	59.78178
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter60_RVD.obj
-energy: 56.83264 LossCVT: 1160.16 LossQE: 0.571237 Lambda_CVT: 0.04849453
-57	58	18325.79	0.1051397	56.83264
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter61_RVD.obj
-energy: 54.00463 LossCVT: 1158.245 LossQE: 0.644517 Lambda_CVT: 0.0460698
-58	59	18634.46	0.06607164	54.00463
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter62_RVD.obj
-energy: 51.33117 LossCVT: 1158.569 LossQE: 0.6248736 Lambda_CVT: 0.04376631
-59	60	18943.31	0.05538342	51.33117
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter63_RVD.obj
-energy: 48.79745 LossCVT: 1161.281 LossQE: 0.513699 Lambda_CVT: 0.04157799
-60	61	19253.34	0.08615683	48.79745
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter64_RVD.obj
-energy: 46.37452 LossCVT: 1160.179 LossQE: 0.5485181 Lambda_CVT: 0.03949909
-61	62	19561.3	0.041529	46.37452
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter65_RVD.obj
-energy: 44.07994 LossCVT: 1160.262 LossQE: 0.5420978 Lambda_CVT: 0.03752414
-62	63	19869.88	0.04339188	44.07994
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter66_RVD.obj
-energy: 41.90036 LossCVT: 1161.589 LossQE: 0.4921206 Lambda_CVT: 0.03564793
-63	64	20179.42	0.04961415	41.90036
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter67_RVD.obj
-energy: 39.8261 LossCVT: 1161.75 LossQE: 0.4828105 Lambda_CVT: 0.03386554
-64	65	20486.46	0.04666987	39.8261
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter68_RVD.obj
-energy: 37.8591 LossCVT: 1163.172 LossQE: 0.4372359 Lambda_CVT: 0.03217226
-65	66	20792.87	0.04755007	37.8591
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter69_RVD.obj
-energy: 35.98598 LossCVT: 1163.907 LossQE: 0.412744 Lambda_CVT: 0.03056365
-66	67	21100.13	0.04454111	35.98598
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter70_RVD.obj
-energy: 34.20356 LossCVT: 1164.403 LossQE: 0.3945794 Lambda_CVT: 0.02903546
-67	68	21407.41	0.04340634	34.20356
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter71_RVD.obj
-energy: 32.51706 LossCVT: 1165.971 LossQE: 0.3552905 Lambda_CVT: 0.02758369
-68	69	21714.21	0.06305289	32.51706
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter72_RVD.obj
-energy: 30.90388 LossCVT: 1165.484 LossQE: 0.3629632 Lambda_CVT: 0.02620451
-69	70	22020.53	0.03854732	30.90388
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter73_RVD.obj
-energy: 29.37672 LossCVT: 1166.602 LossQE: 0.3350123 Lambda_CVT: 0.02489428
-70	71	22328.2	0.04872072	29.37672
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter74_RVD.obj
-energy: 27.92034 LossCVT: 1166.257 LossQE: 0.338859 Lambda_CVT: 0.02364957
-71	72	22636.81	0.03377224	27.92034
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter75_RVD.obj
-energy: 26.53857 LossCVT: 1167.174 LossQE: 0.3155721 Lambda_CVT: 0.02246709
-72	73	22946.39	0.02887768	26.53857
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter76_RVD.obj
-energy: 25.22986 LossCVT: 1169.64 LossQE: 0.2653818 Lambda_CVT: 0.02134373
-73	74	23254.58	0.04911968	25.22986
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter77_RVD.obj
-energy: 23.97865 LossCVT: 1169.698 LossQE: 0.261219 Lambda_CVT: 0.02027655
-74	75	23564.1	0.02548264	23.97865
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter78_RVD.obj
-energy: 22.79244 LossCVT: 1169.94 LossQE: 0.2562239 Lambda_CVT: 0.01926272
-75	76	23873.7	0.02799522	22.79244
+energy: 0.01921599 LossCVT: 0.2699835 LossQE: 0.0004675749 LossCover: 0 Lambda_CVT: 0.06944284
+0	0	25.22634	0.000261363	0.01921599
+energy: 0.01867815 LossCVT: 0.2724596 LossQE: 0.0007037988 LossCover: 0 Lambda_CVT: 0.0659707
+energy: 0.01750764 LossCVT: 0.2705964 LossQE: 0.0005487775 LossCover: 0 Lambda_CVT: 0.06267216
+energy: 0.01657499 LossCVT: 0.2700918 LossQE: 0.0004941179 LossCover: 0 Lambda_CVT: 0.05953856
+energy: 0.01574478 LossCVT: 0.2699835 LossQE: 0.0004740721 LossCover: 0 Lambda_CVT: 0.05656163
+1	4	125.5048	0.0003930292	0.01574478
 reach the max itertion time
-allTime: 23873.71 RVDtime: 630.8694 L-BFGS time: 23242.84
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_RVD.obj
-CWD: "/home/yiming/research/CWF"
-====================CWF3DTest
-Now file: block
-8000   block   
-OBJ: "/home/yiming/research/CWF/data/block.obj"
-"/home/yiming/research/CWF"
-Pts.size(): 7999
-
-Begin CWF.
-
-7999  7999
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter2_RVD.obj
-energy: 301.7767 LossCVT: 290.6153 LossQE: 4.645549 LossQuality: 11.57184 Lambda_CVT: 0.985
-0	0	17.25081	4.254014	301.7767
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter3_RVD.obj
-energy: 293.7975 LossCVT: 288.3484 LossQE: 4.302296 LossQuality: 10.3777 Lambda_CVT: 0.970225
-1	1	34.40095	3.615133	293.7975
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter4_RVD.obj
-energy: 279.0166 LossCVT: 282.6532 LossQE: 2.628002 LossQuality: 6.659144 Lambda_CVT: 0.9556716
-2	2	51.41262	2.833927	279.0166
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter5_RVD.obj
-energy: 270.6953 LossCVT: 279.3708 LossQE: 2.540479 LossQuality: 5.553946 Lambda_CVT: 0.9413366
-3	3	68.40621	1.522623	270.6953
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter6_RVD.obj
-energy: 264.6047 LossCVT: 277.8098 LossQE: 2.478465 LossQuality: 4.908201 Lambda_CVT: 0.9272165
-4	4	85.49699	1.169163	264.6047
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter7_RVD.obj
-energy: 259.2501 LossCVT: 276.8483 LossQE: 2.241085 LossQuality: 4.497358 Lambda_CVT: 0.9133083
-5	5	102.4002	1.177387	259.2501
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter8_RVD.obj
-energy: 254.3039 LossCVT: 276.0754 LossQE: 2.07997 LossQuality: 4.176101 Lambda_CVT: 0.8996086
-6	6	119.3322	1.125029	254.3039
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter9_RVD.obj
-energy: 249.6463 LossCVT: 275.4364 LossQE: 2.022844 LossQuality: 3.858731 Lambda_CVT: 0.8861145
-7	7	136.3677	0.8016251	249.6463
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter10_RVD.obj
-energy: 245.3353 LossCVT: 275.0144 LossQE: 1.94261 LossQuality: 3.645329 Lambda_CVT: 0.8728228
-8	8	153.6953	0.6984759	245.3353
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter11_RVD.obj
-energy: 241.2242 LossCVT: 274.7124 LossQE: 1.845138 LossQuality: 3.47716 Lambda_CVT: 0.8597304
-9	9	170.6665	0.7270218	241.2242
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter12_RVD.obj
-energy: 237.2218 LossCVT: 274.3467 LossQE: 1.831057 LossQuality: 3.339141 Lambda_CVT: 0.8468345
-10	10	187.5823	0.628436	237.2218
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter13_RVD.obj
-energy: 233.3612 LossCVT: 274.0494 LossQE: 1.827325 LossQuality: 3.21466 Lambda_CVT: 0.834132
-11	11	204.5254	0.5043371	233.3612
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter14_RVD.obj
-energy: 229.6691 LossCVT: 273.867 LossQE: 1.78242 LossQuality: 3.139474 Lambda_CVT: 0.82162
-12	12	221.2806	0.4755237	229.6691
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter15_RVD.obj
-energy: 226.06 LossCVT: 273.7327 LossQE: 1.714587 LossQuality: 3.07187 Lambda_CVT: 0.8092957
-13	13	238.0196	0.4621204	226.06
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter16_RVD.obj
-energy: 222.5291 LossCVT: 273.5985 LossQE: 1.677729 LossQuality: 3.002298 Lambda_CVT: 0.7971563
-14	14	254.89	0.4288525	222.5291
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter17_RVD.obj
-energy: 219.0606 LossCVT: 273.4499 LossQE: 1.659069 LossQuality: 2.937845 Lambda_CVT: 0.7851989
-15	15	271.6463	0.3768411	219.0606
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter18_RVD.obj
-energy: 215.6797 LossCVT: 273.3451 LossQE: 1.628585 LossQuality: 2.884631 Lambda_CVT: 0.7734209
-16	16	288.3566	0.3476153	215.6797
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter19_RVD.obj
-energy: 212.3758 LossCVT: 273.2486 LossQE: 1.604536 LossQuality: 2.845807 Lambda_CVT: 0.7618196
-17	17	305.194	0.3258775	212.3758
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter20_RVD.obj
-energy: 209.1318 LossCVT: 273.1626 LossQE: 1.582809 LossQuality: 2.807322 Lambda_CVT: 0.7503923
-18	18	322.0153	0.2787617	209.1318
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter21_RVD.obj
-energy: 205.9623 LossCVT: 273.1028 LossQE: 1.552637 LossQuality: 2.782312 Lambda_CVT: 0.7391364
-19	19	338.8023	0.2751146	205.9623
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter22_RVD.obj
-energy: 202.8542 LossCVT: 273.0537 LossQE: 1.527067 LossQuality: 2.75965 Lambda_CVT: 0.7280494
-20	20	355.755	0.2243409	202.8542
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter23_RVD.obj
-energy: 199.806 LossCVT: 273.0127 LossQE: 1.505696 LossQuality: 2.740921 Lambda_CVT: 0.7171286
-21	21	372.6982	0.2098485	199.806
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter24_RVD.obj
-energy: 196.8057 LossCVT: 272.9786 LossQE: 1.479938 LossQuality: 2.723365 Lambda_CVT: 0.7063717
-22	22	389.6487	0.2334508	196.8057
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter25_RVD.obj
-energy: 193.8537 LossCVT: 272.9351 LossQE: 1.468605 LossQuality: 2.703631 Lambda_CVT: 0.6957761
-23	23	406.7647	0.2128143	193.8537
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter26_RVD.obj
-energy: 190.9493 LossCVT: 272.8932 LossQE: 1.45843 LossQuality: 2.685208 Lambda_CVT: 0.6853395
-24	24	423.6823	0.1772163	190.9493
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter27_RVD.obj
-energy: 188.0993 LossCVT: 272.8875 LossQE: 1.424475 LossQuality: 2.673165 Lambda_CVT: 0.6750594
-25	25	440.4808	0.2070686	188.0993
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter28_RVD.obj
-energy: 185.2966 LossCVT: 272.8757 LossQE: 1.402966 LossQuality: 2.659865 Lambda_CVT: 0.6649335
-26	26	457.4836	0.1750373	185.2966
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter29_RVD.obj
-energy: 182.5397 LossCVT: 272.8599 LossQE: 1.388539 LossQuality: 2.647305 Lambda_CVT: 0.6549595
-27	27	474.5667	0.1557848	182.5397
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter30_RVD.obj
-energy: 179.8258 LossCVT: 272.8686 LossQE: 1.35644 LossQuality: 2.635701 Lambda_CVT: 0.6451351
-28	28	491.7029	0.1872817	179.8258
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter31_RVD.obj
-energy: 177.1541 LossCVT: 272.8549 LossQE: 1.345029 LossQuality: 2.623032 Lambda_CVT: 0.6354581
-29	29	508.6292	0.1688276	177.1541
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter32_RVD.obj
-energy: 174.5264 LossCVT: 272.8405 LossQE: 1.337821 LossQuality: 2.611182 Lambda_CVT: 0.6259262
-30	30	525.8047	0.1375383	174.5264
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter33_RVD.obj
-energy: 171.9378 LossCVT: 272.8649 LossQE: 1.301258 LossQuality: 2.600338 Lambda_CVT: 0.6165373
-31	31	543.0474	0.1362092	171.9378
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter34_RVD.obj
-energy: 169.3966 LossCVT: 272.8639 LossQE: 1.287372 LossQuality: 2.595018 Lambda_CVT: 0.6072893
-32	32	559.9017	0.1860741	169.3966
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter35_RVD.obj
-energy: 166.8905 LossCVT: 272.8463 LossQE: 1.286711 LossQuality: 2.585693 Lambda_CVT: 0.5981799
-33	33	576.7169	0.1113714	166.8905
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter36_RVD.obj
-energy: 164.4258 LossCVT: 272.8698 LossQE: 1.259899 LossQuality: 2.578051 Lambda_CVT: 0.5892072
-34	34	593.653	0.09726136	164.4258
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter37_RVD.obj
-energy: 162.002 LossCVT: 272.8821 LossQE: 1.243208 LossQuality: 2.572976 Lambda_CVT: 0.5803691
-35	35	610.6544	0.1033369	162.002
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter38_RVD.obj
-energy: 159.6132 LossCVT: 272.9251 LossQE: 1.207078 LossQuality: 2.565777 Lambda_CVT: 0.5716636
-36	36	627.7635	0.1394747	159.6132
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter39_RVD.obj
-energy: 157.2582 LossCVT: 272.9396 LossQE: 1.190034 LossQuality: 2.557527 Lambda_CVT: 0.5630886
-37	37	644.7121	0.107261	157.2582
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter40_RVD.obj
-energy: 154.935 LossCVT: 272.9189 LossQE: 1.190404 LossQuality: 2.550744 Lambda_CVT: 0.5546423
-38	38	661.6947	0.09600456	154.935
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter41_RVD.obj
-energy: 152.6493 LossCVT: 272.9544 LossQE: 1.158119 LossQuality: 2.543759 Lambda_CVT: 0.5463227
-39	39	678.6985	0.129088	152.6493
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter42_RVD.obj
-energy: 150.4 LossCVT: 272.9749 LossQE: 1.139586 LossQuality: 2.535945 Lambda_CVT: 0.5381278
-40	40	695.6321	0.09867594	150.4
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter43_RVD.obj
-energy: 148.1862 LossCVT: 272.9558 LossQE: 1.144253 LossQuality: 2.531789 Lambda_CVT: 0.5300559
-41	41	712.6242	0.07306442	148.1862
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter44_RVD.obj
-energy: 146.0091 LossCVT: 273.0225 LossQE: 1.101581 LossQuality: 2.526391 Lambda_CVT: 0.5221051
-42	42	730.1271	0.07960859	146.0091
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter45_RVD.obj
-energy: 143.865 LossCVT: 273.044 LossQE: 1.085463 LossQuality: 2.52309 Lambda_CVT: 0.5142735
-43	43	746.9595	0.07740191	143.865
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter46_RVD.obj
-energy: 141.7544 LossCVT: 273.0393 LossQE: 1.086069 LossQuality: 2.520632 Lambda_CVT: 0.5065594
-44	44	763.7415	0.05728245	141.7544
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter47_RVD.obj
-energy: 139.6745 LossCVT: 273.0717 LossQE: 1.065443 LossQuality: 2.516736 Lambda_CVT: 0.498961
-45	45	780.5578	0.06933886	139.6745
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter48_RVD.obj
-energy: 137.6258 LossCVT: 273.1013 LossQE: 1.045142 LossQuality: 2.514544 Lambda_CVT: 0.4914766
-46	46	797.3092	0.0946436	137.6258
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter49_RVD.obj
-energy: 135.6045 LossCVT: 273.0834 LossQE: 1.049247 LossQuality: 2.511795 Lambda_CVT: 0.4841044
-47	47	814.3872	0.06151216	135.6045
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter50_RVD.obj
-energy: 133.6158 LossCVT: 273.1152 LossQE: 1.027563 LossQuality: 2.509358 Lambda_CVT: 0.4768429
-48	48	831.4408	0.05353022	133.6158
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter51_RVD.obj
-energy: 131.6582 LossCVT: 273.214 LossQE: 0.972493 LossQuality: 2.505671 Lambda_CVT: 0.4696902
-49	49	848.4064	0.07658501	131.6582
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter52_RVD.obj
-energy: 129.729 LossCVT: 273.1713 LossQE: 0.9918101 LossQuality: 2.504681 Lambda_CVT: 0.4626449
-50	50	865.4877	0.1011464	129.729
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter53_RVD.obj
-energy: 127.8282 LossCVT: 273.1598 LossQE: 0.9952892 LossQuality: 2.501805 Lambda_CVT: 0.4557052
-51	51	882.4094	0.05453808	127.8282
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter54_RVD.obj
-energy: 125.9584 LossCVT: 273.208 LossQE: 0.9701718 LossQuality: 2.499037 Lambda_CVT: 0.4488696
-52	52	899.2648	0.05211655	125.9584
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter55_RVD.obj
-energy: 124.1149 LossCVT: 273.2507 LossQE: 0.9465061 LossQuality: 2.496212 Lambda_CVT: 0.4421366
-53	53	916.5728	0.06462411	124.1149
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter56_RVD.obj
-energy: 122.3018 LossCVT: 273.382 LossQE: 0.8859935 LossQuality: 2.489649 Lambda_CVT: 0.4355045
-54	54	934.4301	0.08408259	122.3018
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter57_RVD.obj
-energy: 120.5081 LossCVT: 273.3282 LossQE: 0.9073448 LossQuality: 2.486769 Lambda_CVT: 0.428972
-55	55	951.6648	0.05917918	120.5081
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter58_RVD.obj
-energy: 118.7426 LossCVT: 273.3114 LossQE: 0.9123705 LossQuality: 2.482824 Lambda_CVT: 0.4225374
-56	56	968.5228	0.05475958	118.7426
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter59_RVD.obj
-energy: 117.0068 LossCVT: 273.3448 LossQE: 0.896624 LossQuality: 2.478744 Lambda_CVT: 0.4161993
-57	57	985.4926	0.06258277	117.0068
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter60_RVD.obj
-energy: 115.2965 LossCVT: 273.3623 LossQE: 0.8864524 LossQuality: 2.476428 Lambda_CVT: 0.4099563
-58	58	1002.385	0.04538129	115.2965
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter61_RVD.obj
-energy: 113.613 LossCVT: 273.4207 LossQE: 0.8594185 LossQuality: 2.47326 Lambda_CVT: 0.403807
-59	59	1019.249	0.04881744	113.613
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter62_RVD.obj
-energy: 111.9536 LossCVT: 273.4712 LossQE: 0.8354508 LossQuality: 2.470374 Lambda_CVT: 0.3977499
-60	60	1036.057	0.044719	111.9536
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter63_RVD.obj
-energy: 110.3196 LossCVT: 273.5009 LossQE: 0.8226446 LossQuality: 2.467229 Lambda_CVT: 0.3917836
-61	61	1052.833	0.0463734	110.3196
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter64_RVD.obj
-energy: 108.7097 LossCVT: 273.5105 LossQE: 0.8179637 LossQuality: 2.464794 Lambda_CVT: 0.3859069
-62	62	1069.795	0.03666928	108.7097
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter65_RVD.obj
-energy: 107.124 LossCVT: 273.5469 LossQE: 0.8029729 LossQuality: 2.461278 Lambda_CVT: 0.3801183
-63	63	1086.888	0.04139588	107.124
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter66_RVD.obj
-energy: 105.5622 LossCVT: 273.555 LossQE: 0.799575 LossQuality: 2.459097 Lambda_CVT: 0.3744165
-64	64	1103.787	0.05188513	105.5622
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter67_RVD.obj
-energy: 104.0232 LossCVT: 273.5605 LossQE: 0.7957162 LossQuality: 2.457625 Lambda_CVT: 0.3688003
-65	65	1120.652	0.03579503	104.0232
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter68_RVD.obj
-energy: 102.5082 LossCVT: 273.6185 LossQE: 0.7717205 LossQuality: 2.455354 Lambda_CVT: 0.3632683
-66	66	1137.452	0.04185998	102.5082
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter69_RVD.obj
-energy: 101.0156 LossCVT: 273.6646 LossQE: 0.7526555 LossQuality: 2.453425 Lambda_CVT: 0.3578192
-67	67	1154.278	0.03643036	101.0156
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter70_RVD.obj
-energy: 99.54466 LossCVT: 273.6836 LossQE: 0.7443993 LossQuality: 2.451609 Lambda_CVT: 0.3524519
-68	68	1171.06	0.02914616	99.54466
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter71_RVD.obj
-energy: 98.09648 LossCVT: 273.7457 LossQE: 0.7211892 LossQuality: 2.448519 Lambda_CVT: 0.3471652
-69	69	1187.933	0.03755005	98.09648
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter72_RVD.obj
-energy: 96.6705 LossCVT: 273.7524 LossQE: 0.7198619 LossQuality: 2.446868 Lambda_CVT: 0.3419577
-70	70	1204.944	0.04853178	96.6705
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter73_RVD.obj
-energy: 95.26408 LossCVT: 273.7433 LossQE: 0.722323 LossQuality: 2.445611 Lambda_CVT: 0.3368283
-71	71	1221.799	0.03763308	95.26408
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter74_RVD.obj
-energy: 93.87998 LossCVT: 273.7896 LossQE: 0.7059895 LossQuality: 2.443105 Lambda_CVT: 0.3317759
-72	72	1238.644	0.03617771	93.87998
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter75_RVD.obj
-energy: 92.51587 LossCVT: 273.8057 LossQE: 0.6995055 LossQuality: 2.441805 Lambda_CVT: 0.3267993
-73	73	1255.554	0.03521691	92.51587
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter76_RVD.obj
-energy: 91.17625 LossCVT: 273.9723 LossQE: 0.6464739 LossQuality: 2.435813 Lambda_CVT: 0.3218973
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter77_RVD.obj
-energy: 89.85041 LossCVT: 273.8847 LossQE: 0.6725223 LossQuality: 2.438473 Lambda_CVT: 0.3170688
-74	75	1289.52	0.04349387	89.85041
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter78_RVD.obj
-energy: 88.5464 LossCVT: 273.9319 LossQE: 0.6558711 LossQuality: 2.436466 Lambda_CVT: 0.3123128
-75	76	1306.32	0.03659912	88.5464
-reach the max itertion time
-allTime: 1306.331 RVDtime: 625.5519 L-BFGS time: 680.7786
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_RVD.obj
-CWD: "/home/yiming/research/CWF"
-====================CWF3DTest
-Now file: block
-8000   block   
-OBJ: "/home/yiming/research/CWF/data/block.obj"
-"/home/yiming/research/CWF"
-Pts.size(): 7999
-
-Begin CWF.
-
-7999  7999
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter2_RVD.obj
-energy: 314.8236 LossCVT: 315.609 LossQE: 4.645549 Lambda_CVT: 0.985
-0	0	24.60369	3.484985	314.8236
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter3_RVD.obj
-energy: 307.2939 LossCVT: 313.0242 LossQE: 4.223567 Lambda_CVT: 0.970225
-1	1	48.27299	2.876821	307.2939
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter4_RVD.obj
-energy: 295.9942 LossCVT: 307.2355 LossQE: 2.797655 Lambda_CVT: 0.9556716
-2	2	72.38554	2.462429	295.9942
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter5_RVD.obj
-energy: 288.1029 LossCVT: 303.6853 LossQE: 2.626821 Lambda_CVT: 0.9413366
-3	3	96.14349	1.285297	288.1029
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter6_RVD.obj
-energy: 281.8806 LossCVT: 301.7003 LossQE: 2.516647 Lambda_CVT: 0.9272165
-4	4	119.5787	1.005009	281.8806
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter7_RVD.obj
-energy: 276.2954 LossCVT: 300.2758 LossQE: 2.413024 Lambda_CVT: 0.9133083
-5	5	143.0675	1.031124	276.2954
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter8_RVD.obj
-energy: 271.1052 LossCVT: 299.2095 LossQE: 2.275018 Lambda_CVT: 0.8996086
-6	6	166.4397	0.8255278	271.1052
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter9_RVD.obj
-energy: 266.2383 LossCVT: 298.4131 LossQE: 2.129474 Lambda_CVT: 0.8861145
-7	7	190.0562	0.5967043	266.2383
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter10_RVD.obj
-energy: 261.6315 LossCVT: 297.7406 LossQE: 2.066637 Lambda_CVT: 0.8728228
-8	8	213.6883	0.6058455	261.6315
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter11_RVD.obj
-energy: 257.3061 LossCVT: 297.2982 LossQE: 2.011525 Lambda_CVT: 0.8597304
-9	9	237.0932	0.6342235	257.3061
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter12_RVD.obj
-energy: 253.0475 LossCVT: 296.8103 LossQE: 1.997986 Lambda_CVT: 0.8468345
-10	10	260.7141	0.4166005	253.0475
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter13_RVD.obj
-energy: 248.9247 LossCVT: 296.4507 LossQE: 1.9361 Lambda_CVT: 0.834132
-11	11	284.3038	0.3897021	248.9247
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter14_RVD.obj
-energy: 244.9629 LossCVT: 296.1275 LossQE: 1.951306 Lambda_CVT: 0.82162
-12	12	307.967	0.4163711	244.9629
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter15_RVD.obj
-energy: 241.0632 LossCVT: 295.9188 LossQE: 1.855738 Lambda_CVT: 0.8092957
-13	13	331.4054	0.3528175	241.0632
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter16_RVD.obj
-energy: 237.2406 LossCVT: 295.6751 LossQE: 1.813349 Lambda_CVT: 0.7971563
-14	14	354.9693	0.3381781	237.2406
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter17_RVD.obj
-energy: 233.5247 LossCVT: 295.5056 LossQE: 1.757597 Lambda_CVT: 0.7851989
-15	15	378.4158	0.2982493	233.5247
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter18_RVD.obj
-energy: 229.8803 LossCVT: 295.3262 LossQE: 1.727985 Lambda_CVT: 0.7734209
-16	16	401.9578	0.246256	229.8803
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter19_RVD.obj
-energy: 226.3222 LossCVT: 295.179 LossQE: 1.704781 Lambda_CVT: 0.7618196
-17	17	425.5806	0.2739785	226.3222
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter20_RVD.obj
-energy: 222.8576 LossCVT: 295.0561 LossQE: 1.705531 Lambda_CVT: 0.7503923
-18	18	449.0391	0.2879828	222.8576
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter21_RVD.obj
-energy: 219.4417 LossCVT: 294.9529 LossQE: 1.683858 Lambda_CVT: 0.7391364
-19	19	472.6965	0.2059245	219.4417
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter22_RVD.obj
-energy: 216.1066 LossCVT: 294.9478 LossQE: 1.611873 Lambda_CVT: 0.7280494
-20	20	496.1986	0.265402	216.1066
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter23_RVD.obj
-energy: 212.7998 LossCVT: 294.7794 LossQE: 1.652971 Lambda_CVT: 0.7171286
-21	21	519.7196	0.1915368	212.7998
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter24_RVD.obj
-energy: 209.5467 LossCVT: 294.7508 LossQE: 1.580134 Lambda_CVT: 0.7063717
-22	22	543.0246	0.1909429	209.5467
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter25_RVD.obj
-energy: 206.3568 LossCVT: 294.6211 LossQE: 1.60758 Lambda_CVT: 0.6957761
-23	23	566.4464	0.1777829	206.3568
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter26_RVD.obj
-energy: 203.2206 LossCVT: 294.6618 LossQE: 1.502698 Lambda_CVT: 0.6853395
-24	24	589.9086	0.1958244	203.2206
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter27_RVD.obj
-energy: 200.1422 LossCVT: 294.5445 LossQE: 1.537833 Lambda_CVT: 0.6750594
-25	25	613.3997	0.1697782	200.1422
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter28_RVD.obj
-energy: 197.1234 LossCVT: 294.508 LossQE: 1.523687 Lambda_CVT: 0.6649335
-26	26	636.8226	0.1242799	197.1234
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter29_RVD.obj
-energy: 194.1367 LossCVT: 294.5525 LossQE: 1.431472 Lambda_CVT: 0.6549595
-27	27	660.3724	0.1424334	194.1367
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter30_RVD.obj
-energy: 191.2145 LossCVT: 294.4344 LossQE: 1.487679 Lambda_CVT: 0.6451351
-28	28	683.7833	0.1438457	191.2145
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter31_RVD.obj
-energy: 188.3347 LossCVT: 294.4089 LossQE: 1.470889 Lambda_CVT: 0.6354581
-29	29	707.2059	0.1080989	188.3347
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter32_RVD.obj
-energy: 185.4977 LossCVT: 294.4781 LossQE: 1.383622 Lambda_CVT: 0.6259262
-30	30	730.8056	0.1328814	185.4977
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter33_RVD.obj
-energy: 182.706 LossCVT: 294.4085 LossQE: 1.402577 Lambda_CVT: 0.6165373
-31	31	754.3513	0.1313467	182.706
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter34_RVD.obj
-energy: 179.9566 LossCVT: 294.3772 LossQE: 1.393519 Lambda_CVT: 0.6072893
-32	32	777.8312	0.09931911	179.9566
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter35_RVD.obj
-energy: 177.2438 LossCVT: 294.443 LossQE: 1.310473 Lambda_CVT: 0.5981799
-33	33	801.4133	0.1119388	177.2438
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter36_RVD.obj
-energy: 174.5798 LossCVT: 294.3261 LossQE: 1.365651 Lambda_CVT: 0.5892072
-34	34	824.9402	0.1212051	174.5798
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter37_RVD.obj
-energy: 171.9575 LossCVT: 294.321 LossQE: 1.344335 Lambda_CVT: 0.5803691
-35	35	848.6598	0.09278548	171.9575
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter38_RVD.obj
-energy: 169.3725 LossCVT: 294.4109 LossQE: 1.257021 Lambda_CVT: 0.5716636
-36	36	872.0261	0.110404	169.3725
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter39_RVD.obj
-energy: 166.8313 LossCVT: 294.3311 LossQE: 1.290382 Lambda_CVT: 0.5630886
-37	37	895.4645	0.1152212	166.8313
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter40_RVD.obj
-energy: 164.3304 LossCVT: 294.3241 LossQE: 1.277387 Lambda_CVT: 0.5546423
-38	38	918.8731	0.08767755	164.3304
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter41_RVD.obj
-energy: 161.8612 LossCVT: 294.418 LossQE: 1.192912 Lambda_CVT: 0.5463227
-39	39	942.4256	0.09041207	161.8612
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter42_RVD.obj
-energy: 159.4357 LossCVT: 294.3309 LossQE: 1.233042 Lambda_CVT: 0.5381278
-40	40	965.4185	0.102262	159.4357
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter43_RVD.obj
-energy: 157.0462 LossCVT: 294.3184 LossQE: 1.224733 Lambda_CVT: 0.5300559
-41	41	989.0927	0.07900611	157.0462
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter44_RVD.obj
-energy: 154.6888 LossCVT: 294.3964 LossQE: 1.156387 Lambda_CVT: 0.5221051
-42	42	1012.502	0.08635864	154.6888
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter45_RVD.obj
-energy: 152.3719 LossCVT: 294.3309 LossQE: 1.182721 Lambda_CVT: 0.5142735
-43	43	1035.996	0.08533425	152.3719
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter46_RVD.obj
-energy: 150.0907 LossCVT: 294.3342 LossQE: 1.16821 Lambda_CVT: 0.5065594
-44	44	1059.182	0.07120587	150.0907
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter47_RVD.obj
-energy: 147.8414 LossCVT: 294.443 LossQE: 1.089225 Lambda_CVT: 0.498961
-45	45	1082.662	0.08503564	147.8414
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter48_RVD.obj
-energy: 145.6268 LossCVT: 294.3777 LossQE: 1.114183 Lambda_CVT: 0.4914766
-46	46	1106.176	0.07476829	145.6268
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter49_RVD.obj
-energy: 143.4481 LossCVT: 294.382 LossQE: 1.10174 Lambda_CVT: 0.4841044
-47	47	1129.673	0.07482049	143.4481
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter50_RVD.obj
-energy: 141.3013 LossCVT: 294.4079 LossQE: 1.076491 Lambda_CVT: 0.4768429
-48	48	1153.22	0.07554706	141.3013
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter51_RVD.obj
-energy: 139.1873 LossCVT: 294.4205 LossQE: 1.059886 Lambda_CVT: 0.4696902
-49	49	1176.522	0.07274095	139.1873
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter52_RVD.obj
-energy: 137.1034 LossCVT: 294.4278 LossQE: 1.044573 Lambda_CVT: 0.4626449
-50	50	1199.981	0.05507507	137.1034
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter53_RVD.obj
-energy: 135.0515 LossCVT: 294.4692 LossQE: 1.012258 Lambda_CVT: 0.4557052
-51	51	1223.139	0.06043698	135.0515
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter54_RVD.obj
-energy: 133.0321 LossCVT: 294.4575 LossQE: 1.010636 Lambda_CVT: 0.4488696
-52	52	1246.514	0.05865136	133.0321
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter55_RVD.obj
-energy: 131.0434 LossCVT: 294.4574 LossQE: 1.00359 Lambda_CVT: 0.4421366
-53	53	1269.818	0.05385317	131.0434
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter56_RVD.obj
-energy: 129.084 LossCVT: 294.52 LossQE: 0.96379 Lambda_CVT: 0.4355045
-54	54	1293.367	0.06946658	129.084
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter57_RVD.obj
-energy: 127.1533 LossCVT: 294.4701 LossQE: 0.980999 Lambda_CVT: 0.428972
-55	55	1316.558	0.05411836	127.1533
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter58_RVD.obj
-energy: 125.2544 LossCVT: 294.4895 LossQE: 0.9665929 Lambda_CVT: 0.4225374
-56	56	1340.103	0.05002604	125.2544
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter59_RVD.obj
-energy: 123.384 LossCVT: 294.5669 LossQE: 0.924094 Lambda_CVT: 0.4161993
-57	57	1363.637	0.05643702	123.384
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter60_RVD.obj
-energy: 121.5397 LossCVT: 294.5903 LossQE: 0.9064975 Lambda_CVT: 0.4099563
-58	58	1386.796	0.05220869	121.5397
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter61_RVD.obj
-energy: 119.7235 LossCVT: 294.5657 LossQE: 0.9127675 Lambda_CVT: 0.403807
-59	59	1410.398	0.04487571	119.7235
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter62_RVD.obj
-energy: 117.9334 LossCVT: 294.5835 LossQE: 0.8974942 Lambda_CVT: 0.3977499
-60	60	1433.874	0.05813809	117.9334
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter63_RVD.obj
-energy: 116.1705 LossCVT: 294.5692 LossQE: 0.897794 Lambda_CVT: 0.3917836
-61	61	1457.218	0.05345206	116.1705
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter64_RVD.obj
-energy: 114.4349 LossCVT: 294.5994 LossQE: 0.8787223 Lambda_CVT: 0.3859069
-62	62	1480.612	0.0504564	114.4349
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter65_RVD.obj
-energy: 112.7238 LossCVT: 294.6516 LossQE: 0.8486002 Lambda_CVT: 0.3801183
-63	63	1503.983	0.04535531	112.7238
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter66_RVD.obj
-energy: 111.0396 LossCVT: 294.6718 LossQE: 0.8348125 Lambda_CVT: 0.3744165
-64	64	1527.553	0.05062993	111.0396
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter67_RVD.obj
-energy: 109.3798 LossCVT: 294.6917 LossQE: 0.8205499 Lambda_CVT: 0.3688003
-65	65	1550.912	0.041307	109.3798
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter68_RVD.obj
-energy: 107.7463 LossCVT: 294.7092 LossQE: 0.8091141 Lambda_CVT: 0.3632683
-66	66	1574.512	0.04953608	107.7463
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter69_RVD.obj
-energy: 106.1364 LossCVT: 294.7226 LossQE: 0.7988261 Lambda_CVT: 0.3578192
-67	67	1597.94	0.04324634	106.1364
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter70_RVD.obj
-energy: 104.5499 LossCVT: 294.7594 LossQE: 0.7780952 Lambda_CVT: 0.3524519
-68	68	1621.271	0.0476077	104.5499
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter71_RVD.obj
-energy: 102.9885 LossCVT: 294.7523 LossQE: 0.7773495 Lambda_CVT: 0.3471652
-69	69	1644.577	0.04845215	102.9885
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter72_RVD.obj
-energy: 101.4495 LossCVT: 294.7704 LossQE: 0.7653317 Lambda_CVT: 0.3419577
-70	70	1668.263	0.04900372	101.4495
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter73_RVD.obj
-energy: 99.9322 LossCVT: 294.793 LossQE: 0.7500804 Lambda_CVT: 0.3368283
-71	71	1691.717	0.04464767	99.9322
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter74_RVD.obj
-energy: 98.43848 LossCVT: 294.8142 LossQE: 0.7367675 Lambda_CVT: 0.3317759
-72	72	1715.427	0.04264348	98.43848
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter75_RVD.obj
-energy: 96.96712 LossCVT: 294.8403 LossQE: 0.7218098 Lambda_CVT: 0.3267993
-73	73	1738.85	0.04554067	96.96712
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter76_RVD.obj
-energy: 95.51811 LossCVT: 294.8518 LossQE: 0.7130817 Lambda_CVT: 0.3218973
-74	74	1762.232	0.03808749	95.51811
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter77_RVD.obj
-energy: 94.09058 LossCVT: 294.8837 LossQE: 0.6966519 Lambda_CVT: 0.3170688
-75	75	1785.639	0.03421491	94.09058
-reach the max itertion time
-allTime: 1785.651 RVDtime: 613.1865 L-BFGS time: 1172.464
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_RVD.obj
-CWD: "/home/yiming/research/CWF"
-====================CWF3DTest
-Now file: block
-8000   block   
-OBJ: "/home/yiming/research/CWF/data/block.obj"
-"/home/yiming/research/CWF"
-Pts.size(): 7999
-
-Begin CWF.
-
-7999  7999
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter2_RVD.obj
-energy: 285.0894 LossCVT: 290.6153 LossQE: 4.645549 LossCover: 0 Lambda_CVT: 0.965
-0	0	14.89381	3.288969	285.0894
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter3_RVD.obj
-energy: 272.6918 LossCVT: 288.3916 LossQE: 4.134412 LossCover: 0 Lambda_CVT: 0.931225
-1	1	28.90248	2.687873	272.6918
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter4_RVD.obj
-energy: 257.0031 LossCVT: 283.5029 LossQE: 2.238224 LossCover: 0 Lambda_CVT: 0.8986321
-2	2	43.81304	2.020799	257.0031
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter5_RVD.obj
-energy: 245.27 LossCVT: 280.4527 LossQE: 2.067026 LossCover: 0 Lambda_CVT: 0.86718
-3	3	58.97712	1.137511	245.27
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter6_RVD.obj
-energy: 235.0574 LossCVT: 278.6168 LossQE: 1.902863 LossCover: 0 Lambda_CVT: 0.8368287
-4	4	73.86495	0.875002	235.0574
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter7_RVD.obj
-energy: 225.7752 LossCVT: 277.3627 LossQE: 1.793732 LossCover: 0 Lambda_CVT: 0.8075397
-5	5	88.42541	0.8844168	225.7752
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter8_RVD.obj
-energy: 217.0617 LossCVT: 276.441 LossQE: 1.637907 LossCover: 0 Lambda_CVT: 0.7792758
-6	6	103.8812	0.6575751	217.0617
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter9_RVD.obj
-energy: 208.8934 LossCVT: 275.8233 LossQE: 1.473959 LossCover: 0 Lambda_CVT: 0.7520012
-7	7	118.5825	0.4917506	208.8934
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter10_RVD.obj
-energy: 201.1231 LossCVT: 275.2684 LossQE: 1.365977 LossCover: 0 Lambda_CVT: 0.7256811
-8	8	133.5264	0.5079524	201.1231
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter11_RVD.obj
-energy: 193.7836 LossCVT: 274.8168 LossQE: 1.334277 LossCover: 0 Lambda_CVT: 0.7002823
-9	9	148.6283	0.4782482	193.7836
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter12_RVD.obj
-energy: 186.7503 LossCVT: 274.4531 LossQE: 1.282427 LossCover: 0 Lambda_CVT: 0.6757724
-10	10	163.4695	0.3364388	186.7503
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter13_RVD.obj
-energy: 179.9964 LossCVT: 274.1926 LossQE: 1.189849 LossCover: 0 Lambda_CVT: 0.6521204
-11	11	178.2284	0.3057203	179.9964
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter14_RVD.obj
-energy: 173.5598 LossCVT: 273.8652 LossQE: 1.217536 LossCover: 0 Lambda_CVT: 0.6292961
-12	12	193.1702	0.3137971	173.5598
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter15_RVD.obj
-energy: 167.3525 LossCVT: 273.7735 LossQE: 1.097863 LossCover: 0 Lambda_CVT: 0.6072708
-13	13	208.168	0.2455645	167.3525
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter16_RVD.obj
-energy: 161.3708 LossCVT: 273.5521 LossQE: 1.064831 LossCover: 0 Lambda_CVT: 0.5860163
-14	14	222.3608	0.2754701	161.3708
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter17_RVD.obj
-energy: 155.6458 LossCVT: 273.4739 LossQE: 0.9947316 LossCover: 0 Lambda_CVT: 0.5655057
-15	15	238.0053	0.2577572	155.6458
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter18_RVD.obj
-energy: 150.1336 LossCVT: 273.3561 LossQE: 0.959654 LossCover: 0 Lambda_CVT: 0.545713
-16	16	252.7551	0.168873	150.1336
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter19_RVD.obj
-energy: 144.8193 LossCVT: 273.3293 LossQE: 0.8805314 LossCover: 0 Lambda_CVT: 0.5266131
-17	17	268.1894	0.1641497	144.8193
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter20_RVD.obj
-energy: 139.7192 LossCVT: 273.0339 LossQE: 0.9683773 LossCover: 0 Lambda_CVT: 0.5081816
-18	18	283.4178	0.2026589	139.7192
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter21_RVD.obj
-energy: 134.8027 LossCVT: 273.0753 LossQE: 0.8878443 LossCover: 0 Lambda_CVT: 0.4903953
-19	19	298.5242	0.1441368	134.8027
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter22_RVD.obj
-energy: 130.0533 LossCVT: 273.1748 LossQE: 0.7784057 LossCover: 0 Lambda_CVT: 0.4732314
-20	20	313.4164	0.1372755	130.0533
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter23_RVD.obj
-energy: 125.4804 LossCVT: 273.0313 LossQE: 0.7956014 LossCover: 0 Lambda_CVT: 0.4566683
-21	21	328.1078	0.1290419	125.4804
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter24_RVD.obj
-energy: 121.0752 LossCVT: 273.11 LossQE: 0.7197615 LossCover: 0 Lambda_CVT: 0.4406849
-22	22	343.2574	0.1630771	121.0752
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter25_RVD.obj
-energy: 116.816 LossCVT: 272.9893 LossQE: 0.7242838 LossCover: 0 Lambda_CVT: 0.425261
-23	23	358.5515	0.1024358	116.816
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter26_RVD.obj
-energy: 112.7238 LossCVT: 272.9502 LossQE: 0.7113448 LossCover: 0 Lambda_CVT: 0.4103768
-24	24	373.6991	0.1188853	112.7238
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter27_RVD.obj
-energy: 108.7718 LossCVT: 272.9889 LossQE: 0.6644435 LossCover: 0 Lambda_CVT: 0.3960136
-25	25	388.3941	0.09600492	108.7718
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter28_RVD.obj
-energy: 104.963 LossCVT: 272.9469 LossQE: 0.6554693 LossCover: 0 Lambda_CVT: 0.3821532
-26	26	403.4504	0.08604911	104.963
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter29_RVD.obj
-energy: 101.2882 LossCVT: 273.1202 LossQE: 0.5675141 LossCover: 0 Lambda_CVT: 0.3687778
-27	27	418.245	0.1032668	101.2882
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter30_RVD.obj
-energy: 97.7428 LossCVT: 272.8851 LossQE: 0.6310282 LossCover: 0 Lambda_CVT: 0.3558706
-28	28	432.8036	0.1076742	97.7428
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter31_RVD.obj
-energy: 94.32547 LossCVT: 272.9391 LossQE: 0.5940489 LossCover: 0 Lambda_CVT: 0.3434151
-29	29	447.5021	0.08299799	94.32547
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter32_RVD.obj
-energy: 91.0253 LossCVT: 273.12 LossQE: 0.5145405 LossCover: 0 Lambda_CVT: 0.3313956
-30	30	462.3949	0.07214824	91.0253
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter33_RVD.obj
-energy: 87.84537 LossCVT: 273.0425 LossQE: 0.527277 LossCover: 0 Lambda_CVT: 0.3197967
-31	31	477.1447	0.0670641	87.84537
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter34_RVD.obj
-energy: 84.77592 LossCVT: 273.0586 LossQE: 0.5089885 LossCover: 0 Lambda_CVT: 0.3086039
-32	32	491.8075	0.06547314	84.77592
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter35_RVD.obj
-energy: 81.81236 LossCVT: 273.0259 LossQE: 0.5044993 LossCover: 0 Lambda_CVT: 0.2978027
-33	33	507.1351	0.0808629	81.81236
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter36_RVD.obj
-energy: 78.95525 LossCVT: 273.1116 LossQE: 0.4685429 LossCover: 0 Lambda_CVT: 0.2873796
-34	34	521.5944	0.07848754	78.95525
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter37_RVD.obj
-energy: 76.19663 LossCVT: 273.1427 LossQE: 0.4483208 LossCover: 0 Lambda_CVT: 0.2773213
-35	35	536.2281	0.04976994	76.19663
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter38_RVD.obj
-energy: 73.53602 LossCVT: 273.245 LossQE: 0.4115428 LossCover: 0 Lambda_CVT: 0.2676151
-36	36	550.638	0.04729615	73.53602
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter39_RVD.obj
-energy: 70.96944 LossCVT: 273.2265 LossQE: 0.4090818 LossCover: 0 Lambda_CVT: 0.2582486
-37	37	565.4842	0.04971029	70.96944
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter40_RVD.obj
-energy: 68.49359 LossCVT: 273.2573 LossQE: 0.3951818 LossCover: 0 Lambda_CVT: 0.2492099
-38	38	580.7494	0.04432035	68.49359
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter41_RVD.obj
-energy: 66.10206 LossCVT: 273.3474 LossQE: 0.3654141 LossCover: 0 Lambda_CVT: 0.2404875
-39	39	595.8745	0.04169567	66.10206
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter42_RVD.obj
-energy: 63.79571 LossCVT: 273.2611 LossQE: 0.3798739 LossCover: 0 Lambda_CVT: 0.2320705
-40	40	611.124	0.06370017	63.79571
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter43_RVD.obj
-energy: 61.5706 LossCVT: 273.3228 LossQE: 0.3604956 LossCover: 0 Lambda_CVT: 0.223948
-41	41	626.3919	0.05070567	61.5706
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter44_RVD.obj
-energy: 59.42532 LossCVT: 273.5204 LossQE: 0.3148833 LossCover: 0 Lambda_CVT: 0.2161098
-42	42	640.8462	0.06604427	59.42532
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter45_RVD.obj
-energy: 57.35093 LossCVT: 273.4194 LossQE: 0.3304248 LossCover: 0 Lambda_CVT: 0.208546
-43	43	655.9198	0.03706681	57.35093
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter46_RVD.obj
-energy: 55.35149 LossCVT: 273.4466 LossQE: 0.3212179 LossCover: 0 Lambda_CVT: 0.2012469
-44	44	671.4323	0.03348683	55.35149
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter47_RVD.obj
-energy: 53.42276 LossCVT: 273.5878 LossQE: 0.2911262 LossCover: 0 Lambda_CVT: 0.1942032
-45	45	686.0468	0.06910989	53.42276
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter48_RVD.obj
-energy: 51.56037 LossCVT: 273.5281 LossQE: 0.2995316 LossCover: 0 Lambda_CVT: 0.1874061
-46	46	700.4625	0.05970063	51.56037
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter49_RVD.obj
-energy: 49.76368 LossCVT: 273.4942 LossQE: 0.3031008 LossCover: 0 Lambda_CVT: 0.1808469
-47	47	714.8283	0.05036948	49.76368
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter50_RVD.obj
-energy: 48.02945 LossCVT: 273.5525 LossQE: 0.2898173 LossCover: 0 Lambda_CVT: 0.1745172
-48	48	729.5022	0.04216492	48.02945
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter51_RVD.obj
-energy: 46.35553 LossCVT: 273.7673 LossQE: 0.2506106 LossCover: 0 Lambda_CVT: 0.1684091
-49	49	744.6175	0.03813927	46.35553
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter52_RVD.obj
-energy: 44.73907 LossCVT: 273.7481 LossQE: 0.2509382 LossCover: 0 Lambda_CVT: 0.1625148
-50	50	759.336	0.03209716	44.73907
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter53_RVD.obj
-energy: 43.17868 LossCVT: 273.7838 LossQE: 0.24204 LossCover: 0 Lambda_CVT: 0.1568268
-51	51	774.3475	0.02944397	43.17868
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter54_RVD.obj
-energy: 41.67566 LossCVT: 273.8532 LossQE: 0.2313091 LossCover: 0 Lambda_CVT: 0.1513379
-52	52	789.5107	0.05648715	41.67566
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter55_RVD.obj
-energy: 40.22157 LossCVT: 273.8233 LossQE: 0.2321294 LossCover: 0 Lambda_CVT: 0.146041
-53	53	804.1609	0.02718501	40.22157
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter56_RVD.obj
-energy: 38.82069 LossCVT: 273.8658 LossQE: 0.2248931 LossCover: 0 Lambda_CVT: 0.1409296
-54	54	819.4737	0.02943695	38.82069
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter57_RVD.obj
-energy: 37.47399 LossCVT: 273.8888 LossQE: 0.2204784 LossCover: 0.005436619 Lambda_CVT: 0.1359971
-55	55	835.5572	0.09234485	37.47399
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter58_RVD.obj
-energy: 36.16831 LossCVT: 273.9154 LossQE: 0.2174683 LossCover: 0.002952793 Lambda_CVT: 0.1312372
-56	56	852.098	0.08088922	36.16831
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter59_RVD.obj
-energy: 34.90887 LossCVT: 273.9545 LossQE: 0.2119265 LossCover: 0.002283816 Lambda_CVT: 0.1266439
-57	57	867.9287	0.06323507	34.90887
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter60_RVD.obj
-energy: 33.69126 LossCVT: 274.0102 LossQE: 0.2031354 LossCover: 0.0009730559 Lambda_CVT: 0.1222113
-58	58	883.657	0.04159989	33.69126
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter61_RVD.obj
-energy: 32.51856 LossCVT: 274.0877 LossQE: 0.1934097 LossCover: 0.0009046009 Lambda_CVT: 0.1179339
-59	59	899.8456	0.04795224	32.51856
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_Iter62_RVD.obj
-energy: 31.38759 LossCVT: 274.2493 LossQE: 0.176307 LossCover: 0 Lambda_CVT: 0.1138063
+cover-only energy: 5.188647e-08 LossCover: 5.188647e-08 maxViolation: 0.005514826 invalidSeeds: 4
+0	0	158.98	3.212303e-05	5.188647e-08
+cover-only energy: 8.298044e-05 LossCover: 8.298044e-05 maxViolation: 0.05178804 invalidSeeds: 26
+cover-only energy: 0 LossCover: 0 maxViolation: 0 invalidSeeds: 0
 reach the gradient tolerance
-allTime: 915.5247 RVDtime: 492.4547 L-BFGS time: 423.07
-filepath = /home/yiming/research/CWF/data/Block/Ours_8000_block_RVD.obj
+filepath = /home/yiming/research/CWF/data/Mobius/Ours_6000_mobius1_RVD.obj
+stop alternating optimization: maxViolation < 1e-06
+allTime: 2015.929 RVDtime: 953.5688 L-BFGS time: 1062.36
+filepath = /home/yiming/research/CWF/data/Mobius/Ours_6000_mobius1_RVD.obj
+CWD: "/home/yiming/research/CWF"
+====================CWF3DTest
+Now file: bunny
+30000   bunny   
+OBJ: "/home/yiming/research/CWF/data/bunny.obj"
+"/home/yiming/research/CWF"
+Pts.size(): 29974
+
+Begin CWF.
+
+29974  29974
+filepath = /home/yiming/research/CWF/data/Bunny/Ours_30000_bunny_Iter2_RVD.obj
+energy: 0.0005649326 LossCVT: 0.0005917678 LossQE: 2.753249e-06 LossCover: 0 Lambda_CVT: 0.95
+0	0	86.15807	0.0001876172	0.0005649326
+filepath = /home/yiming/research/CWF/data/Bunny/Ours_30000_bunny_Iter3_RVD.obj
+energy: 0.0005538362 LossCVT: 0.0006105237 LossQE: 2.838532e-06 LossCover: 0 Lambda_CVT: 0.9025
+filepath = /home/yiming/research/CWF/data/Bunny/Ours_30000_bunny_Iter4_RVD.obj
+energy: 0.0004746198 LossCVT: 0.000550802 LossQE: 2.37595e-06 LossCover: 0 Lambda_CVT: 0.857375
+1	2	253.7206	8.150902e-05	0.0004746198
+filepath = /home/yiming/research/CWF/data/Bunny/Ours_30000_bunny_Iter5_RVD.obj
+energy: 0.0004432703 LossCVT: 0.0005414017 LossQE: 2.295276e-06 LossCover: 0 Lambda_CVT: 0.8145062
+2	3	335.9714	4.0985e-05	0.0004432703
+filepath = /home/yiming/research/CWF/data/Bunny/Ours_30000_bunny_Iter6_RVD.obj
+energy: 0.0004163934 LossCVT: 0.0005352438 LossQE: 2.2319e-06 LossCover: 0 Lambda_CVT: 0.7737809
+3	4	418.0449	2.74286e-05	0.0004163934
+filepath = /home/yiming/research/CWF/data/Bunny/Ours_30000_bunny_Iter7_RVD.obj
+energy: 0.0003929874 LossCVT: 0.0005316315 LossQE: 2.189441e-06 LossCover: 0 Lambda_CVT: 0.7350919
+4	5	500.033	2.428967e-05	0.0003929874
+filepath = /home/yiming/research/CWF/data/Bunny/Ours_30000_bunny_Iter8_RVD.obj
+energy: 0.0003716752 LossCVT: 0.0005291398 LossQE: 2.15708e-06 LossCover: 0 Lambda_CVT: 0.6983373
+5	6	581.0296	2.466481e-05	0.0003716752
+filepath = /home/yiming/research/CWF/data/Bunny/Ours_30000_bunny_Iter9_RVD.obj
+energy: 0.0003518709 LossCVT: 0.0005271923 LossQE: 2.120752e-06 LossCover: 0 Lambda_CVT: 0.6634204
+6	7	662.62	1.48806e-05	0.0003518709
+filepath = /home/yiming/research/CWF/data/Bunny/Ours_30000_bunny_Iter10_RVD.obj
+energy: 0.0003336456 LossCVT: 0.0005260519 LossQE: 2.101675e-06 LossCover: 0 Lambda_CVT: 0.6302494
+7	8	744.0079	1.115497e-05	0.0003336456
+filepath = /home/yiming/research/CWF/data/Bunny/Ours_30000_bunny_Iter11_RVD.obj
+energy: 0.0003164377 LossCVT: 0.0005250568 LossQE: 2.066845e-06 LossCover: 0 Lambda_CVT: 0.5987369
+8	9	825.1736	1.113262e-05	0.0003164377
+filepath = /home/yiming/research/CWF/data/Bunny/Ours_30000_bunny_Iter12_RVD.obj
+energy: 0.000300299 LossCVT: 0.0005243535 LossQE: 2.046663e-06 LossCover: 0 Lambda_CVT: 0.5688001
+9	10	905.0309	1.140439e-05	0.000300299
+filepath = /home/yiming/research/CWF/data/Bunny/Ours_30000_bunny_Iter13_RVD.obj
+energy: 0.0002849979 LossCVT: 0.0005236766 LossQE: 2.02391e-06 LossCover: 0 Lambda_CVT: 0.5403601
+10	11	986.1391	7.349579e-06	0.0002849979
+filepath = /home/yiming/research/CWF/data/Bunny/Ours_30000_bunny_Iter14_RVD.obj
+energy: 0.0002705624 LossCVT: 0.0005231615 LossQE: 2.001581e-06 LossCover: 0 Lambda_CVT: 0.5133421
+11	12	1066.856	6.809791e-06	0.0002705624
+filepath = /home/yiming/research/CWF/data/Bunny/Ours_30000_bunny_Iter15_RVD.obj
+energy: 0.0002569506 LossCVT: 0.0005228166 LossQE: 1.986058e-06 LossCover: 0 Lambda_CVT: 0.487675
+12	13	1147.96	7.329283e-06	0.0002569506
+filepath = /home/yiming/research/CWF/data/Bunny/Ours_30000_bunny_Iter16_RVD.obj
+energy: 0.0002440121 LossCVT: 0.0005224491 LossQE: 1.966036e-06 LossCover: 0 Lambda_CVT: 0.4632912
+13	14	1229.116	5.665674e-06	0.0002440121
+filepath = /home/yiming/research/CWF/data/Bunny/Ours_30000_bunny_Iter17_RVD.obj
+energy: 0.0002317237 LossCVT: 0.0005220867 LossQE: 1.939444e-06 LossCover: 0 Lambda_CVT: 0.4401267
+14	15	1309.882	4.869492e-06	0.0002317237
+filepath = /home/yiming/research/CWF/data/Bunny/Ours_30000_bunny_Iter18_RVD.obj
+energy: 0.0002201042 LossCVT: 0.0005218258 LossQE: 1.918174e-06 LossCover: 0 Lambda_CVT: 0.4181203
+15	16	1390.504	4.9448e-06	0.0002201042
+filepath = /home/yiming/research/CWF/data/Bunny/Ours_30000_bunny_Iter19_RVD.obj
+energy: 0.0002090813 LossCVT: 0.0005215792 LossQE: 1.902621e-06 LossCover: 0 Lambda_CVT: 0.3972143
+16	17	1471.473	4.511407e-06	0.0002090813
+filepath = /home/yiming/research/CWF/data/Bunny/Ours_30000_bunny_Iter20_RVD.obj
+energy: 0.0001986199 LossCVT: 0.0005213622 LossQE: 1.881966e-06 LossCover: 0 Lambda_CVT: 0.3773536
+17	18	1551.864	3.843479e-06	0.0001986199
+filepath = /home/yiming/research/CWF/data/Bunny/Ours_30000_bunny_Iter21_RVD.obj
+energy: 0.0001887117 LossCVT: 0.0005212061 LossQE: 1.866664e-06 LossCover: 0 Lambda_CVT: 0.3584859
+18	19	1631.604	3.687382e-06	0.0001887117
+filepath = /home/yiming/research/CWF/data/Bunny/Ours_30000_bunny_Iter22_RVD.obj
+energy: 0.0001793085 LossCVT: 0.000521077 LossQE: 1.849656e-06 LossCover: 0 Lambda_CVT: 0.3405616
+19	20	1712.345	3.401508e-06	0.0001793085
+filepath = /home/yiming/research/CWF/data/Bunny/Ours_30000_bunny_Iter23_RVD.obj
+energy: 0.0001703747 LossCVT: 0.0005209543 LossQE: 1.828446e-06 LossCover: 0 Lambda_CVT: 0.3235335
+20	21	1793.536	2.872792e-06	0.0001703747
+filepath = /home/yiming/research/CWF/data/Bunny/Ours_30000_bunny_Iter24_RVD.obj
+energy: 0.0001618952 LossCVT: 0.0005208557 LossQE: 1.806626e-06 LossCover: 0 Lambda_CVT: 0.3073569
+21	22	1873.698	2.75669e-06	0.0001618952
+filepath = /home/yiming/research/CWF/data/Bunny/Ours_30000_bunny_Iter25_RVD.obj
+energy: 0.0001538473 LossCVT: 0.000520772 LossQE: 1.78761e-06 LossCover: 0 Lambda_CVT: 0.291989
+22	23	1954.835	2.570761e-06	0.0001538473
+filepath = /home/yiming/research/CWF/data/Bunny/Ours_30000_bunny_Iter26_RVD.obj
+energy: 0.0001462045 LossCVT: 0.0005206828 LossQE: 1.77253e-06 LossCover: 0 Lambda_CVT: 0.2773896
+23	24	2036.044	2.374672e-06	0.0001462045
+filepath = /home/yiming/research/CWF/data/Bunny/Ours_30000_bunny_Iter27_RVD.obj
+energy: 0.0001389522 LossCVT: 0.0005206357 LossQE: 1.754188e-06 LossCover: 0 Lambda_CVT: 0.2635201
+24	25	2116.98	2.108313e-06	0.0001389522
+filepath = /home/yiming/research/CWF/data/Bunny/Ours_30000_bunny_Iter28_RVD.obj
+energy: 0.0001320699 LossCVT: 0.0005206146 LossQE: 1.73712e-06 LossCover: 0 Lambda_CVT: 0.2503441
+25	26	2197.674	2.156673e-06	0.0001320699
+filepath = /home/yiming/research/CWF/data/Bunny/Ours_30000_bunny_Iter29_RVD.obj
+energy: 0.0001255325 LossCVT: 0.0005205986 LossQE: 1.720127e-06 LossCover: 0 Lambda_CVT: 0.2378269
+26	27	2277.887	1.872584e-06	0.0001255325
+filepath = /home/yiming/research/CWF/data/Bunny/Ours_30000_bunny_Iter30_RVD.obj
+energy: 0.0001193284 LossCVT: 0.0005206271 LossQE: 1.700231e-06 LossCover: 0 Lambda_CVT: 0.2259355
+27	28	2358.621	2.294751e-06	0.0001193284
+filepath = /home/yiming/research/CWF/data/Bunny/Ours_30000_bunny_Iter31_RVD.obj
+energy: 0.00011343 LossCVT: 0.0005206137 LossQE: 1.686127e-06 LossCover: 0 Lambda_CVT: 0.2146388
+28	29	2439.43	1.845642e-06	0.00011343
+filepath = /home/yiming/research/CWF/data/Bunny/Ours_30000_bunny_Iter32_RVD.obj
+energy: 0.000107828 LossCVT: 0.0005206 LossQE: 1.674117e-06 LossCover: 0 Lambda_CVT: 0.2039068
+29	30	2520.3	1.567369e-06	0.000107828
+filepath = /home/yiming/research/CWF/data/Bunny/Ours_30000_bunny_Iter33_RVD.obj
+energy: 0.000102511 LossCVT: 0.0005206587 LossQE: 1.653392e-06 LossCover: 0 Lambda_CVT: 0.1937115
+30	31	2599.167	1.481732e-06	0.000102511
+filepath = /home/yiming/research/CWF/data/Bunny/Ours_30000_bunny_Iter34_RVD.obj
+energy: 9.746636e-05 LossCVT: 0.0005207793 LossQE: 1.629476e-06 LossCover: 0 Lambda_CVT: 0.1840259
+31	32	2680.005	1.777233e-06	9.746636e-05
+filepath = /home/yiming/research/CWF/data/Bunny/Ours_30000_bunny_Iter35_RVD.obj
+energy: 9.266332e-05 LossCVT: 0.0005207877 LossQE: 1.616811e-06 LossCover: 0 Lambda_CVT: 0.1748246
+32	33	2760.647	1.545252e-06	9.266332e-05
+filepath = /home/yiming/research/CWF/data/Bunny/Ours_30000_bunny_Iter36_RVD.obj
+energy: 8.809936e-05 LossCVT: 0.0005207809 LossQE: 1.606296e-06 LossCover: 0 Lambda_CVT: 0.1660834
+33	34	2841.392	1.36543e-06	8.809936e-05
+filepath = /home/yiming/research/CWF/data/Bunny/Ours_30000_bunny_Iter37_RVD.obj
+energy: 8.377622e-05 LossCVT: 0.0005209476 LossQE: 1.581517e-06 LossCover: 0 Lambda_CVT: 0.1577792
+34	35	2920.188	1.724227e-06	8.377622e-05
+filepath = /home/yiming/research/CWF/data/Bunny/Ours_30000_bunny_Iter38_RVD.obj
+energy: 7.965755e-05 LossCVT: 0.0005209536 LossQE: 1.571688e-06 LossCover: 0 Lambda_CVT: 0.1498903
+35	36	2999.955	1.473413e-06	7.965755e-05
+filepath = /home/yiming/research/CWF/data/Bunny/Ours_30000_bunny_Iter39_RVD.obj
+energy: 7.574508e-05 LossCVT: 0.0005209808 LossQE: 1.559632e-06 LossCover: 0 Lambda_CVT: 0.1423957
+36	37	3079.675	1.177631e-06	7.574508e-05
+filepath = /home/yiming/research/CWF/data/Bunny/Ours_30000_bunny_Iter40_RVD.obj
+energy: 7.203801e-05 LossCVT: 0.0005211935 LossQE: 1.533071e-06 LossCover: 0 Lambda_CVT: 0.135276
+37	38	3159.654	1.469815e-06	7.203801e-05
+filepath = /home/yiming/research/CWF/data/Bunny/Ours_30000_bunny_Iter41_RVD.obj
+energy: 6.850512e-05 LossCVT: 0.0005212189 LossQE: 1.522149e-06 LossCover: 0 Lambda_CVT: 0.1285122
+38	39	3240.199	1.210952e-06	6.850512e-05
+filepath = /home/yiming/research/CWF/data/Bunny/Ours_30000_bunny_Iter42_RVD.obj
+energy: 6.515292e-05 LossCVT: 0.0005213728 LossQE: 1.500317e-06 LossCover: 0 Lambda_CVT: 0.1220865
+39	40	3320.908	1.157449e-06	6.515292e-05
+filepath = /home/yiming/research/CWF/data/Bunny/Ours_30000_bunny_Iter43_RVD.obj
+energy: 6.197088e-05 LossCVT: 0.0005215263 LossQE: 1.483101e-06 LossCover: 0 Lambda_CVT: 0.1159822
+40	41	3400.804	1.254558e-06	6.197088e-05
+filepath = /home/yiming/research/CWF/data/Bunny/Ours_30000_bunny_Iter44_RVD.obj
+energy: 5.894893e-05 LossCVT: 0.0005217217 LossQE: 1.464007e-06 LossCover: 0 Lambda_CVT: 0.1101831
+41	42	3480.666	1.483985e-06	5.894893e-05
+filepath = /home/yiming/research/CWF/data/Bunny/Ours_30000_bunny_Iter45_RVD.obj
+energy: 5.606888e-05 LossCVT: 0.0005217992 LossQE: 1.450102e-06 LossCover: 0 Lambda_CVT: 0.104674
+42	43	3560.806	1.125277e-06	5.606888e-05
+filepath = /home/yiming/research/CWF/data/Bunny/Ours_30000_bunny_Iter46_RVD.obj
+energy: 5.333592e-05 LossCVT: 0.0005219288 LossQE: 1.435178e-06 LossCover: 0 Lambda_CVT: 0.09944026
+43	44	3640.418	1.026458e-06	5.333592e-05
+filepath = /home/yiming/research/CWF/data/Bunny/Ours_30000_bunny_Iter47_RVD.obj
+energy: 5.075056e-05 LossCVT: 0.0005223903 LossQE: 1.401262e-06 LossCover: 0 Lambda_CVT: 0.09446824
+44	45	3719.763	1.323936e-06	5.075056e-05
+filepath = /home/yiming/research/CWF/data/Bunny/Ours_30000_bunny_Iter48_RVD.obj
+energy: 4.82804e-05 LossCVT: 0.0005224762 LossQE: 1.390865e-06 LossCover: 0 Lambda_CVT: 0.08974483
+45	46	3798.678	1.180092e-06	4.82804e-05
+filepath = /home/yiming/research/CWF/data/Bunny/Ours_30000_bunny_Iter49_RVD.obj
+energy: 4.593347e-05 LossCVT: 0.0005226086 LossQE: 1.377127e-06 LossCover: 0 Lambda_CVT: 0.08525759
+46	47	3878.31	1.175268e-06	4.593347e-05
+filepath = /home/yiming/research/CWF/data/Bunny/Ours_30000_bunny_Iter50_RVD.obj
+energy: 4.370443e-05 LossCVT: 0.0005227501 LossQE: 1.364439e-06 LossCover: 0 Lambda_CVT: 0.08099471
+47	48	3957.296	1.240611e-06	4.370443e-05
+filepath = /home/yiming/research/CWF/data/Bunny/Ours_30000_bunny_Iter51_RVD.obj
+energy: 4.159422e-05 LossCVT: 0.0005231652 LossQE: 1.339289e-06 LossCover: 0 Lambda_CVT: 0.07694498
+48	49	4037.123	1.33446e-06	4.159422e-05
+filepath = /home/yiming/research/CWF/data/Bunny/Ours_30000_bunny_Iter52_RVD.obj
+energy: 3.960508e-05 LossCVT: 0.0005239303 LossQE: 1.30696e-06 LossCover: 0 Lambda_CVT: 0.07309773
+49	50	4116.857	2.018495e-06	3.960508e-05
+filepath = /home/yiming/research/CWF/data/Bunny/Ours_30000_bunny_Iter53_RVD.obj
+energy: 3.766969e-05 LossCVT: 0.0005237037 LossQE: 1.302223e-06 LossCover: 0 Lambda_CVT: 0.06944284
+50	51	4196.328	1.219494e-06	3.766969e-05
+reach the max itertion time
+energy: 3.585132e-05 LossCVT: 0.0005237037 LossQE: 1.302223e-06 LossCover: 0 Lambda_CVT: 0.0659707
+0	0	73.22568	1.216689e-06	3.585132e-05
+energy: 3.762487e-05 LossCVT: 0.0005648729 LossQE: 2.223068e-06 LossCover: 0 Lambda_CVT: 0.06267216
+energy: 3.361227e-05 LossCVT: 0.0005371809 LossQE: 1.629296e-06 LossCover: 0 Lambda_CVT: 0.05953856
+energy: 3.125328e-05 LossCVT: 0.0005277317 LossQE: 1.403917e-06 LossCover: 0 Lambda_CVT: 0.05656163
+energy: 2.951994e-05 LossCVT: 0.0005248392 LossQE: 1.318466e-06 LossCover: 0 Lambda_CVT: 0.05373355
+energy: 2.804573e-05 LossCVT: 0.0005240395 LossQE: 1.295158e-06 LossCover: 0 Lambda_CVT: 0.05104687
+1	5	438.2833	2.131757e-06	2.804573e-05
+reach the max itertion time
+cover-only energy: 6.463697e-08 LossCover: 6.463697e-08 maxViolation: 0.005918463 invalidSeeds: 98
+0	0	3692.369	2.628121e-05	6.463697e-08
+cover-only energy: 1.933737e-06 LossCover: 1.933737e-06 maxViolation: 0.01110912 invalidSeeds: 284
+cover-only energy: 1.078439e-06 LossCover: 1.078439e-06 maxViolation: 0.008065581 invalidSeeds: 190
+cover-only energy: 2.349624e-07 LossCover: 2.349624e-07 maxViolation: 0.006074398 invalidSeeds: 122
+cover-only energy: 4.208091e-07 LossCover: 4.208091e-07 maxViolation: 0.006867572 invalidSeeds: 63
+cover-only energy: 8.998358e-08 LossCover: 8.998358e-08 maxViolation: 0.005009418 invalidSeeds: 76
+cover-only energy: 6.704195e-09 LossCover: 6.704195e-09 maxViolation: 0.003358536 invalidSeeds: 48
+1	6	25823.93	2.301276e-05	6.704195e-09
+cover-only energy: 1.274654e-08 LossCover: 1.274654e-08 maxViolation: 0.003135254 invalidSeeds: 52
+cover-only energy: 2.848654e-09 LossCover: 2.848654e-09 maxViolation: 0.002317673 invalidSeeds: 48
+2	8	33196.22	7.878611e-06	2.848654e-09
+cover-only energy: 4.342143e-10 LossCover: 4.342143e-10 maxViolation: 0.001047241 invalidSeeds: 50
+3	9	36886.23	1.287119e-06	4.342143e-10
+cover-only energy: 1.286998e-10 LossCover: 1.286998e-10 maxViolation: 0.0006953568 invalidSeeds: 46
+4	10	40577.44	4.85087e-07	1.286998e-10
+cover-only energy: 4.912948e-11 LossCover: 4.912948e-11 maxViolation: 0.0004450656 invalidSeeds: 46
+5	11	44273.45	2.845711e-07	4.912948e-11
+cover-only energy: 9.550349e-12 LossCover: 9.550349e-12 maxViolation: 0.0002809046 invalidSeeds: 44
+6	12	47945.3	1.30156e-07	9.550349e-12
+cover-only energy: 1.735962e-12 LossCover: 1.735962e-12 maxViolation: 0.0001540571 invalidSeeds: 40
+7	13	51636.98	2.983551e-08	1.735962e-12
+cover-only energy: 6.726088e-13 LossCover: 6.726088e-13 maxViolation: 0.0001090306 invalidSeeds: 40
+8	14	55333.8	1.770611e-08	6.726088e-13
+cover-only energy: 7.796567e-14 LossCover: 7.796567e-14 maxViolation: 4.972506e-05 invalidSeeds: 40
+stop current cover-only optimization: invalidSeeds unchanged for 3 evaluations (40)
+reach the gradient tolerance
+filepath = /home/yiming/research/CWF/data/Bunny/Ours_30000_bunny_RVD.obj
+energy: 2.671418e-05 LossCVT: 0.000524066 LossQE: 1.299845e-06 LossCover: 0 Lambda_CVT: 0.04849453
+0	0	72.83513	2.193135e-06	2.671418e-05
+energy: 2.802401e-05 LossCVT: 0.0005612124 LossQE: 2.169072e-06 LossCover: 0 Lambda_CVT: 0.0460698
+energy: 2.517896e-05 LossCVT: 0.0005387954 LossQE: 1.597869e-06 LossCover: 0 Lambda_CVT: 0.04376631
+energy: 2.337481e-05 LossCVT: 0.0005293703 LossQE: 1.364657e-06 LossCover: 0 Lambda_CVT: 0.04157799
+energy: 2.204346e-05 LossCVT: 0.0005259765 LossQE: 1.267867e-06 LossCover: 0 Lambda_CVT: 0.03949909
+1	4	369.5253	3.975551e-06	2.204346e-05
+reach the max itertion time
+cover-only energy: 1.406986e-07 LossCover: 1.406986e-07 maxViolation: 0.004726025 invalidSeeds: 204
+0	0	3685.898	6.654962e-05	1.406986e-07
+cover-only energy: 5.354347e-06 LossCover: 5.354347e-06 maxViolation: 0.01163891 invalidSeeds: 417
+cover-only energy: 1.29277e-06 LossCover: 1.29277e-06 maxViolation: 0.009064651 invalidSeeds: 299
+cover-only energy: 1.546937e-06 LossCover: 1.546937e-06 maxViolation: 0.01133482 invalidSeeds: 188
+cover-only energy: 1.79179e-06 LossCover: 1.79179e-06 maxViolation: 0.01309318 invalidSeeds: 147
+cover-only energy: 2.825352e-07 LossCover: 2.825352e-07 maxViolation: 0.008435092 invalidSeeds: 106
+cover-only energy: 2.134072e-07 LossCover: 2.134072e-07 maxViolation: 0.008698052 invalidSeeds: 136
+cover-only energy: 1.948339e-08 LossCover: 1.948339e-08 maxViolation: 0.003041576 invalidSeeds: 154
+1	7	29528.06	1.871358e-05	1.948339e-08
+cover-only energy: 3.654672e-09 LossCover: 3.654672e-09 maxViolation: 0.001708808 invalidSeeds: 140
+2	8	33205.98	3.078643e-06	3.654672e-09
+cover-only energy: 1.931053e-09 LossCover: 1.931053e-09 maxViolation: 0.001372644 invalidSeeds: 140
+3	9	36892.04	2.0297e-06	1.931053e-09
+cover-only energy: 2.883384e-10 LossCover: 2.883384e-10 maxViolation: 0.0006264592 invalidSeeds: 138
+4	10	40582.96	7.380985e-07	2.883384e-10
+cover-only energy: 5.710309e-11 LossCover: 5.710309e-11 maxViolation: 0.0003851294 invalidSeeds: 130
+5	11	44259.37	1.711759e-07	5.710309e-11
+cover-only energy: 2.365088e-11 LossCover: 2.365088e-11 maxViolation: 0.0003161424 invalidSeeds: 130
+6	12	47952.24	1.189376e-07	2.365088e-11
+cover-only energy: 6.829778e-13 LossCover: 6.829778e-13 maxViolation: 0.0001037889 invalidSeeds: 104
+7	13	51611.17	1.738065e-08	6.829778e-13
+cover-only energy: 7.158419e-14 LossCover: 7.158419e-14 maxViolation: 3.859363e-05 invalidSeeds: 98
+8	14	55283.83	3.162422e-09	7.158419e-14
+cover-only energy: 4.702778e-14 LossCover: 4.702778e-14 maxViolation: 3.310879e-05 invalidSeeds: 98
+9	15	58959.51	2.73011e-09	4.702778e-14
+cover-only energy: 8.383374e-15 LossCover: 8.383374e-15 maxViolation: 3.292571e-05 invalidSeeds: 44
+10	16	62640.47	1.267377e-09	8.383374e-15
+reach the max itertion time
+filepath = /home/yiming/research/CWF/data/Bunny/Ours_30000_bunny_RVD.obj
+energy: 2.100365e-05 LossCVT: 0.0005259613 LossQE: 1.267409e-06 LossCover: 0 Lambda_CVT: 0.03752414
+0	0	73.07944	3.922866e-06	2.100365e-05
+energy: 2.183511e-05 LossCVT: 0.0005471926 LossQE: 2.328828e-06 LossCover: 0 Lambda_CVT: 0.03564793
+energy: 1.980273e-05 LossCVT: 0.0005333628 LossQE: 1.740117e-06 LossCover: 0 Lambda_CVT: 0.03386554
+1	2	220.2743	1.035799e-05	1.980273e-05
+reach the max itertion time
+cover-only energy: 2.262577e-06 LossCover: 2.262577e-06 maxViolation: 0.009187993 invalidSeeds: 1007
+0	0	3660.334	0.000603078	2.262577e-06
+cover-only energy: 8.260907e-06 LossCover: 8.260907e-06 maxViolation: 0.01283481 invalidSeeds: 1160
+cover-only energy: 3.026324e-06 LossCover: 3.026324e-06 maxViolation: 0.01156848 invalidSeeds: 673
+cover-only energy: 2.181658e-06 LossCover: 2.181658e-06 maxViolation: 0.01116956 invalidSeeds: 624
+1	3	14597.51	0.0005630096	2.181658e-06
