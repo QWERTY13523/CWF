@@ -320,6 +320,10 @@ namespace BGAL
       {
           iterX = iX + step * direction;
           fval = f(iterX, gradient, IterNum);
+          if (gradient.norm() < _parameter.epsilon)
+          {
+              break;
+          }
           if (fval > ifval)
           {
               step_u = step;
@@ -389,6 +393,10 @@ namespace BGAL
       {
           iterX = iX + step * direction;
           fval = f(iterX, gradient);
+          if (gradient.norm() < _parameter.epsilon)
+          {
+              break;
+          }
           if (fval > ifval)
           {
               step_u = step;

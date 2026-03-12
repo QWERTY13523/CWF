@@ -26,6 +26,7 @@
 
 #include <CGAL/squared_distance_3.h>
 #include <Eigen/Sparse>
+#include <Eigen/SVD>
 #include <memory>
 #include <igl/gaussian_curvature.h>
 #include <igl/read_triangle_mesh.h>
@@ -205,6 +206,24 @@ static inline bool intersect_three_spheres(
   s_plus  = base + z*ez;
   s_minus = base - z*ez;
   return true;
+}
+
+static inline Eigen::Vector3d solve_damped_pseudoinverse(
+    const Eigen::Matrix3d &A, const Eigen::Vector3d &b, double damp) {
+  Eigen::JacobiSVD<Eigen::Matrix3d> svd(
+      A, Eigen::ComputeFullU | Eigen::ComputeFullV);
+  const Eigen::Vector3d singular_values = svd.singularValues();
+  const double max_sigma = singular_values.maxCoeff();
+  const double cutoff = std::max(1e-12, max_sigma * 1e-10);
+
+  Eigen::Matrix3d sigma_pinv = Eigen::Matrix3d::Zero();
+  for (int i = 0; i < 3; ++i) {
+    const double sigma = singular_values(i);
+    if (sigma <= cutoff) continue;
+    sigma_pinv(i, i) = sigma / (sigma * sigma + damp * damp);
+  }
+
+  return svd.matrixV() * sigma_pinv * svd.matrixU().transpose() * b;
 }
 
 static inline void build_spheres_from_rvd(
@@ -452,7 +471,7 @@ void _CVT3D::calculate_(int num_sites, char *modelNamee, char *pointsName) {
 
   std::string inPointsName;
   namespace fs = std::filesystem;
-  fs::path obj("./data/block.obj");
+  fs::path obj("./data/bunny.obj");
   fs::path base = obj.parent_path();
   if (pointsName == nullptr) {
     inPointsName = (base / ("n" + std::to_string(num_sites) + "_" + modelname +
@@ -486,22 +505,23 @@ void _CVT3D::calculate_(int num_sites, char *modelNamee, char *pointsName) {
 
   // 覆盖惩罚项参数（核心新增）
   const auto bbox = _model.bounding_box_();
-  const double bbox_diag = (bbox.second - bbox.first).length_();
   const double cover_weight = 0.15;          // μ：覆盖惩罚强度（若 v^3 惩罚不够，可适当调大至 1.0~100.0）
-  const double cover_margin = 0.0;           // margin：留点余量避免擦边抖动
-  const double cover_beta   = std::max(1e-12, 1e-3 * bbox_diag); 
-  const double cover_damp   = 1e-10;         // 解 J^T y = dE/ds 的阻尼
-  const double cover_violation_tolerance = 1e-6;
-  const int cover_neighbor_ring = 1;         // 第四球候选范围：从 1-ring 略微放宽到 2-ring
-  const bool cover_global_fallback = true;   // 局部候选没命中时，退化到全局第四球检查
+  const double cover_tau_m_scale = 0.02;
+  const double cover_tau_h_scale = 0.01;
+  const double cover_delta_scale = 0.0;
+  const double cover_damp   = 1e-6;          // 解 J^T y = dE/ds 的阻尼
   const int cvt_qem_warmup_iterations = 50;
 
   std::vector<int> FaceIDs(num, -1);
   bool suppress_intermediate_output = false;
+  int qem_iterations_done = 0;
+  int cover_invalid_seed_count = -1;
 
   std::function<double(const Eigen::VectorXd &X, Eigen::VectorXd &g)> fgm2 =
       [&](const Eigen::VectorXd &X, Eigen::VectorXd &g) {
-        eplison = eplison * decay;
+        if (qem_iterations_done < cvt_qem_warmup_iterations) {
+          eplison = eplison * decay;
+        }
         double lossCVT = 0, loss = 0;
         double lossCover = 0;
 
@@ -539,7 +559,7 @@ void _CVT3D::calculate_(int num_sites, char *modelNamee, char *pointsName) {
         if (!suppress_intermediate_output) {
           Fnum++;
           OutputMesh(this->_sites, this->_RVD, num_sites,
-                     (std::filesystem::current_path() / "data" / "Block").string(),
+                     (std::filesystem::current_path() / "data" / "Bunny").string(),
                      modelname, Fnum);
         }
 
@@ -632,18 +652,8 @@ void _CVT3D::calculate_(int num_sites, char *modelNamee, char *pointsName) {
         // ============================================================
         // 注意：如果你想在主优化中开启它，请把这里的 false && 删掉
         if (false && cover_weight > 0.0) {
-          // 5.1 建邻接（RDT 图）
-          std::vector<std::vector<int>> nbr(num);
           double maxCoverViolation = 0.0;
           int invalidSeedCount = 0;
-          for (int i = 0; i < (int)edges.size(); ++i) {
-            nbr[i].reserve(edges[i].size());
-            for (const auto &kv : edges[i]) {
-              int j = kv.first;
-              if (j < 0 || j >= num || j == i) continue;
-              nbr[i].push_back(j);
-            }
-          }
 
           const std::vector<Eigen::Vector3i> rdt_tris =
               build_rdt_faces_from_edges(num, edges);
@@ -651,10 +661,27 @@ void _CVT3D::calculate_(int num_sites, char *modelNamee, char *pointsName) {
           // 5.3 预取中心和半径（半径在本次评估里当常量）
           std::vector<Eigen::Vector3d> C(num);
           std::vector<double> R(num);
+          std::vector<BGAL::_Point3> center_points(num);
+          double radius_sum = 0.0;
           for (int i = 0; i < num; ++i) {
             C[i] = Eigen::Vector3d(this->_sites[i].x(), this->_sites[i].y(), this->_sites[i].z());
             R[i] = std::max(0.0, (double)spheres[i].r);
+            center_points[i] = this->_sites[i];
+            radius_sum += R[i];
           }
+          const double avg_radius =
+              num > 0 ? radius_sum / static_cast<double>(num) : 0.0;
+          const double cover_delta = cover_delta_scale * avg_radius;
+          const double tau_m =
+              std::max(1e-12, cover_tau_m_scale * avg_radius * avg_radius);
+          const double tau_h =
+              std::max(1e-12, cover_tau_h_scale * avg_radius * avg_radius);
+          const int cover_neighbor_k =
+              std::max(1, std::min(cover_invalid_seed_count > 0
+                                       ? cover_invalid_seed_count
+                                       : 50,
+                                   50));
+          BGAL::_KDTree center_tree(center_points);
 
           // 5.4 对每个三角形：三球交两点 -> 找覆盖球 -> 计算 dE/ds -> 解 (J^T)y=dE/ds -> 回传到 ci,cj,ck
           for (const auto &t : rdt_tris) {
@@ -672,77 +699,57 @@ void _CVT3D::calculate_(int num_sites, char *modelNamee, char *pointsName) {
            for (int si = 0; si < 2; ++si) {
               const Eigen::Vector3d s = seeds[si];
 
-              // 候选第四球：默认 1-ring，额外并入一层 2-ring
-              std::unordered_set<int> cand;
-              cand.reserve((nbr[i].size() + nbr[j].size() + nbr[k].size()) *
-                           cover_neighbor_ring * 2 + 8);
-              auto add_candidate_ring = [&](int center) {
-                for (int u : nbr[center]) {
-                  if (u < 0 || u >= num) continue;
-                  cand.insert(u);
-                  if (cover_neighbor_ring >= 2) {
-                    for (int uu : nbr[u]) {
-                      if (uu < 0 || uu >= num) continue;
-                      cand.insert(uu);
-                    }
-                  }
-                }
-              };
-              add_candidate_ring(i);
-              add_candidate_ring(j);
-              add_candidate_ring(k);
-              cand.erase(i); cand.erase(j); cand.erase(k);
-
               double best_v_for_tracking = 0.0; 
-              bool has_violation = false;
               Eigen::Vector3d seed_grad_s = Eigen::Vector3d::Zero();
-
-              // 定义一个 Lambda 来评估并累加所有候选球的能量（使用 v^3 保证平滑截断）
-              auto eval_and_accumulate = [&](int l) {
-                if (l < 0 || l >= num || l == i || l == j || l == k || R[l] <= 0) return;
-                Eigen::Vector3d d = (s - C[l]);
-                double dist = d.norm();
-                if (dist < 1e-12) return;
-
-                double v = (R[l] - cover_margin) - dist;
-                best_v_for_tracking = std::max(best_v_for_tracking, v);
-
-                // 严格判定：只有真正进入第四个球内部才产生能量和梯度！
-                if (v > 0.0) {
-                  has_violation = true;
-                  
-                  // 使用 v^3 保证 v=0 处能量为0且二阶导连续
-                  double v2 = v * v;
-                  double v3 = v2 * v;
-                  double dE_dv = 3.0 * cover_weight * v2; 
-                  
-                  lossCover += cover_weight * v3;
-
-                  Eigen::Vector3d dir = d / dist;
-                  // 累加到交点 s 的总梯度上
-                  seed_grad_s += -dE_dv * dir;
-                  // 直接项：对第四球中心 c_l 的梯度
-                  gi[l] += (+dE_dv) * dir;
-                }
+              struct CoverCandidate {
+                int id;
+                Eigen::Vector3d d;
+                double v;
               };
-
-              // 遍历所有候选并累加
-              for (int l : cand) {
-                eval_and_accumulate(l);
+              std::vector<CoverCandidate> candidates;
+              const std::vector<int> nearest_ids = center_tree.nsearch_(
+                  {BGAL::_Point3(s.x(), s.y(), s.z())},
+                  std::min(num, cover_neighbor_k + 3));
+              candidates.reserve(nearest_ids.size());
+              for (int l : nearest_ids) {
+                if (l < 0 || l >= num || l == i || l == j || l == k || R[l] <= 0) continue;
+                Eigen::Vector3d d = (s - C[l]);
+                double v = (R[l] - cover_delta) * (R[l] - cover_delta) - d.squaredNorm();
+                best_v_for_tracking = std::max(best_v_for_tracking, v);
+                candidates.push_back({l, d, v});
               }
 
-              // 全局 Fallback
-              if (cover_global_fallback && !has_violation) {
-                for (int l = 0; l < num; ++l) {
-                  eval_and_accumulate(l);
-                }
-              }
+              if (candidates.empty()) continue;
 
-              // 如果没有任何球产生惩罚，直接跳过隐式微分
-              if (!has_violation) continue;
+              double max_v = candidates.front().v;
+              for (const auto &cand : candidates) {
+                max_v = std::max(max_v, cand.v);
+              }
+              if (max_v <= 0.0) continue;
 
               ++invalidSeedCount;
-              maxCoverViolation = std::max(maxCoverViolation, best_v_for_tracking);
+              maxCoverViolation = std::max(maxCoverViolation, max_v);
+
+              double exp_sum = 0.0;
+              for (const auto &cand : candidates) {
+                exp_sum += std::exp((cand.v - max_v) / tau_m);
+              }
+              const double m_val =
+                  max_v + tau_m * std::log(std::max(exp_sum, 1e-300));
+              const double softplus_arg = m_val / tau_h;
+              const double sp = tau_h * stable_softplus(softplus_arg);
+              const double sig = stable_sigmoid(softplus_arg);
+              const double dE_dm = 2.0 * cover_weight * sp * sig;
+
+              lossCover += cover_weight * sp * sp;
+
+              for (const auto &cand : candidates) {
+                const double softmax_weight =
+                    std::exp((cand.v - m_val) / tau_m);
+                const double dE_dv = dE_dm * softmax_weight;
+                seed_grad_s += -2.0 * dE_dv * cand.d;
+                gi[cand.id] += +2.0 * dE_dv * cand.d;
+              }
 
               // --------- 修正后的隐式微分回传到 (c_i,c_j,c_k) ----------
               Eigen::Vector3d di = (s - C[i]);
@@ -754,15 +761,9 @@ void _CVT3D::calculate_(int num_sites, char *modelNamee, char *pointsName) {
               JT.col(1) = 2.0 * dj;
               JT.col(2) = 2.0 * dk;
 
-              // 【关键修复】：正确的 Tikhonov 正则化求解 (J * J^T + damp * I) y = J * g_s
-              Eigen::Matrix3d J = JT.transpose();
-              Eigen::Matrix3d JJT = J * JT; 
-              
-              // 阻尼加在 J*J^T 的对角线上，这保证了梯度的方向不会被扭曲！
-              JJT.diagonal().array() += cover_damp; 
-
-              // 求解 yvec
-              Eigen::Vector3d yvec = JJT.ldlt().solve(J * seed_grad_s);
+              // 用 SVD 阻尼伪逆回传，避免 J_s^T 接近奇异时法方程放大误差。
+              Eigen::Vector3d yvec =
+                  solve_damped_pseudoinverse(JT, seed_grad_s, cover_damp);
 
               // dE/dci = 2(s-ci)*y1, dE/dcj = 2(s-cj)*y2, dE/dck = 2(s-ck)*y3
               gi[i] += 2.0 * di * yvec(0);
@@ -794,8 +795,8 @@ void _CVT3D::calculate_(int num_sites, char *modelNamee, char *pointsName) {
         if (!suppress_intermediate_output) {
           namespace fs = std::filesystem;
           fs::path file =
-              fs::absolute(fs::current_path() / "data" / "Block" /
-                           ("Sphere_8000_" + std::to_string(Fnum) + ".csv"));
+              fs::absolute(fs::current_path() / "data" / "Bunny" /
+                           ("Sphere_10000_" + std::to_string(Fnum) + ".csv"));
           std::ofstream out(file, std::ios::out | std::ios::trunc);
           if (!out) {
             std::cerr << "[io] open failed, errno=" << errno << " ("
@@ -815,12 +816,9 @@ void _CVT3D::calculate_(int num_sites, char *modelNamee, char *pointsName) {
       };
 
   bool cover_satisfied = false;
-  int cover_invalid_seed_count = -1;
   int current_cover_previous_invalid_seed_count = -1;
   int current_cover_same_invalid_seed_count_rounds = 0;
-  double last_cover_loss = 0.0;
-  int cover_nonzero_loss_rounds = 0;
-  bool skip_cover_after_six_nonzero_rounds = false;
+  bool cover_stagnated_in_last_run = false;
   std::function<double(const Eigen::VectorXd &X, Eigen::VectorXd &g)> fgm_cover =
       [&](const Eigen::VectorXd &X, Eigen::VectorXd &g) {
         double lossCover = 0.0;
@@ -859,25 +857,32 @@ void _CVT3D::calculate_(int num_sites, char *modelNamee, char *pointsName) {
         const auto &edges = this->_RVD.get_edges_();
         build_spheres_from_rvd(this->_sites, this->_RVD, spheres);
 
-        std::vector<std::vector<int>> nbr(num);
-        for (int i = 0; i < (int)edges.size(); ++i) {
-          nbr[i].reserve(edges[i].size());
-          for (const auto &kv : edges[i]) {
-            int j = kv.first;
-            if (j < 0 || j >= num || j == i) continue;
-            nbr[i].push_back(j);
-          }
-        }
-
         const std::vector<Eigen::Vector3i> rdt_tris =
             build_rdt_faces_from_edges(num, edges);
 
         std::vector<Eigen::Vector3d> C(num);
         std::vector<double> R(num);
+        std::vector<BGAL::_Point3> center_points(num);
+        double radius_sum = 0.0;
         for (int i = 0; i < num; ++i) {
           C[i] = Eigen::Vector3d(this->_sites[i].x(), this->_sites[i].y(), this->_sites[i].z());
           R[i] = std::max(0.0, (double)spheres[i].r);
+          center_points[i] = this->_sites[i];
+          radius_sum += R[i];
         }
+        const double avg_radius =
+            num > 0 ? radius_sum / static_cast<double>(num) : 0.0;
+        const double cover_delta = cover_delta_scale * avg_radius;
+        const double tau_m =
+            std::max(1e-12, cover_tau_m_scale * avg_radius * avg_radius);
+        const double tau_h =
+            std::max(1e-12, cover_tau_h_scale * avg_radius * avg_radius);
+        const int cover_neighbor_k =
+            std::max(1, std::min(cover_invalid_seed_count > 0
+                                     ? cover_invalid_seed_count
+                                     : 50,
+                                 50));
+        BGAL::_KDTree center_tree(center_points);
 
         g.setZero();
         double maxCoverViolation = 0.0;
@@ -907,72 +912,61 @@ void _CVT3D::calculate_(int num_sites, char *modelNamee, char *pointsName) {
             Eigen::Vector3d seeds[2] = {s1, s2};
             for (int si = 0; si < 2; ++si) {
               const Eigen::Vector3d s = seeds[si];
-              std::unordered_set<int> cand;
-              cand.reserve((nbr[i].size() + nbr[j].size() + nbr[k].size()) *
-                           cover_neighbor_ring * 2 + 8);
-              auto add_candidate_ring = [&](int center) {
-                for (int u : nbr[center]) {
-                  if (u < 0 || u >= num) continue;
-                  cand.insert(u);
-                  if (cover_neighbor_ring >= 2) {
-                    for (int uu : nbr[u]) {
-                      if (uu < 0 || uu >= num) continue;
-                      cand.insert(uu);
-                    }
-                  }
-                }
-              };
-              add_candidate_ring(i);
-              add_candidate_ring(j);
-              add_candidate_ring(k);
-              cand.erase(i);
-              cand.erase(j);
-              cand.erase(k);
-
               double best_v_for_tracking = 0.0;
-              bool has_violation = false;
               Eigen::Vector3d seed_grad_s = Eigen::Vector3d::Zero();
-
-              auto eval_and_accumulate = [&](int l) {
+              struct CoverCandidate {
+                int id;
+                Eigen::Vector3d d;
+                double v;
+              };
+              std::vector<CoverCandidate> candidates;
+              const std::vector<int> nearest_ids = center_tree.nsearch_(
+                  {BGAL::_Point3(s.x(), s.y(), s.z())},
+                  std::min(num, cover_neighbor_k + 3));
+              candidates.reserve(nearest_ids.size());
+              for (int l : nearest_ids) {
                 if (l < 0 || l >= num || l == i || l == j || l == k ||
                     R[l] <= 0) {
-                  return;
+                  continue;
                 }
                 Eigen::Vector3d d = (s - C[l]);
-                double dist = d.norm();
-                if (dist < 1e-12) return;
-
-                double v = (R[l] - cover_margin) - dist;
+                double v = (R[l] - cover_delta) * (R[l] - cover_delta) -
+                           d.squaredNorm();
                 best_v_for_tracking = std::max(best_v_for_tracking, v);
-
-                if (v > 0.0) {
-                  has_violation = true;
-
-                  double v2 = v * v;
-                  double v3 = v2 * v;
-                  double dE_dv = 3.0 * cover_weight * v2;
-
-                  localLossCover += cover_weight * v3;
-
-                  Eigen::Vector3d dir = d / dist;
-                  seed_grad_s += -dE_dv * dir;
-                  localGi[l] += (+dE_dv) * dir;
-                }
-              };
-
-              for (int l : cand) {
-                eval_and_accumulate(l);
+                candidates.push_back({l, d, v});
               }
-              if (cover_global_fallback && !has_violation) {
-                for (int l = 0; l < num; ++l) {
-                  eval_and_accumulate(l);
-                }
+              if (candidates.empty()) continue;
+
+              double max_v = candidates.front().v;
+              for (const auto &cand : candidates) {
+                max_v = std::max(max_v, cand.v);
               }
-              if (!has_violation) continue;
+              if (max_v <= 0.0) continue;
 
               ++localInvalidSeedCount;
               localMaxCoverViolation =
-                  std::max(localMaxCoverViolation, best_v_for_tracking);
+                  std::max(localMaxCoverViolation, max_v);
+
+              double exp_sum = 0.0;
+              for (const auto &cand : candidates) {
+                exp_sum += std::exp((cand.v - max_v) / tau_m);
+              }
+              const double m_val =
+                  max_v + tau_m * std::log(std::max(exp_sum, 1e-300));
+              const double softplus_arg = m_val / tau_h;
+              const double sp = tau_h * stable_softplus(softplus_arg);
+              const double sig = stable_sigmoid(softplus_arg);
+              const double dE_dm = 2.0 * cover_weight * sp * sig;
+
+              localLossCover += cover_weight * sp * sp;
+
+              for (const auto &cand : candidates) {
+                const double softmax_weight =
+                    std::exp((cand.v - m_val) / tau_m);
+                const double dE_dv = dE_dm * softmax_weight;
+                seed_grad_s += -2.0 * dE_dv * cand.d;
+                localGi[cand.id] += +2.0 * dE_dv * cand.d;
+              }
 
               Eigen::Vector3d di = (s - C[i]);
               Eigen::Vector3d dj = (s - C[j]);
@@ -982,10 +976,8 @@ void _CVT3D::calculate_(int num_sites, char *modelNamee, char *pointsName) {
               JT.col(1) = 2.0 * dj;
               JT.col(2) = 2.0 * dk;
 
-              Eigen::Matrix3d J = JT.transpose();
-              Eigen::Matrix3d JJT = J * JT;
-              JJT.diagonal().array() += cover_damp;
-              Eigen::Vector3d yvec = JJT.ldlt().solve(J * seed_grad_s);
+              Eigen::Vector3d yvec =
+                  solve_damped_pseudoinverse(JT, seed_grad_s, cover_damp);
               localGi[i] += 2.0 * di * yvec(0);
               localGi[j] += 2.0 * dj * yvec(1);
               localGi[k] += 2.0 * dk * yvec(2);
@@ -1011,15 +1003,13 @@ void _CVT3D::calculate_(int num_sites, char *modelNamee, char *pointsName) {
           g(i * 3 + 2) += gi[i].z();
         }
 
-        if (invalidSeedCount == 0 ||
-            maxCoverViolation < cover_violation_tolerance) {
+        if (invalidSeedCount == 0) {
           cover_satisfied = true;
           g.setZero();
         } else {
           cover_satisfied = false;
         }
         cover_invalid_seed_count = invalidSeedCount;
-        last_cover_loss = lossCover;
         if (cover_invalid_seed_count ==
             current_cover_previous_invalid_seed_count) {
           ++current_cover_same_invalid_seed_count_rounds;
@@ -1037,6 +1027,7 @@ void _CVT3D::calculate_(int num_sites, char *modelNamee, char *pointsName) {
             !cover_satisfied) {
           std::cout << "stop current cover-only optimization: invalidSeeds unchanged for 3 evaluations"
                     << " (" << invalidSeedCount << ")" << std::endl;
+          cover_stagnated_in_last_run = true;
           g.setZero();
         }
         return lossCover;
@@ -1060,7 +1051,7 @@ void _CVT3D::calculate_(int num_sites, char *modelNamee, char *pointsName) {
 
   _RVD.calculate_(_sites);
   const std::string final_outdir =
-      (std::filesystem::current_path() / "data" / "Block").string();
+      (std::filesystem::current_path() / "data" / "Bunny").string();
   auto flush_final_outputs = [&]() {
     for (int i = 0; i < num; ++i) {
       Point_T query(iterX2(i * 3 + 0), iterX2(i * 3 + 1), iterX2(i * 3 + 2));
@@ -1114,7 +1105,6 @@ void _CVT3D::calculate_(int num_sites, char *modelNamee, char *pointsName) {
   const int total_qem_iterations =
       unlimited_qem_iterations ? std::numeric_limits<int>::max()
                                : _para.max_iteration;
-  int qem_iterations_done = 0;
 
   BGAL::_LBFGS::_Parameter warmup_para(_para);
   warmup_para.max_iteration =
@@ -1127,8 +1117,9 @@ void _CVT3D::calculate_(int num_sites, char *modelNamee, char *pointsName) {
   BGAL::_LBFGS one_step_lbfgs(one_step_para);
 
   BGAL::_LBFGS::_Parameter cover_para(_para);
-  cover_para.max_iteration = 10;
+  cover_para.max_iteration = 1;
   BGAL::_LBFGS cover_lbfgs(cover_para);
+  const int max_cover_iterations_per_alternation = 10;
 
   suppress_intermediate_output = true;
   while (qem_iterations_done < total_qem_iterations) {
@@ -1136,27 +1127,26 @@ void _CVT3D::calculate_(int num_sites, char *modelNamee, char *pointsName) {
     qem_iterations_done += qem_step;
 
     int cover_step = 0;
-    if (skip_cover_after_six_nonzero_rounds) {
-      std::cout << "skip cover-only optimization: lossCover stayed nonzero for 6 runs"
-                << std::endl;
-    } else {
-      current_cover_previous_invalid_seed_count = -1;
-      current_cover_same_invalid_seed_count_rounds = 0;
-      cover_step = cover_lbfgs.minimize(fgm_cover, iterX2);
-      if (last_cover_loss > 0.0) {
-        ++cover_nonzero_loss_rounds;
-        if (cover_nonzero_loss_rounds >= 6) {
-          skip_cover_after_six_nonzero_rounds = true;
+    cover_stagnated_in_last_run = false;
+    current_cover_previous_invalid_seed_count = -1;
+    current_cover_same_invalid_seed_count_rounds = 0;
+    for (int cover_iter = 0; cover_iter < max_cover_iterations_per_alternation;
+         ++cover_iter) {
+      const int current_cover_step = cover_lbfgs.minimize(fgm_cover, iterX2);
+      cover_step += current_cover_step;
+      if (cover_satisfied || cover_stagnated_in_last_run ||
+          current_cover_step == 0) {
+        if (cover_stagnated_in_last_run) {
+          cover_step = std::max(cover_step, 1);
         }
-      } else {
-        cover_nonzero_loss_rounds = 0;
+        break;
       }
     }
     flush_final_outputs();
 
     if (cover_satisfied) {
-      std::cout << "stop alternating optimization: maxViolation < "
-                << cover_violation_tolerance << std::endl;
+      std::cout << "stop alternating optimization: invalidSeeds == 0"
+                << std::endl;
       break;
     }
 

@@ -78,6 +78,123 @@ namespace BGAL
 		}
 		return guess;
 	}
+	std::vector<int> _KDTree::rsearch_(const std::vector<_Point3> &in_ps, const double &in_r) const
+	{
+		std::vector<int> res;
+		if (!_root || _points.empty() || in_ps.empty() || in_r < 0.0)
+		{
+			return res;
+		}
+
+		const double radius2 = in_r * in_r;
+		std::vector<bool> selected(_points.size(), false);
+		for (const auto &query : in_ps)
+		{
+			std::stack<_Node *> S;
+			S.push(_root);
+			while (!S.empty())
+			{
+				_Node *node = S.top();
+				S.pop();
+				if (!node)
+				{
+					continue;
+				}
+
+				const _Point3 &tp = _points[node->_id];
+				if ((query - tp).sqlength_() <= radius2 && !selected[node->_id])
+				{
+					selected[node->_id] = true;
+					res.push_back(node->_id);
+				}
+
+				const int axis = node->_axis;
+				const double diff = query[axis] - tp[axis];
+				if (diff <= in_r)
+				{
+					S.push(node->_next[0]);
+				}
+				if (diff >= -in_r)
+				{
+					S.push(node->_next[1]);
+				}
+			}
+		}
+		return res;
+	}
+	std::vector<int> _KDTree::nsearch_(const std::vector<_Point3> &in_ps, const int &k) const
+	{
+		std::vector<int> res;
+		if (!_root || _points.empty() || in_ps.empty() || k <= 0)
+		{
+			return res;
+		}
+
+		const _Point3 &query = in_ps.front();
+		using DistId = std::pair<double, int>;
+		auto cmp = [](const DistId &lhs, const DistId &rhs) {
+			return lhs.first < rhs.first;
+		};
+		std::priority_queue<DistId, std::vector<DistId>, decltype(cmp)> best(cmp);
+
+		std::stack<_Node *> S;
+		S.push(_root);
+		while (!S.empty())
+		{
+			_Node *node = S.top();
+			S.pop();
+			if (!node)
+			{
+				continue;
+			}
+
+			const _Point3 &tp = _points[node->_id];
+			const double dist2 = (query - tp).sqlength_();
+			if ((int)best.size() < k)
+			{
+				best.push(std::make_pair(dist2, node->_id));
+			}
+			else if (dist2 < best.top().first)
+			{
+				best.pop();
+				best.push(std::make_pair(dist2, node->_id));
+			}
+
+			const int axis = node->_axis;
+			const double diff = query[axis] - tp[axis];
+			_Node *near_child = diff < 0.0 ? node->_next[0] : node->_next[1];
+			_Node *far_child = diff < 0.0 ? node->_next[1] : node->_next[0];
+			const double bound =
+				(int)best.size() < k ? std::numeric_limits<double>::infinity()
+				                     : best.top().first;
+
+			if (far_child && diff * diff <= bound)
+			{
+				S.push(far_child);
+			}
+			if (near_child)
+			{
+				S.push(near_child);
+			}
+		}
+
+		std::vector<DistId> ordered;
+		ordered.reserve(best.size());
+		while (!best.empty())
+		{
+			ordered.push_back(best.top());
+			best.pop();
+		}
+		std::sort(ordered.begin(), ordered.end(),
+				  [](const DistId &lhs, const DistId &rhs) {
+					  return lhs.first < rhs.first;
+				  });
+		for (const auto &entry : ordered)
+		{
+			res.push_back(entry.second);
+		}
+		return res;
+	}
 	void _KDTree::build_(const std::vector<_Point3> &in_points)
 	{
 		clear_();
