@@ -194,7 +194,7 @@ namespace BGAL
       int k = 0;
       int l = 0;
       int cursor = 0;
-      double step = 1.0 / direction.norm();
+      double step = std::min(1.0, 1.0 / std::max(direction.norm(), 1e-12));
       while (1)
       {
           if (gradient.norm() < _parameter.epsilon)

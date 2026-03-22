@@ -12,3 +12,10 @@ target_link_libraries(cwf Algorithm BaseShape Draw Geodesic Integral Model Optim
 target_include_directories(cwf PUBLIC
 	$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
 	$<INSTALL_INTERFACE:include>)
+
+
+add_executable(quadcover_main quadcover_main.cpp)
+target_link_libraries(quadcover_main Algorithm BaseShape Draw Geodesic Integral Model Optimization PointCloudProcessing PQP Reconstruction Tessellation2D Tessellation3D CVTLike QuadCoverLike Sphere igl::igl_core)
+target_include_directories(quadcover_main PUBLIC
+	$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+	$<INSTALL_INTERFACE:include>)

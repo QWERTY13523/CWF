@@ -1,15 +1,20 @@
 #include <Eigen/Dense>
 #include <algorithm>
+#include <array>
 #include <cstring>
 #include <ctime>
 #include <filesystem>
 #include <iostream>
 #include <fstream>
 #include <limits>
+#include <map>
+#include <sstream>
+#include <set>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
 #include <cmath>
+#include <cstdint>
 #include <numeric>
 
 #include "BGAL/Algorithm/BOC/BOC.h"
@@ -35,6 +40,7 @@
 #include <igl/avg_edge_length.h>
 
 #include "BGAL/BaseShape/KDTree.h"
+#include <omp.h>
 
 typedef CGAL::Simple_cartesian<double> K_T;
 typedef K_T::FT FT;
@@ -97,9 +103,32 @@ struct MyFace {
 };
 
 namespace {
+using Vec3 = Eigen::Vector3d;
+
 struct FeatureSegment {
   BGAL::_Point3 a;
   BGAL::_Point3 b;
+};
+
+static inline Vec3 to_eigen(const BGAL::_Point3 &p) {
+  return Vec3(p.x(), p.y(), p.z());
+}
+
+struct DynamicRadiusEval {
+  double total_loss = 0.0;
+  int active_quads = 0;
+  double min_g = std::numeric_limits<double>::infinity();
+  Eigen::MatrixXd grads;
+
+  explicit DynamicRadiusEval(int n = 0, bool need_grad = false)
+      : grads(need_grad ? Eigen::MatrixXd::Zero(n, 3) : Eigen::MatrixXd()) {}
+};
+
+struct QuadKeyLess {
+  bool operator()(const std::array<int, 4> &a,
+                  const std::array<int, 4> &b) const {
+    return a < b;
+  }
 };
 
 static inline double squared_distance_point_to_segment(const BGAL::_Point3 &p,
@@ -147,9 +176,6 @@ static inline std::vector<FeatureSegment> collect_feature_segments(
   return segments;
 }
 
-// ============================
-// 数值稳定 softplus/sigmoid (保留以备其他地方使用)
-// ============================
 static inline double stable_sigmoid(double x) {
   if (x >= 0.0) {
     double z = std::exp(-x);
@@ -166,10 +192,6 @@ static inline double stable_softplus(double x) {
   return std::log1p(std::exp(x));
 }
 
-// ============================
-// 三球交（trilateration）两解
-// 返回 false 表示无实交点或退化
-// ============================
 static inline bool intersect_three_spheres(
     const Eigen::Vector3d& c1, double r1,
     const Eigen::Vector3d& c2, double r2,
@@ -194,7 +216,6 @@ static inline bool intersect_three_spheres(
   double j = ey.dot(c3c1);
   if (std::abs(j) < eps) return false;
 
-  // 坐标解
   double x = (r1*r1 - r2*r2 + d*d) / (2.0 * d);
   double y = (r1*r1 - r3*r3 + i*i + j*j - 2.0*i*x) / (2.0 * j);
   double z2 = r1*r1 - x*x - y*y;
@@ -210,20 +231,12 @@ static inline bool intersect_three_spheres(
 
 static inline Eigen::Vector3d solve_damped_pseudoinverse(
     const Eigen::Matrix3d &A, const Eigen::Vector3d &b, double damp) {
-  Eigen::JacobiSVD<Eigen::Matrix3d> svd(
-      A, Eigen::ComputeFullU | Eigen::ComputeFullV);
-  const Eigen::Vector3d singular_values = svd.singularValues();
-  const double max_sigma = singular_values.maxCoeff();
-  const double cutoff = std::max(1e-12, max_sigma * 1e-10);
-
-  Eigen::Matrix3d sigma_pinv = Eigen::Matrix3d::Zero();
-  for (int i = 0; i < 3; ++i) {
-    const double sigma = singular_values(i);
-    if (sigma <= cutoff) continue;
-    sigma_pinv(i, i) = sigma / (sigma * sigma + damp * damp);
-  }
-
-  return svd.matrixV() * sigma_pinv * svd.matrixU().transpose() * b;
+  Eigen::Matrix3d H = A.transpose() * A;
+  double d2 = std::max(1e-12, damp * damp);
+  H(0, 0) += d2;
+  H(1, 1) += d2;
+  H(2, 2) += d2;
+  return H.inverse() * (A.transpose() * b);
 }
 
 static inline void build_spheres_from_rvd(
@@ -306,6 +319,145 @@ static inline std::vector<Eigen::Vector3i> build_rdt_faces_from_edges(
   }
   return tris;
 }
+
+static inline void build_quads_from_search_faces(
+    const std::vector<Eigen::Vector3i> &faces,
+    const std::vector<BGAL::_Point3> &sites,
+    const std::vector<Sphere::Sphere> &spheres,
+    std::vector<std::array<int, 4>> &quads) {
+  quads.clear();
+  const int n = (int)sites.size();
+  if (n <= 0 || faces.empty()) return;
+
+  double global_rmax = 0.0;
+  for (int i = 0; i < n; ++i) {
+    global_rmax = std::max(global_rmax, std::max(0.0, (double)spheres[i].r));
+  }
+
+  BGAL::_KDTree kdtree(sites);
+  std::set<std::array<int, 4>, QuadKeyLess> uniq;
+
+  for (const auto &f : faces) {
+    const int i = f.x();
+    const int j = f.y();
+    const int k = f.z();
+    if (i < 0 || j < 0 || k < 0 || i >= n || j >= n || k >= n) continue;
+    if (i == j || i == k || j == k) continue;
+
+    const double ri = std::max(0.0, (double)spheres[i].r);
+    const double rj = std::max(0.0, (double)spheres[j].r);
+    const double rk = std::max(0.0, (double)spheres[k].r);
+
+    const double Ri = ri + global_rmax;
+    const double Rj = rj + global_rmax;
+    const double Rk = rk + global_rmax;
+
+    int pivot = i;
+    double Rpivot = Ri;
+    if (Rj < Rpivot) {
+      pivot = j;
+      Rpivot = Rj;
+    }
+    if (Rk < Rpivot) {
+      pivot = k;
+      Rpivot = Rk;
+    }
+
+    std::vector<BGAL::_Point3> query(1, sites[pivot]);
+    std::vector<int> cand = kdtree.rsearch_(query, Rpivot);
+
+    const double Ri2 = Ri * Ri;
+    const double Rj2 = Rj * Rj;
+    const double Rk2 = Rk * Rk;
+    const double tol = 1e-12 * std::max({1.0, Ri2, Rj2, Rk2});
+
+    for (int l : cand) {
+      if (l == i || l == j || l == k) continue;
+      if ((sites[l] - sites[i]).sqlength_() > Ri2 + tol) continue;
+      if ((sites[l] - sites[j]).sqlength_() > Rj2 + tol) continue;
+      if ((sites[l] - sites[k]).sqlength_() > Rk2 + tol) continue;
+
+      std::array<int, 4> q{i, j, k, l};
+      std::sort(q.begin(), q.end());
+      uniq.insert(q);
+    }
+  }
+
+  quads.reserve(uniq.size());
+  for (const auto &q : uniq) quads.push_back(q);
+}
+
+static inline DynamicRadiusEval evaluate_dynamic_radius_surrogate(
+    const std::vector<BGAL::_Point3> &sites,
+    const std::vector<Vec3> &frozen_poles,
+    const std::vector<Vec3> &normals,
+    const std::vector<std::array<int, 4>> &quads,
+    double eps,
+    bool need_grad) {
+  DynamicRadiusEval eval((int)sites.size(), need_grad);
+
+  for (const auto &q : quads) {
+    Vec3 p_bar = Vec3::Zero();
+    for (int k = 0; k < 4; ++k) p_bar += to_eigen(sites[q[k]]);
+    p_bar /= 4.0;
+
+    double g_val = 0.0;
+    for (int k = 0; k < 4; ++k) {
+      const int sid = q[k];
+      const Vec3 pi = to_eigen(sites[sid]);
+      const double ri2 = (pi - frozen_poles[sid]).squaredNorm();
+      g_val += (p_bar - pi).squaredNorm() - ri2;
+    }
+
+    eval.min_g = std::min(eval.min_g, g_val);
+    const double violation = -(g_val + eps);
+    if (violation <= 0.0) continue;
+
+    eval.total_loss += violation * violation;
+    eval.active_quads++;
+
+    if (!need_grad) continue;
+    for (int k = 0; k < 4; ++k) {
+      const int sid = q[k];
+      eval.grads.row(sid) +=
+          (-4.0 * violation * (frozen_poles[sid] - p_bar)).transpose();
+    }
+  }
+
+  if (need_grad && !normals.empty()) {
+    for (int i = 0; i < eval.grads.rows(); ++i) {
+      if (eval.grads.row(i).squaredNorm() < 1e-24) continue;
+      Vec3 g = eval.grads.row(i).transpose();
+      const Vec3 n = normals[i];
+      const double nn = n.squaredNorm();
+      if (nn > 1e-30) {
+        g -= n * (g.dot(n) / nn);
+      }
+      eval.grads.row(i) = g.transpose();
+    }
+  }
+
+  if (!std::isfinite(eval.min_g)) eval.min_g = 0.0;
+  return eval;
+}
+
+// 专用于加速优化的全局 Adam 状态结构体
+struct AdamState {
+    Eigen::VectorXd m;
+    Eigen::VectorXd v;
+    int t = 0;
+
+    // 记录 cover 阶段 active 区域梯度 RMS 的指数滑动平均
+    double cover_grad_rms_ema = 0.0;
+
+    void reset(int size) {
+        m = Eigen::VectorXd::Zero(size);
+        v = Eigen::VectorXd::Zero(size);
+        t = 0;
+        cover_grad_rms_ema = 0.0;
+    }
+};
+
 } // namespace
 
 namespace BGAL {
@@ -471,7 +623,8 @@ void _CVT3D::calculate_(int num_sites, char *modelNamee, char *pointsName) {
 
   std::string inPointsName;
   namespace fs = std::filesystem;
-  fs::path obj("./data/bunny.obj");
+  fs::path obj("./data/block.obj");
+  //fs::path obj("./data/bunny.obj");
   fs::path base = obj.parent_path();
   if (pointsName == nullptr) {
     inPointsName = (base / ("n" + std::to_string(num_sites) + "_" + modelname +
@@ -483,10 +636,23 @@ void _CVT3D::calculate_(int num_sites, char *modelNamee, char *pointsName) {
   std::ifstream inPoints(inPointsName.c_str());
   std::vector<Eigen::Vector3d> Pts, Nors;
 
-  double x, y, z, nx, ny, nz;
-  while (inPoints >> x >> y >> z >> nx >> ny >> nz) {
+  std::string line;
+  while (std::getline(inPoints, line)) {
+    if (line.empty()) continue;
+    std::stringstream ss(line);
+
+    double x = 0.0, y = 0.0, z = 0.0;
+    if (!(ss >> x >> y >> z)) continue;
+
+    double nx = 0.0, ny = 0.0, nz = 0.0;
+    const bool has_normal = static_cast<bool>(ss >> nx >> ny >> nz);
+
     Pts.push_back(Eigen::Vector3d(x, y, z));
-    Nors.push_back(Eigen::Vector3d(nx, ny, nz));
+    if (has_normal) {
+      Nors.push_back(Eigen::Vector3d(nx, ny, nz));
+    } else {
+      Nors.push_back(Eigen::Vector3d::Zero());
+    }
   }
   inPoints.close();
   std::cout << "Pts.size(): " << Pts.size() << std::endl;
@@ -498,95 +664,151 @@ void _CVT3D::calculate_(int num_sites, char *modelNamee, char *pointsName) {
   int num = (int)Pts.size();
   std::cout << "\nBegin CWF.\n" << std::endl;
 
-  // ======= 参数（你可以调）=======
+  _sites.resize(num);
+  _para.max_linearsearch = 20;
+  Eigen::VectorXd iterX2(num * 3);
+  for (int i = 0; i < num; ++i) {
+    iterX2(i * 3 + 0) = Pts[i].x();
+    iterX2(i * 3 + 1) = Pts[i].y();
+    iterX2(i * 3 + 2) = Pts[i].z();
+    _sites[i] = BGAL::_Point3(Pts[i].x(), Pts[i].y(), Pts[i].z());
+  }
+
+  // ======= 参数 =======
   int Fnum = 4;
   double alpha = 1.0, eplison = 1.0, lambda = 1.0;
   double decay = 0.95;
 
-  // 覆盖惩罚项参数（核心新增）
+  const double cover_weight = 10.0;
+#if 0
   const auto bbox = _model.bounding_box_();
-  const double cover_weight = 0.15;          // μ：覆盖惩罚强度（若 v^3 惩罚不够，可适当调大至 1.0~100.0）
-  const double cover_tau_m_scale = 0.02;
-  const double cover_tau_h_scale = 0.01;
-  const double cover_delta_scale = 0.0;
-  const double cover_damp   = 1e-6;          // 解 J^T y = dE/ds 的阻尼
-  const int cvt_qem_warmup_iterations = 50;
-
+  const double bbox_diag = (bbox.second - bbox.first).length_();
+  const double cover_tau_m_scale = 0.02; 
+  const double cover_tau_h_scale = 0.01; 
+  const double cover_margin_scale = 0.02; 
+  const double cover_push_out_scale = 0.0002; 
+  const double cover_damp   = 1e-6;
+#endif
+  double lagrange_multiplier = 0.0;  // ALM multiplier mu for H(P)=0
+  double rho_cover = 10.0;           // ALM penalty parameter rho
+  double prev_cover_energy = std::numeric_limits<double>::infinity();
+  const double eta_cover = 0.5;
+  const double beta_cover = 2.0;
+  const double rho_cover_max = 1e8;
+  const double cover_target_ratio = 0.2;
+  const double cover_target_floor = 1e-3;
+  const double cover_scale_min = 0.05;
+  const double cover_scale_max = 1e6;
+  const double cover_scale_ema_decay = 0.8;
+  double cover_scale_ema = 1.0;
+  bool cover_scale_initialized = false;
+  const int total_lagrange_iterations = 70;
+  const int cover_start_iteration = 30;
+  const int lagrange_block_max_iteration = 20;
   std::vector<int> FaceIDs(num, -1);
   bool suppress_intermediate_output = false;
   int qem_iterations_done = 0;
-  int cover_invalid_seed_count = -1;
+  bool cover_enabled_for_current_block = false;
+  bool cover_phase_initialized = false;
 
-  std::function<double(const Eigen::VectorXd &X, Eigen::VectorXd &g)> fgm2 =
-      [&](const Eigen::VectorXd &X, Eigen::VectorXd &g) {
-        if (qem_iterations_done < cvt_qem_warmup_iterations) {
-          eplison = eplison * decay;
+  int cover_invalid_seed_count = -1;
+  double cover_last_energy = 0.0;
+  double cover_last_max_violation = 0.0;
+  double cover_last_covered_ratio = 0.0;
+  double cover_last_score = 0.0;
+  int last_constraint_active_quads = 0;
+  double last_constraint_loss = 0.0;
+  double last_constraint_loss_raw = 0.0;
+  double last_constraint_loss_scale = 1.0;
+  double last_constraint_min_g = 0.0;
+  double last_constraint_r = 1.0;
+  int last_constraint_num_quads = 0;
+
+  auto face_handle_to_normal = [&](Polyhedron::Face_handle f) -> Eigen::Vector3d {
+    auto p1 = f->halfedge()->vertex()->point();
+    auto p2 = f->halfedge()->next()->vertex()->point();
+    auto p3 = f->halfedge()->next()->next()->vertex()->point();
+    Eigen::Vector3d v1(p1.x(), p1.y(), p1.z());
+    Eigen::Vector3d v2(p2.x(), p2.y(), p2.z());
+    Eigen::Vector3d v3(p3.x(), p3.y(), p3.z());
+    Eigen::Vector3d N = (v2 - v1).cross(v3 - v1);
+    const double nrm = N.norm();
+    if (nrm > 1e-30) N /= nrm;
+    return N;
+  };
+
+  auto cover_progress_score = [&](double max_violation, double avg_radius, double covered_ratio) -> double {
+    const double normalized_violation = max_violation / std::max(avg_radius, 1e-12);
+    return 0.2 * normalized_violation + 0.8 * covered_ratio;
+  };
+
+  auto sync_sites_from_iterates = [&](const Eigen::VectorXd &X) {
+    #pragma omp parallel for
+    for (int i = 0; i < num; ++i) {
+      Point_T query(X(i * 3 + 0), X(i * 3 + 1), X(i * 3 + 2));
+      Point_T closest = tree.closest_point(query);
+      this->_sites[i] = BGAL::_Point3(closest.x(), closest.y(), closest.z());
+      iterX2(i * 3 + 0) = closest.x();
+      iterX2(i * 3 + 1) = closest.y();
+      iterX2(i * 3 + 2) = closest.z();
+    }
+  };
+
+
+  std::function<double(const Eigen::VectorXd &X, Eigen::VectorXd &g)> fgm2 =[&](const Eigen::VectorXd &X, Eigen::VectorXd &g) {
+        if (qem_iterations_done < total_lagrange_iterations) {
+          eplison *= decay;
         }
         double lossCVT = 0, loss = 0;
         double lossCover = 0;
 
         startRVD = clock();
-        std::vector<Sphere::Sphere> spheres(num);
-
-        // 1) 把 X 投影回基准面，更新 _sites 和 Nors
+        #pragma omp parallel for
         for (int i = 0; i < num; ++i) {
           Point_T query(X(i * 3), X(i * 3 + 1), X(i * 3 + 2));
           Point_T closest = tree.closest_point(query);
           auto tri = tree.closest_point_and_primitive(query);
 
-          Polyhedron::Face_handle f = tri.second;
           int fid = -1;
-          auto it = face_id_map.find(static_cast<const void *>(&*f));
+          auto it = face_id_map.find(static_cast<const void *>(&*tri.second));
           if (it != face_id_map.end()) fid = it->second;
           FaceIDs[i] = fid;
-
-          auto p1 = f->halfedge()->vertex()->point();
-          auto p2 = f->halfedge()->next()->vertex()->point();
-          auto p3 = f->halfedge()->next()->next()->vertex()->point();
-          Eigen::Vector3d v1(p1.x(), p1.y(), p1.z());
-          Eigen::Vector3d v2(p2.x(), p2.y(), p2.z());
-          Eigen::Vector3d v3(p3.x(), p3.y(), p3.z());
-          Eigen::Vector3d N = (v2 - v1).cross(v3 - v1);
-          N.normalize();
-          Nors[i] = N;
-
+          Nors[i] = face_handle_to_normal(tri.second);
           this->_sites[i] = BGAL::_Point3(closest.x(), closest.y(), closest.z());
         }
 
-        // 2) RVD
         this->_RVD.calculate_(this->_sites);
 
         if (!suppress_intermediate_output) {
           Fnum++;
           OutputMesh(this->_sites, this->_RVD, num_sites,
-                     (std::filesystem::current_path() / "data" / "Bunny").string(),
+                     (std::filesystem::current_path() / "data" / "Block_New").string(),
                      modelname, Fnum);
+          // OutputMesh(this->_sites, this->_RVD, num_sites,
+          //            (std::filesystem::current_path() / "data" / "Bunny").string(),
+          //            modelname, Fnum);
         }
 
         endRVD = clock();
         RVDtime += (double)(endRVD - startRVD) / CLOCKS_PER_SEC;
 
         const auto &cells = this->_RVD.get_cells_();
-        const auto &edges = this->_RVD.get_edges_();
-
         double energy = 0.0;
         g.setZero();
 
         std::vector<Eigen::Vector3d> gi(num, Eigen::Vector3d::Zero());
 
-        // 3) CVT + QE 主项（原逻辑）
         omp_set_num_threads(128);
 #pragma omp parallel for reduction(+ : lossCVT, loss)
         for (int i = 0; i < num; ++i) {
           BGAL::_Point3 site = this->_sites[i];
           for (int j = 0; j < (int)cells[i].size(); ++j) {
-            auto [a, b, c] = cells[i][j];
+            auto[a, b, c] = cells[i][j];
             BGAL::_Point3 pa = this->_RVD.vertex_(a);
             BGAL::_Point3 pb = this->_RVD.vertex_(b);
             BGAL::_Point3 pc = this->_RVD.vertex_(c);
 
-            Eigen::VectorXd inte = BGAL::_Integral::integral_triangle3D(
-                [&, site](BGAL::_Point3 p) {
+            Eigen::VectorXd inte = BGAL::_Integral::integral_triangle3D([&, site](BGAL::_Point3 p) {
                   const double rho_val = this->_rho(p);
                   Eigen::VectorXd r(5);
                   BGAL::_Point3 NorTriM = (pb - pa).cross_(pc - pa);
@@ -612,168 +834,8 @@ void _CVT3D::calculate_(int num_sites, char *modelNamee, char *pointsName) {
             gi[i].y() += alpha * inte(3);
             gi[i].z() += alpha * inte(4);
           }
-
-          // 4) 半径：站点到 cell 边界最远点距离（你原来的逻辑）
-          std::unordered_set<int> bnd;
-          if (i < (int)edges.size()) {
-            for (const auto &kv : edges[i]) {
-              for (const auto &e : kv.second) {
-                bnd.insert(e.first);
-                bnd.insert(e.second);
-              }
-            }
-          }
-
-          std::vector<BGAL::_Point3> boundary_pts;
-          boundary_pts.reserve(bnd.size());
-
-          for (int vid : bnd) {
-            boundary_pts.emplace_back(this->_RVD.vertex_(vid));
-          }
-
-          BGAL::_Point3 farp = site;
-          double best_dist = 0.0;
-          for (const auto &p : boundary_pts) {
-            double dist = (p - site).length_(); // 注意：这是距离，不是 squared
-            if (dist > best_dist) {
-              best_dist = dist;
-              farp = p;
-            }
-          }
-
-          spheres[i].c = decltype(spheres[i].c)(site.x(), site.y(), site.z());
-          spheres[i].r = best_dist;
-          spheres[i].max_point =
-              decltype(spheres[i].max_point)(farp.x(), farp.y(), farp.z());
-        } // end omp
-
-        // ============================================================
-        // 5) 新增：覆盖约束 E_cover（严格：对三球交点做隐式微分传梯度）
-        // ============================================================
-        // 注意：如果你想在主优化中开启它，请把这里的 false && 删掉
-        if (false && cover_weight > 0.0) {
-          double maxCoverViolation = 0.0;
-          int invalidSeedCount = 0;
-
-          const std::vector<Eigen::Vector3i> rdt_tris =
-              build_rdt_faces_from_edges(num, edges);
-
-          // 5.3 预取中心和半径（半径在本次评估里当常量）
-          std::vector<Eigen::Vector3d> C(num);
-          std::vector<double> R(num);
-          std::vector<BGAL::_Point3> center_points(num);
-          double radius_sum = 0.0;
-          for (int i = 0; i < num; ++i) {
-            C[i] = Eigen::Vector3d(this->_sites[i].x(), this->_sites[i].y(), this->_sites[i].z());
-            R[i] = std::max(0.0, (double)spheres[i].r);
-            center_points[i] = this->_sites[i];
-            radius_sum += R[i];
-          }
-          const double avg_radius =
-              num > 0 ? radius_sum / static_cast<double>(num) : 0.0;
-          const double cover_delta = cover_delta_scale * avg_radius;
-          const double tau_m =
-              std::max(1e-12, cover_tau_m_scale * avg_radius * avg_radius);
-          const double tau_h =
-              std::max(1e-12, cover_tau_h_scale * avg_radius * avg_radius);
-          const int cover_neighbor_k =
-              std::max(1, std::min(cover_invalid_seed_count > 0
-                                       ? cover_invalid_seed_count
-                                       : 50,
-                                   50));
-          BGAL::_KDTree center_tree(center_points);
-
-          // 5.4 对每个三角形：三球交两点 -> 找覆盖球 -> 计算 dE/ds -> 解 (J^T)y=dE/ds -> 回传到 ci,cj,ck
-          for (const auto &t : rdt_tris) {
-            int i = t.x(), j = t.y(), k = t.z();
-            if (R[i] <= 0 || R[j] <= 0 || R[k] <= 0) continue;
-
-            Eigen::Vector3d s1, s2;
-            if (!intersect_three_spheres(C[i], R[i], C[j], R[j], C[k], R[k], s1, s2)) {
-              continue;
-            }
-
-            // 两个解都检查
-            Eigen::Vector3d seeds[2] = {s1, s2};
-
-           for (int si = 0; si < 2; ++si) {
-              const Eigen::Vector3d s = seeds[si];
-
-              double best_v_for_tracking = 0.0; 
-              Eigen::Vector3d seed_grad_s = Eigen::Vector3d::Zero();
-              struct CoverCandidate {
-                int id;
-                Eigen::Vector3d d;
-                double v;
-              };
-              std::vector<CoverCandidate> candidates;
-              const std::vector<int> nearest_ids = center_tree.nsearch_(
-                  {BGAL::_Point3(s.x(), s.y(), s.z())},
-                  std::min(num, cover_neighbor_k + 3));
-              candidates.reserve(nearest_ids.size());
-              for (int l : nearest_ids) {
-                if (l < 0 || l >= num || l == i || l == j || l == k || R[l] <= 0) continue;
-                Eigen::Vector3d d = (s - C[l]);
-                double v = (R[l] - cover_delta) * (R[l] - cover_delta) - d.squaredNorm();
-                best_v_for_tracking = std::max(best_v_for_tracking, v);
-                candidates.push_back({l, d, v});
-              }
-
-              if (candidates.empty()) continue;
-
-              double max_v = candidates.front().v;
-              for (const auto &cand : candidates) {
-                max_v = std::max(max_v, cand.v);
-              }
-              if (max_v <= 0.0) continue;
-
-              ++invalidSeedCount;
-              maxCoverViolation = std::max(maxCoverViolation, max_v);
-
-              double exp_sum = 0.0;
-              for (const auto &cand : candidates) {
-                exp_sum += std::exp((cand.v - max_v) / tau_m);
-              }
-              const double m_val =
-                  max_v + tau_m * std::log(std::max(exp_sum, 1e-300));
-              const double softplus_arg = m_val / tau_h;
-              const double sp = tau_h * stable_softplus(softplus_arg);
-              const double sig = stable_sigmoid(softplus_arg);
-              const double dE_dm = 2.0 * cover_weight * sp * sig;
-
-              lossCover += cover_weight * sp * sp;
-
-              for (const auto &cand : candidates) {
-                const double softmax_weight =
-                    std::exp((cand.v - m_val) / tau_m);
-                const double dE_dv = dE_dm * softmax_weight;
-                seed_grad_s += -2.0 * dE_dv * cand.d;
-                gi[cand.id] += +2.0 * dE_dv * cand.d;
-              }
-
-              // --------- 修正后的隐式微分回传到 (c_i,c_j,c_k) ----------
-              Eigen::Vector3d di = (s - C[i]);
-              Eigen::Vector3d dj = (s - C[j]);
-              Eigen::Vector3d dk = (s - C[k]);
-
-              Eigen::Matrix3d JT;
-              JT.col(0) = 2.0 * di;
-              JT.col(1) = 2.0 * dj;
-              JT.col(2) = 2.0 * dk;
-
-              // 用 SVD 阻尼伪逆回传，避免 J_s^T 接近奇异时法方程放大误差。
-              Eigen::Vector3d yvec =
-                  solve_damped_pseudoinverse(JT, seed_grad_s, cover_damp);
-
-              // dE/dci = 2(s-ci)*y1, dE/dcj = 2(s-cj)*y2, dE/dck = 2(s-ck)*y3
-              gi[i] += 2.0 * di * yvec(0);
-              gi[j] += 2.0 * dj * yvec(1);
-              gi[k] += 2.0 * dk * yvec(2);
-            }
-          }
         }
 
-        // 6) 投影到切平面（保持你原来的曲面约束）
         for (int i = 0; i < num; ++i) {
           gi[i] = gi[i] - Nors[i] * (gi[i].dot(Nors[i]) / Nors[i].dot(Nors[i]));
           g(i * 3 + 0) += gi[i].x();
@@ -781,298 +843,750 @@ void _CVT3D::calculate_(int num_sites, char *modelNamee, char *pointsName) {
           g(i * 3 + 2) += gi[i].z();
         }
 
-        energy += loss + lossCover;
+        std::vector<Sphere::Sphere> spheres;
+        build_spheres_from_rvd(this->_sites, this->_RVD, spheres);
+
+        std::vector<Vec3> frozen_poles(num, Vec3::Zero());
+        double max_r = 0.0;
+        for (int i = 0; i < num; ++i) {
+          frozen_poles[i] = to_eigen(spheres[i].max_point);
+          max_r = std::max(max_r, std::max(0.0, (double)spheres[i].r));
+        }
+
+        const auto rdt_faces =
+            build_rdt_faces_from_edges(num, this->_RVD.get_edges_());
+        std::vector<std::array<int, 4>> search_quads;
+        build_quads_from_search_faces(rdt_faces, this->_sites, spheres, search_quads);
+
+        const double eps_cover =
+            1e-4 * std::max(1e-12, max_r) * std::max(1e-12, max_r);
+        const DynamicRadiusEval constraint_eval =
+            evaluate_dynamic_radius_surrogate(this->_sites, frozen_poles, Nors,
+                                             search_quads, eps_cover, true);
+
+        const bool cover_enabled = cover_enabled_for_current_block;
+        const double cover_loss_raw = constraint_eval.total_loss;
+        const double base_energy_current = std::max(1e-12, loss);
+        const double cover_target_energy =
+            std::max(cover_target_floor, cover_target_ratio * base_energy_current);
+        const double cover_loss_scale_raw =
+            cover_target_energy / std::max(cover_loss_raw, 1e-18);
+        const double cover_loss_scale_clamped = std::clamp(
+            cover_loss_scale_raw,
+            cover_scale_min,
+            cover_scale_max);
+        double cover_loss_scale = cover_loss_scale_clamped;
+        if (cover_enabled) {
+          if (cover_scale_initialized) {
+            cover_loss_scale =
+                cover_scale_ema_decay * cover_scale_ema +
+                (1.0 - cover_scale_ema_decay) * cover_loss_scale_clamped;
+          } else {
+            cover_scale_initialized = true;
+          }
+          cover_scale_ema = cover_loss_scale;
+        }
+        lossCover = cover_loss_raw * cover_loss_scale;
+        if (cover_enabled) {
+          const double cover_coeff =
+              (lagrange_multiplier + rho_cover * lossCover) * cover_loss_scale;
+          for (int i = 0; i < num; ++i) {
+            g.segment<3>(i * 3) +=
+                cover_coeff * constraint_eval.grads.row(i).transpose();
+          }
+        }
+
+        last_constraint_active_quads = constraint_eval.active_quads;
+        last_constraint_loss = lossCover;
+        last_constraint_loss_raw = cover_loss_raw;
+        last_constraint_loss_scale = cover_loss_scale;
+        last_constraint_min_g = constraint_eval.min_g;
+        last_constraint_r = std::max(1e-12, max_r);
+        last_constraint_num_quads = (int)search_quads.size();
+        cover_invalid_seed_count = constraint_eval.active_quads;
+        cover_last_energy = lossCover;
+        cover_last_max_violation = std::max(0.0, -(constraint_eval.min_g + eps_cover));
+        cover_last_covered_ratio =
+            (search_quads.empty())
+                ? 0.0
+                : (double)constraint_eval.active_quads /
+                      (double)std::max(1, (int)search_quads.size());
+        cover_last_score = cover_progress_score(cover_last_max_violation,
+                                                last_constraint_r,
+                                                cover_last_covered_ratio);
+
+        energy += loss;
+        if (cover_enabled) {
+          energy += lagrange_multiplier * lossCover
+                 + 0.5 * rho_cover * lossCover * lossCover;
+        }
 
         std::cout << std::setprecision(7)
                   << "energy: " << energy
                   << " LossCVT: " << lossCVT / eplison
                   << " LossQE: "  << (loss - lossCVT) / lambda
-                  << " LossCover: " << lossCover
+                  << " LossCover(raw): " << cover_loss_raw
+                  << " LossCover(scaled): " << lossCover
+                  << " CoverScale: " << cover_loss_scale
+                  << " CoverOn: " << (cover_enabled ? 1 : 0)
+                  << " ActiveQuads: " << constraint_eval.active_quads
+                  << " Quads: " << search_quads.size()
+                  << " r: " << last_constraint_r
                   << " Lambda_CVT: " << eplison
-                  << std::endl;
-
-        // dump sphere info（你原来就有）
-        if (!suppress_intermediate_output) {
-          namespace fs = std::filesystem;
-          fs::path file =
-              fs::absolute(fs::current_path() / "data" / "Bunny" /
-                           ("Sphere_10000_" + std::to_string(Fnum) + ".csv"));
-          std::ofstream out(file, std::ios::out | std::ios::trunc);
-          if (!out) {
-            std::cerr << "[io] open failed, errno=" << errno << " ("
-                      << std::strerror(errno) << ")\n";
-          } else {
-            out << std::setprecision(17);
-            for (int i = 0; i < (int)spheres.size(); ++i) {
-              Eigen::Vector3d n = Nors[i].normalized();
-              out << spheres[i].c.x() << "," << spheres[i].c.y() << ","
-                  << spheres[i].c.z() << "," << spheres[i].r << "," << FaceIDs[i]
-                  << "," << n.x() << "," << n.y() << "," << n.z() << "\n";
-            }
-          }
-        }
+                  << " Lambda_Cover: " << lagrange_multiplier
+                  << " Rho_Cover: " << rho_cover << std::endl;
 
         return energy;
       };
 
-  bool cover_satisfied = false;
-  int current_cover_previous_invalid_seed_count = -1;
-  int current_cover_same_invalid_seed_count_rounds = 0;
-  bool cover_stagnated_in_last_run = false;
-  std::function<double(const Eigen::VectorXd &X, Eigen::VectorXd &g)> fgm_cover =
-      [&](const Eigen::VectorXd &X, Eigen::VectorXd &g) {
+
+  // 只保留“前 50 次拉格朗日乘子法”主流程；
+  // 其余旧的 cover/Adam 优化代码先整体注释掉。
+#if 0
+  struct CoverSeedConstraint {
+    int i = -1;
+    int j = -1;
+    int k = -1;
+    int seed_index = 0; 
+    std::vector<int> candidate_ids;
+  };
+
+  struct CoverActiveProblem {
+    Eigen::VectorXd baseX;
+    std::vector<Eigen::Vector3d> C;
+    std::vector<double> R;
+    std::vector<int> active_ids;
+    std::vector<int> global_to_local;
+    std::vector<CoverSeedConstraint> constraints;
+    std::vector<Eigen::Vector3d> base_normals;
+    double avg_radius = 0.0;
+    double violation_scale = 1e-12;
+    double push_out_dist = 0.0; 
+    double cover_delta = 0.0;
+    double tau_m = 1e-12;
+    double tau_h = 1e-12;
+    double cover_margin = 0.0;
+    double global_energy = 0.0;
+    double global_max_violation = 0.0;
+    int global_invalid_seed_count = 0;
+    int global_total_seed_count = 0;
+    double global_covered_ratio = 0.0;
+    double global_score = 0.0;
+  };
+
+  auto project_all_sites_to_surface_and_update_state = [&](Eigen::VectorXd &X) {
+    #pragma omp parallel for
+    for (int i = 0; i < num; ++i) {
+      Point_T query(X(i * 3), X(i * 3 + 1), X(i * 3 + 2));
+      Point_T closest = tree.closest_point(query);
+      auto tri = tree.closest_point_and_primitive(query);
+
+      int fid = -1;
+      auto it = face_id_map.find(static_cast<const void *>(&*tri.second));
+      if (it != face_id_map.end()) fid = it->second;
+      FaceIDs[i] = fid;
+      Nors[i] = face_handle_to_normal(tri.second);
+
+      X(i * 3 + 0) = closest.x();
+      X(i * 3 + 1) = closest.y();
+      X(i * 3 + 2) = closest.z();
+      this->_sites[i] = BGAL::_Point3(closest.x(), closest.y(), closest.z());
+    }
+  };
+
+  auto project_active_sites_to_surface_and_update_state =
+    [&](Eigen::VectorXd &X, const std::vector<int> &active_ids) {
+      #pragma omp parallel for
+      for (int local_idx = 0; local_idx < (int)active_ids.size(); ++local_idx) {
+        const int i = active_ids[local_idx];
+
+        Point_T query(X(i * 3), X(i * 3 + 1), X(i * 3 + 2));
+        Point_T closest = tree.closest_point(query);
+        auto tri = tree.closest_point_and_primitive(query);
+
+        int fid = -1;
+        auto it = face_id_map.find(static_cast<const void *>(&*tri.second));
+        if (it != face_id_map.end()) fid = it->second;
+        FaceIDs[i] = fid;
+        Nors[i] = face_handle_to_normal(tri.second);
+
+        X(i * 3 + 0) = closest.x();
+        X(i * 3 + 1) = closest.y();
+        X(i * 3 + 2) = closest.z();
+        this->_sites[i] = BGAL::_Point3(closest.x(), closest.y(), closest.z());
+      }
+    };
+
+
+  auto build_cover_active_problem = [&](Eigen::VectorXd &X,
+                                     CoverActiveProblem &problem,
+                                     bool update_cover_globals = true,
+                                     bool verbose_output = true,
+                                     bool need_project_all = true) -> bool {
+  constexpr int kCoverNeighborK = 24;
+
+  if (need_project_all) {
+    project_all_sites_to_surface_and_update_state(X);
+  }
+
+  startRVD = clock();
+  this->_RVD.calculate_(this->_sites);
+  endRVD = clock();
+  RVDtime += (double)(endRVD - startRVD) / CLOCKS_PER_SEC;
+
+  std::vector<Sphere::Sphere> spheres(num);
+  const auto &edges = this->_RVD.get_edges_();
+  build_spheres_from_rvd(this->_sites, this->_RVD, spheres);
+  const std::vector<Eigen::Vector3i> rdt_tris = build_rdt_faces_from_edges(num, edges);
+
+  problem = CoverActiveProblem();
+  problem.baseX = X;
+  problem.C.resize(num);
+  problem.R.resize(num, 0.0);
+  problem.global_to_local.assign(num, -1);
+
+  std::vector<BGAL::_Point3> center_points(num);
+  double radius_sum = 0.0;
+  for (int i = 0; i < num; ++i) {
+    problem.C[i] = Eigen::Vector3d(this->_sites[i].x(), this->_sites[i].y(), this->_sites[i].z());
+    problem.R[i] = std::max(0.0, (double)spheres[i].r);
+    center_points[i] = this->_sites[i];
+    radius_sum += problem.R[i];
+  }
+
+  problem.avg_radius = num > 0 ? radius_sum / static_cast<double>(num) : 0.0;
+  problem.violation_scale = std::max(1e-12, problem.avg_radius);
+  problem.push_out_dist = cover_push_out_scale * problem.avg_radius;
+  problem.tau_m = std::max(1e-12, cover_tau_m_scale);
+  problem.tau_h = std::max(1e-12, cover_tau_h_scale);
+  problem.cover_margin = std::max(1e-12, cover_margin_scale);
+
+  BGAL::_KDTree center_tree(center_points);
+
+  std::vector<std::vector<int>> adjacency(num);
+  for (const auto &t : rdt_tris) {
+    const int a = t.x(); const int b = t.y(); const int c = t.z();
+    adjacency[a].push_back(b); adjacency[a].push_back(c);
+    adjacency[b].push_back(a); adjacency[b].push_back(c);
+    adjacency[c].push_back(a); adjacency[c].push_back(b);
+  }
+
+  std::unordered_set<int> active_seed_vertices;
+  std::unordered_set<int> active_cover_vertices;
+
+  #pragma omp parallel
+  {
+    struct CandidateInfo {
+      int id; double raw_v; double norm_v;
+    };
+    std::vector<CandidateInfo> candidates;
+    candidates.reserve(24);
+
+    std::vector<CoverSeedConstraint> local_constraints;
+    std::unordered_set<int> local_seed_vertices;
+    std::unordered_set<int> local_cover_vertices;
+    double local_global_energy = 0.0;
+    double local_max_violation = 0.0;
+    int local_invalid_seed_count = 0;
+    int local_total_seed_count = 0;
+
+    #pragma omp for nowait
+    for (int t_idx = 0; t_idx < (int)rdt_tris.size(); ++t_idx) {
+      const auto &t = rdt_tris[t_idx];
+      const int i = t.x();
+      const int j = t.y();
+      const int k = t.z();
+      if (problem.R[i] <= 0 || problem.R[j] <= 0 || problem.R[k] <= 0) continue;
+
+      Eigen::Vector3d s1, s2;
+      if (!intersect_three_spheres(problem.C[i], problem.R[i], problem.C[j], problem.R[j],
+                                   problem.C[k], problem.R[k], s1, s2)) {
+        continue;
+      }
+
+      Eigen::Vector3d seeds[2] = {s1, s2};
+      for (int si = 0; si < 2; ++si) {
+        ++local_total_seed_count;
+        const Eigen::Vector3d s = seeds[si];
+        candidates.clear();
+
+        const std::vector<int> nearest_ids = center_tree.nsearch_(
+            {BGAL::_Point3(s.x(), s.y(), s.z())}, std::min(num, kCoverNeighborK + 3));
+
+        double max_raw_v = -std::numeric_limits<double>::infinity();
+        double max_norm_v = -std::numeric_limits<double>::infinity();
+
+        for (int l : nearest_ids) {
+          if (l < 0 || l >= num || l == i || l == j || l == k || problem.R[l] <= 0) continue;
+          const Eigen::Vector3d d = s - problem.C[l];
+          const double dist = d.norm();
+
+          const double raw_v = (problem.R[l]) - dist;
+          const double norm_v = raw_v / problem.violation_scale;
+
+          candidates.push_back({l, raw_v, norm_v});
+          max_raw_v = std::max(max_raw_v, raw_v);
+          max_norm_v = std::max(max_norm_v, norm_v);
+        }
+
+        if (candidates.empty() || max_norm_v <= 0.0) continue;
+
+        ++local_invalid_seed_count;
+        local_max_violation = std::max(local_max_violation, max_raw_v);
+
+        double exp_sum = 0.0;
+        for (const auto &cand : candidates) {
+          exp_sum += std::exp((cand.norm_v - max_norm_v) / problem.tau_m);
+        }
+        const double m_val = max_norm_v + problem.tau_m * std::log(std::max(exp_sum, 1e-300));
+        const double z = (m_val + problem.cover_margin) / problem.tau_h;
+        const double phi = problem.tau_h * stable_softplus(z);
+        local_global_energy += cover_weight * phi;
+
+        CoverSeedConstraint constraint;
+        constraint.i = i; constraint.j = j; constraint.k = k;
+        constraint.seed_index = si;
+        constraint.candidate_ids.reserve(candidates.size());
+        for (const auto &cand : candidates) {
+          constraint.candidate_ids.push_back(cand.id);
+          if (cand.raw_v > 0.0) local_cover_vertices.insert(cand.id);
+        }
+        local_constraints.push_back(std::move(constraint));
+
+        local_seed_vertices.insert(i);
+        local_seed_vertices.insert(j);
+        local_seed_vertices.insert(k);
+      }
+    }
+
+    #pragma omp critical
+    {
+      problem.global_energy += local_global_energy;
+      problem.global_invalid_seed_count += local_invalid_seed_count;
+      problem.global_total_seed_count += local_total_seed_count;
+      problem.global_max_violation = std::max(problem.global_max_violation, local_max_violation);
+      problem.constraints.insert(problem.constraints.end(), local_constraints.begin(), local_constraints.end());
+      active_seed_vertices.insert(local_seed_vertices.begin(), local_seed_vertices.end());
+      active_cover_vertices.insert(local_cover_vertices.begin(), local_cover_vertices.end());
+    }
+  }
+
+  problem.global_covered_ratio =
+      (problem.global_total_seed_count > 0)
+          ? static_cast<double>(problem.global_invalid_seed_count) /
+                static_cast<double>(problem.global_total_seed_count)
+          : 0.0;
+  problem.global_score = cover_progress_score(problem.global_max_violation,
+                                             problem.avg_radius,
+                                             problem.global_covered_ratio);
+
+  if (problem.global_invalid_seed_count == 0) {
+    if (update_cover_globals) {
+      cover_invalid_seed_count = 0;
+      cover_last_energy = 0.0;
+      cover_last_max_violation = 0.0;
+      cover_last_covered_ratio = 0.0;
+      cover_last_score = 0.0;
+    }
+    if (verbose_output) {
+      std::cout << std::setprecision(7)
+                << "cover-only energy: 0 LossCover: 0 maxViolation: 0 invalidSeeds: 0" << std::endl;
+    }
+    return true;
+  }
+
+  std::unordered_set<int> active_set = active_seed_vertices;
+  active_set.insert(active_cover_vertices.begin(), active_cover_vertices.end());
+  const std::vector<int> seed_snapshot(active_set.begin(), active_set.end());
+  for (int id : seed_snapshot) {
+    for (int nb : adjacency[id]) active_set.insert(nb);
+  }
+
+  problem.active_ids.assign(active_set.begin(), active_set.end());
+  std::sort(problem.active_ids.begin(), problem.active_ids.end());
+  for (int local_idx = 0; local_idx < (int)problem.active_ids.size(); ++local_idx) {
+    problem.global_to_local[problem.active_ids[local_idx]] = local_idx;
+  }
+
+  problem.base_normals.resize(problem.active_ids.size());
+  for (int local_idx = 0; local_idx < (int)problem.active_ids.size(); ++local_idx) {
+    problem.base_normals[local_idx] = Nors[problem.active_ids[local_idx]];
+  }
+
+  if (update_cover_globals) {
+    cover_invalid_seed_count = problem.global_invalid_seed_count;
+    cover_last_energy = problem.global_energy;
+    cover_last_max_violation = problem.global_max_violation;
+    cover_last_covered_ratio = problem.global_covered_ratio;
+    cover_last_score = problem.global_score;
+  }
+
+  if (verbose_output) {
+    std::cout << std::setprecision(7)
+              << "cover-only energy: " << problem.global_energy
+              << " maxViolation: " << problem.global_max_violation
+              << " invalidSeeds: " << problem.global_invalid_seed_count << std::endl;
+  }
+
+  return true;
+};
+
+  auto evaluate_cover_local_surrogate =
+      [&](const CoverActiveProblem &problem,
+          const Eigen::VectorXd &XA,
+          Eigen::VectorXd &gA) -> double {
+        // 由于我们在 Adam 中始终使用投影后的基准点，此时无须重新执行 AABB Tree 精确投影，直接复用当前法向量即可
+        std::vector<Eigen::Vector3d> Ccur = problem.C;
+        for (int local_idx = 0; local_idx < (int)problem.active_ids.size(); ++local_idx) {
+          const int global_id = problem.active_ids[local_idx];
+          Ccur[global_id] = Eigen::Vector3d(XA(local_idx * 3 + 0),
+                                            XA(local_idx * 3 + 1),
+                                            XA(local_idx * 3 + 2));
+        }
+
+        gA.setZero(XA.size());
+        std::vector<Eigen::Vector3d> localGi(problem.active_ids.size(), Eigen::Vector3d::Zero());
         double lossCover = 0.0;
 
-        startRVD = clock();
-        std::vector<Sphere::Sphere> spheres(num);
-        for (int i = 0; i < num; ++i) {
-          Point_T query(X(i * 3), X(i * 3 + 1), X(i * 3 + 2));
-          Point_T closest = tree.closest_point(query);
-          auto tri = tree.closest_point_and_primitive(query);
+        struct CoverCandidate {
+          int id; Eigen::Vector3d d; double raw_v; double norm_v; double dist;
+        };
+        std::vector<CoverCandidate> candidates;
+        candidates.reserve(64);
 
-          Polyhedron::Face_handle f = tri.second;
-          int fid = -1;
-          auto it = face_id_map.find(static_cast<const void *>(&*f));
-          if (it != face_id_map.end()) fid = it->second;
-          FaceIDs[i] = fid;
+        for (const auto &constraint : problem.constraints) {
+          const int i = constraint.i; const int j = constraint.j; const int k = constraint.k;
+          if (problem.R[i] <= 0 || problem.R[j] <= 0 || problem.R[k] <= 0) continue;
 
-          auto p1 = f->halfedge()->vertex()->point();
-          auto p2 = f->halfedge()->next()->vertex()->point();
-          auto p3 = f->halfedge()->next()->next()->vertex()->point();
-          Eigen::Vector3d v1(p1.x(), p1.y(), p1.z());
-          Eigen::Vector3d v2(p2.x(), p2.y(), p2.z());
-          Eigen::Vector3d v3(p3.x(), p3.y(), p3.z());
-          Eigen::Vector3d N = (v2 - v1).cross(v3 - v1);
-          N.normalize();
-          Nors[i] = N;
-
-          this->_sites[i] = BGAL::_Point3(closest.x(), closest.y(), closest.z());
-        }
-
-        this->_RVD.calculate_(this->_sites);
-
-        endRVD = clock();
-        RVDtime += (double)(endRVD - startRVD) / CLOCKS_PER_SEC;
-
-        const auto &edges = this->_RVD.get_edges_();
-        build_spheres_from_rvd(this->_sites, this->_RVD, spheres);
-
-        const std::vector<Eigen::Vector3i> rdt_tris =
-            build_rdt_faces_from_edges(num, edges);
-
-        std::vector<Eigen::Vector3d> C(num);
-        std::vector<double> R(num);
-        std::vector<BGAL::_Point3> center_points(num);
-        double radius_sum = 0.0;
-        for (int i = 0; i < num; ++i) {
-          C[i] = Eigen::Vector3d(this->_sites[i].x(), this->_sites[i].y(), this->_sites[i].z());
-          R[i] = std::max(0.0, (double)spheres[i].r);
-          center_points[i] = this->_sites[i];
-          radius_sum += R[i];
-        }
-        const double avg_radius =
-            num > 0 ? radius_sum / static_cast<double>(num) : 0.0;
-        const double cover_delta = cover_delta_scale * avg_radius;
-        const double tau_m =
-            std::max(1e-12, cover_tau_m_scale * avg_radius * avg_radius);
-        const double tau_h =
-            std::max(1e-12, cover_tau_h_scale * avg_radius * avg_radius);
-        const int cover_neighbor_k =
-            std::max(1, std::min(cover_invalid_seed_count > 0
-                                     ? cover_invalid_seed_count
-                                     : 50,
-                                 50));
-        BGAL::_KDTree center_tree(center_points);
-
-        g.setZero();
-        double maxCoverViolation = 0.0;
-        int invalidSeedCount = 0;
-        std::vector<Eigen::Vector3d> gi(num, Eigen::Vector3d::Zero());
-        #pragma omp parallel
-        {
-          double localLossCover = 0.0;
-          double localMaxCoverViolation = 0.0;
-          int localInvalidSeedCount = 0;
-          std::vector<Eigen::Vector3d> localGi(num, Eigen::Vector3d::Zero());
-
-          #pragma omp for nowait
-          for (int tidx = 0; tidx < (int)rdt_tris.size(); ++tidx) {
-            const auto &t = rdt_tris[tidx];
-            const int i = t.x();
-            const int j = t.y();
-            const int k = t.z();
-            if (R[i] <= 0 || R[j] <= 0 || R[k] <= 0) continue;
-
-            Eigen::Vector3d s1, s2;
-            if (!intersect_three_spheres(C[i], R[i], C[j], R[j], C[k], R[k],
-                                         s1, s2)) {
-              continue;
-            }
-
-            Eigen::Vector3d seeds[2] = {s1, s2};
-            for (int si = 0; si < 2; ++si) {
-              const Eigen::Vector3d s = seeds[si];
-              double best_v_for_tracking = 0.0;
-              Eigen::Vector3d seed_grad_s = Eigen::Vector3d::Zero();
-              struct CoverCandidate {
-                int id;
-                Eigen::Vector3d d;
-                double v;
-              };
-              std::vector<CoverCandidate> candidates;
-              const std::vector<int> nearest_ids = center_tree.nsearch_(
-                  {BGAL::_Point3(s.x(), s.y(), s.z())},
-                  std::min(num, cover_neighbor_k + 3));
-              candidates.reserve(nearest_ids.size());
-              for (int l : nearest_ids) {
-                if (l < 0 || l >= num || l == i || l == j || l == k ||
-                    R[l] <= 0) {
-                  continue;
-                }
-                Eigen::Vector3d d = (s - C[l]);
-                double v = (R[l] - cover_delta) * (R[l] - cover_delta) -
-                           d.squaredNorm();
-                best_v_for_tracking = std::max(best_v_for_tracking, v);
-                candidates.push_back({l, d, v});
-              }
-              if (candidates.empty()) continue;
-
-              double max_v = candidates.front().v;
-              for (const auto &cand : candidates) {
-                max_v = std::max(max_v, cand.v);
-              }
-              if (max_v <= 0.0) continue;
-
-              ++localInvalidSeedCount;
-              localMaxCoverViolation =
-                  std::max(localMaxCoverViolation, max_v);
-
-              double exp_sum = 0.0;
-              for (const auto &cand : candidates) {
-                exp_sum += std::exp((cand.v - max_v) / tau_m);
-              }
-              const double m_val =
-                  max_v + tau_m * std::log(std::max(exp_sum, 1e-300));
-              const double softplus_arg = m_val / tau_h;
-              const double sp = tau_h * stable_softplus(softplus_arg);
-              const double sig = stable_sigmoid(softplus_arg);
-              const double dE_dm = 2.0 * cover_weight * sp * sig;
-
-              localLossCover += cover_weight * sp * sp;
-
-              for (const auto &cand : candidates) {
-                const double softmax_weight =
-                    std::exp((cand.v - m_val) / tau_m);
-                const double dE_dv = dE_dm * softmax_weight;
-                seed_grad_s += -2.0 * dE_dv * cand.d;
-                localGi[cand.id] += +2.0 * dE_dv * cand.d;
-              }
-
-              Eigen::Vector3d di = (s - C[i]);
-              Eigen::Vector3d dj = (s - C[j]);
-              Eigen::Vector3d dk = (s - C[k]);
-              Eigen::Matrix3d JT;
-              JT.col(0) = 2.0 * di;
-              JT.col(1) = 2.0 * dj;
-              JT.col(2) = 2.0 * dk;
-
-              Eigen::Vector3d yvec =
-                  solve_damped_pseudoinverse(JT, seed_grad_s, cover_damp);
-              localGi[i] += 2.0 * di * yvec(0);
-              localGi[j] += 2.0 * dj * yvec(1);
-              localGi[k] += 2.0 * dk * yvec(2);
-            }
+          Eigen::Vector3d s1, s2;
+          if (!intersect_three_spheres(Ccur[i], problem.R[i], Ccur[j], problem.R[j],
+                                       Ccur[k], problem.R[k], s1, s2)) {
+            continue;
           }
 
-          #pragma omp critical
-          {
-            lossCover += localLossCover;
-            invalidSeedCount += localInvalidSeedCount;
-            maxCoverViolation =
-                std::max(maxCoverViolation, localMaxCoverViolation);
-            for (int i = 0; i < num; ++i) {
-              gi[i] += localGi[i];
-            }
+          const Eigen::Vector3d s = (constraint.seed_index == 0) ? s1 : s2;
+          candidates.clear();
+
+          double max_raw_v = -std::numeric_limits<double>::infinity();
+          double max_norm_v = -std::numeric_limits<double>::infinity();
+          for (int l : constraint.candidate_ids) {
+            if (l < 0 || l >= num || l == i || l == j || l == k || problem.R[l] <= 0) continue;
+            const Eigen::Vector3d d = s - Ccur[l];
+            const double dist = d.norm();
+            
+            // 【修改4】：同步更改为加上外推距离
+            const double raw_v = (problem.R[l]) - dist;
+            const double norm_v = raw_v / problem.violation_scale;
+            
+            candidates.push_back({l, d, raw_v, norm_v, dist});
+            max_raw_v = std::max(max_raw_v, raw_v);
+            max_norm_v = std::max(max_norm_v, norm_v);
           }
+          if (candidates.empty() || max_norm_v <= 0.0) continue;
+
+          double exp_sum = 0.0;
+          for (const auto &cand : candidates) {
+            exp_sum += std::exp((cand.norm_v - max_norm_v) / problem.tau_m);
+          }
+          const double m_val = max_norm_v + problem.tau_m * std::log(std::max(exp_sum, 1e-300));
+          const double softplus_arg = (m_val + problem.cover_margin) / problem.tau_h;
+          const double phi = problem.tau_h * stable_softplus(softplus_arg);
+          const double sig = stable_sigmoid(softplus_arg);
+          const double dE_dm = cover_weight * sig;
+
+          lossCover += cover_weight * phi;
+
+          Eigen::Vector3d seed_grad_s = Eigen::Vector3d::Zero();
+          for (const auto &cand : candidates) {
+            const double softmax_weight = std::exp((cand.norm_v - m_val) / problem.tau_m);
+            const double dE_draw_v = (dE_dm * softmax_weight) / problem.violation_scale;
+
+            Eigen::Vector3d d_normed = Eigen::Vector3d::Zero();
+            if (cand.dist > 1e-12) d_normed = cand.d / cand.dist;
+
+            seed_grad_s += dE_draw_v * (-d_normed);
+            const int local_l = problem.global_to_local[cand.id];
+            if (local_l >= 0) localGi[local_l] += dE_draw_v * d_normed;
+          }
+
+          const Eigen::Vector3d di = s - Ccur[i];
+          const Eigen::Vector3d dj = s - Ccur[j];
+          const Eigen::Vector3d dk = s - Ccur[k];
+          Eigen::Matrix3d JT;
+          JT.col(0) = 2.0 * di;
+          JT.col(1) = 2.0 * dj;
+          JT.col(2) = 2.0 * dk;
+
+          const Eigen::Vector3d yvec = solve_damped_pseudoinverse(JT, seed_grad_s, cover_damp);
+
+          const int local_i = problem.global_to_local[i];
+          const int local_j = problem.global_to_local[j];
+          const int local_k = problem.global_to_local[k];
+          if (local_i >= 0) localGi[local_i] += 2.0 * di * yvec(0);
+          if (local_j >= 0) localGi[local_j] += 2.0 * dj * yvec(1);
+          if (local_k >= 0) localGi[local_k] += 2.0 * dk * yvec(2);
         }
 
-        for (int i = 0; i < num; ++i) {
-          gi[i] = gi[i] - Nors[i] * (gi[i].dot(Nors[i]) / Nors[i].dot(Nors[i]));
-          g(i * 3 + 0) += gi[i].x();
-          g(i * 3 + 1) += gi[i].y();
-          g(i * 3 + 2) += gi[i].z();
+        for (int local_idx = 0; local_idx < (int)problem.active_ids.size(); ++local_idx) {
+          const Eigen::Vector3d &n = problem.base_normals[local_idx];
+          const double nn = n.squaredNorm();
+          if (nn > 1e-30) {
+            localGi[local_idx] -= n * (localGi[local_idx].dot(n) / nn);
+          }
+          gA(local_idx * 3 + 0) = localGi[local_idx].x();
+          gA(local_idx * 3 + 1) = localGi[local_idx].y();
+          gA(local_idx * 3 + 2) = localGi[local_idx].z();
         }
 
-        if (invalidSeedCount == 0) {
-          cover_satisfied = true;
-          g.setZero();
-        } else {
-          cover_satisfied = false;
-        }
-        cover_invalid_seed_count = invalidSeedCount;
-        if (cover_invalid_seed_count ==
-            current_cover_previous_invalid_seed_count) {
-          ++current_cover_same_invalid_seed_count_rounds;
-        } else {
-          current_cover_previous_invalid_seed_count = cover_invalid_seed_count;
-          current_cover_same_invalid_seed_count_rounds = 1;
-        }
-
-        std::cout << std::setprecision(7)
-                  << "cover-only energy: " << lossCover
-                  << " LossCover: " << lossCover
-                  << " maxViolation: " << maxCoverViolation
-                  << " invalidSeeds: " << invalidSeedCount << std::endl;
-        if (current_cover_same_invalid_seed_count_rounds >= 3 &&
-            !cover_satisfied) {
-          std::cout << "stop current cover-only optimization: invalidSeeds unchanged for 3 evaluations"
-                    << " (" << invalidSeedCount << ")" << std::endl;
-          cover_stagnated_in_last_run = true;
-          g.setZero();
-        }
         return lossCover;
       };
 
-  // ======= LBFGS 初始化（原逻辑）=======
-  std::vector<Eigen::Vector3d> Pts2 = Pts;
-  num = (int)Pts2.size();
-  std::cout << Pts2.size() << "  " << num << std::endl;
+  struct CoverStepResult {
+    int step_count = 0;  
+    bool feasible_done = false;
+    bool move_too_small = false;
+    double max_move = 0.0;
+    int invalid_seeds = 0; 
+  };
 
-  _sites.resize(num);
-  _para.max_linearsearch = 20;
-  Eigen::VectorXd iterX2(num * 3);
+  // --------------------------------------------------------------------------
+  // 全新的 Adam 优化器 (专职负责极其坑洼的 Softplus Cover能量)
+  // --------------------------------------------------------------------------
+ auto cover_adam_step = [&](Eigen::VectorXd &X, AdamState &adam) -> CoverStepResult {
+  CoverStepResult result;
+  CoverActiveProblem problem;
 
-  for (int i = 0; i < num; ++i) {
-    iterX2(i * 3 + 0) = Pts2[i].x();
-    iterX2(i * 3 + 1) = Pts2[i].y();
-    iterX2(i * 3 + 2) = Pts2[i].z();
-    _sites[i] = BGAL::_Point3(Pts2[i](0), Pts2[i](1), Pts2[i](2));
+  // 只在 outer step 开头做一次全局 build
+  if (!build_cover_active_problem(X, problem, true, false, true)) {
+    return result;
   }
+
+  result.invalid_seeds = problem.global_invalid_seed_count;
+
+  if (problem.global_invalid_seed_count == 0 || problem.active_ids.empty()) {
+    result.feasible_done = true;
+
+    // 打印一次真实状态
+    build_cover_active_problem(X, problem, true, true, false);
+    result.invalid_seeds = problem.global_invalid_seed_count;
+    return result;
+  }
+
+  const int active_n = (int)problem.active_ids.size();
+  const double avg_r = std::max(1e-12, problem.avg_radius);
+
+  // ----------------------------
+  // 一个 outer step 内做多个 inner Adam 小步
+  // ----------------------------
+  const int inner_cover_steps = 5;
+
+  double max_move_all = 0.0;
+  int inner_done = 0;
+
+  for (int inner = 0; inner < inner_cover_steps; ++inner) {
+    Eigen::VectorXd XA(active_n * 3);
+    for (int local_idx = 0; local_idx < active_n; ++local_idx) {
+      const int global_id = problem.active_ids[local_idx];
+      XA(local_idx * 3 + 0) = X(global_id * 3 + 0);
+      XA(local_idx * 3 + 1) = X(global_id * 3 + 1);
+      XA(local_idx * 3 + 2) = X(global_id * 3 + 2);
+    }
+
+    Eigen::VectorXd gA = Eigen::VectorXd::Zero(XA.size());
+    evaluate_cover_local_surrogate(problem, XA, gA);
+
+    adam.t++;
+
+    double grad_sq_sum = 0.0;
+    double grad_max = 0.0;
+    for (int local_idx = 0; local_idx < active_n; ++local_idx) {
+      const double gn = gA.segment<3>(local_idx * 3).norm();
+      grad_sq_sum += gn * gn;
+      grad_max = std::max(grad_max, gn);
+    }
+
+    const double grad_rms =
+        std::sqrt(grad_sq_sum / std::max(1, active_n));
+
+    const double ema_before =
+        (adam.cover_grad_rms_ema > 0.0) ? adam.cover_grad_rms_ema : grad_rms;
+
+    adam.cover_grad_rms_ema =
+        (adam.cover_grad_rms_ema > 0.0)
+            ? (0.90 * adam.cover_grad_rms_ema + 0.10 * grad_rms)
+            : grad_rms;
+
+    const double grad_ratio =
+        grad_rms / std::max(1e-12, ema_before);
+
+    const double grad_spikiness =
+        grad_max / std::max(1e-12, grad_rms);
+
+    // 比之前更激进一点，减少总迭代数
+    const double base_lr = 0.06 * avg_r;
+
+    double lr_scale = 1.0 / std::sqrt(std::max(1.0, grad_ratio));
+    lr_scale = std::clamp(lr_scale, 0.40, 1.25);
+
+    double spike_scale = 1.0 / std::sqrt(std::max(1.0, grad_spikiness));
+    spike_scale = std::clamp(spike_scale, 0.60, 1.0);
+
+    const double lr =
+        std::max(1e-12, base_lr * lr_scale * spike_scale);
+
+    const double beta1 = 0.30;
+    const double beta2 = 0.99;
+    const double eps = 1e-8;
+
+    // cap 略放宽一点，减少总 inner step 数
+    const double cap =
+        std::clamp(1.5 * problem.global_max_violation,
+                   0.003 * avg_r,
+                   0.14  * avg_r);
+
+    double max_move_inner = 0.0;
+
+    for (int local_idx = 0; local_idx < active_n; ++local_idx) {
+      const int global_id = problem.active_ids[local_idx];
+      const Eigen::Vector3d g = gA.segment<3>(local_idx * 3);
+
+      Eigen::Vector3d m_i = adam.m.segment<3>(global_id * 3);
+      Eigen::Vector3d v_i = adam.v.segment<3>(global_id * 3);
+
+      m_i = beta1 * m_i + (1.0 - beta1) * g;
+      v_i = beta2 * v_i + (1.0 - beta2) * g.cwiseProduct(g);
+
+      adam.m.segment<3>(global_id * 3) = m_i;
+      adam.v.segment<3>(global_id * 3) = v_i;
+
+      const Eigen::Vector3d m_hat =
+          m_i / (1.0 - std::pow(beta1, adam.t));
+      const Eigen::Vector3d v_hat =
+          v_i / (1.0 - std::pow(beta2, adam.t));
+
+      Eigen::Vector3d step;
+      step.x() = lr * m_hat.x() / (std::sqrt(v_hat.x()) + eps);
+      step.y() = lr * m_hat.y() / (std::sqrt(v_hat.y()) + eps);
+      step.z() = lr * m_hat.z() / (std::sqrt(v_hat.z()) + eps);
+
+      // 切平面投影
+      const Eigen::Vector3d n = problem.base_normals[local_idx];
+      const double nn = n.squaredNorm();
+      if (nn > 1e-30) {
+        step -= n * (step.dot(n) / nn);
+      }
+
+      const double step_len = step.norm();
+      if (step_len > cap) {
+        step *= (cap / step_len);
+      }
+
+      X.segment<3>(global_id * 3) -= step;
+      max_move_inner = std::max(max_move_inner, step.norm());
+    }
+
+    // 只投影 active 点
+    project_active_sites_to_surface_and_update_state(X, problem.active_ids);
+
+    max_move_all = std::max(max_move_all, max_move_inner);
+    ++inner_done;
+
+    // inner step 已经很小，就没必要继续做后面的 inner 了
+    if (max_move_inner < 1e-5 * avg_r) {
+      break;
+    }
+  }
+
+  // inner 若干步结束后，再做一次真实问题重建并更新日志/全局状态
+  CoverActiveProblem problem_after;
+  build_cover_active_problem(X, problem_after, true, true, false);
+
+  result.step_count = inner_done;
+  result.invalid_seeds = problem_after.global_invalid_seed_count;
+  result.max_move = max_move_all;
+  result.move_too_small = (max_move_all < 1e-5 * avg_r);
+
+  if (problem_after.global_invalid_seed_count == 0) {
+    result.feasible_done = true;
+  }
+
+  return result;
+};
+
+  // --------------------------------------------------------------------------
+  // QEM 阶段：使用 Adam 做一次平滑更新
+  // --------------------------------------------------------------------------
+  auto qem_cvt_adam_step = [&](Eigen::VectorXd &X, AdamState &adam) -> int {
+    Eigen::VectorXd g = Eigen::VectorXd::Zero(X.size());
+    fgm2(X, g);
+
+    adam.t++;
+    const double avg_spacing = bbox_diag / std::sqrt(std::max(1, num));
+    const double lr = std::max(1e-12, 0.05 * avg_spacing);
+    const double beta1 = 0.9;
+    const double beta2 = 0.999;
+    const double eps = 1e-8;
+
+    Eigen::VectorXd X_new = X;
+
+    for (int i = 0; i < num; ++i) {
+      const Eigen::Vector3d g_i = g.segment<3>(i * 3);
+
+      Eigen::Vector3d m_i = adam.m.segment<3>(i * 3);
+      Eigen::Vector3d v_i = adam.v.segment<3>(i * 3);
+
+      m_i = beta1 * m_i + (1.0 - beta1) * g_i;
+      v_i = beta2 * v_i + (1.0 - beta2) * g_i.cwiseProduct(g_i);
+
+      adam.m.segment<3>(i * 3) = m_i;
+      adam.v.segment<3>(i * 3) = v_i;
+
+      const Eigen::Vector3d m_hat = m_i / (1.0 - std::pow(beta1, adam.t));
+      const Eigen::Vector3d v_hat = v_i / (1.0 - std::pow(beta2, adam.t));
+
+      Eigen::Vector3d step;
+      step.x() = lr * m_hat.x() / (std::sqrt(v_hat.x()) + eps);
+      step.y() = lr * m_hat.y() / (std::sqrt(v_hat.y()) + eps);
+      step.z() = lr * m_hat.z() / (std::sqrt(v_hat.z()) + eps);
+
+      const Eigen::Vector3d n = Nors[i];
+      const double nn = n.squaredNorm();
+      if (nn > 1e-30) {
+        step -= n * (step.dot(n) / nn);
+      }
+
+      const double step_len = step.norm();
+      const double cap = std::max(1e-12, 0.20 * avg_spacing);
+      if (step_len > cap) {
+        step *= (cap / step_len);
+      }
+
+      X_new.segment<3>(i * 3) -= step;
+    }
+
+    X = X_new;
+    sync_sites_from_iterates(X);
+    return 1;
+  };
+#endif
 
   _RVD.calculate_(_sites);
   const std::string final_outdir =
-      (std::filesystem::current_path() / "data" / "Bunny").string();
-  auto flush_final_outputs = [&]() {
+      (std::filesystem::current_path() / "data" / "Block_New").string();
+  // const std::string final_outdir =
+  //     (std::filesystem::current_path() / "data" / "Bunny").string();
+  auto flush_outputs = [&](int step) {
+    #pragma omp parallel for
     for (int i = 0; i < num; ++i) {
       Point_T query(iterX2(i * 3 + 0), iterX2(i * 3 + 1), iterX2(i * 3 + 2));
       Point_T closest = tree.closest_point(query);
       auto tri = tree.closest_point_and_primitive(query);
 
-      Polyhedron::Face_handle f = tri.second;
       int fid = -1;
       auto it = face_id_map.find(static_cast<const void *>(&*tri.second));
       if (it != face_id_map.end()) fid = it->second;
       FaceIDs[i] = fid;
-
-      auto p1 = f->halfedge()->vertex()->point();
-      auto p2 = f->halfedge()->next()->vertex()->point();
-      auto p3 = f->halfedge()->next()->next()->vertex()->point();
-      Eigen::Vector3d v1(p1.x(), p1.y(), p1.z());
-      Eigen::Vector3d v2(p2.x(), p2.y(), p2.z());
-      Eigen::Vector3d v3(p3.x(), p3.y(), p3.z());
-      Eigen::Vector3d N = (v2 - v1).cross(v3 - v1);
-      N.normalize();
-      Nors[i] = N;
+      Nors[i] = face_handle_to_normal(tri.second);
 
       _sites[i] = BGAL::_Point3(closest.x(), closest.y(), closest.z());
     }
@@ -1081,11 +1595,16 @@ void _CVT3D::calculate_(int num_sites, char *modelNamee, char *pointsName) {
     std::vector<Sphere::Sphere> final_spheres;
     build_spheres_from_rvd(_sites, _RVD, final_spheres);
 
-    std::ofstream out(final_outdir + "/Sphere_" + modelname + ".csv",
-                      std::ios::out | std::ios::trunc);
+    std::string sphere_path =
+        final_outdir + "/Sphere_" + modelname + ".csv";
+    if (step > 2) {
+      sphere_path = final_outdir + "/Sphere_" + modelname + "_Iter" +
+                    std::to_string(step - 3) + ".csv";
+    }
+
+    std::ofstream out(sphere_path, std::ios::out | std::ios::trunc);
     if (!out) {
-      std::cerr << "[io] open failed, errno=" << errno << " ("
-                << std::strerror(errno) << ")\n";
+      std::cerr << "[io] open failed, errno=" << errno << " (" << std::strerror(errno) << ")\n";
     } else {
       out << std::setprecision(17);
       for (int i = 0; i < (int)final_spheres.size(); ++i) {
@@ -1097,74 +1616,99 @@ void _CVT3D::calculate_(int num_sites, char *modelNamee, char *pointsName) {
       }
     }
 
-    OutputMesh(_sites, _RVD, num_sites, final_outdir, modelname, 2);
+    OutputMesh(_sites, _RVD, num_sites, final_outdir, modelname, step);
   };
 
   start = clock();
-  const bool unlimited_qem_iterations = (_para.max_iteration == 0);
-  const int total_qem_iterations =
-      unlimited_qem_iterations ? std::numeric_limits<int>::max()
-                               : _para.max_iteration;
 
-  BGAL::_LBFGS::_Parameter warmup_para(_para);
-  warmup_para.max_iteration =
-      std::min(cvt_qem_warmup_iterations, total_qem_iterations);
-  BGAL::_LBFGS warmup_lbfgs(warmup_para);
-  qem_iterations_done += warmup_lbfgs.minimize(fgm2, iterX2);
+  suppress_intermediate_output = false;
 
-  BGAL::_LBFGS::_Parameter one_step_para(_para);
-  one_step_para.max_iteration = 1;
-  BGAL::_LBFGS one_step_lbfgs(one_step_para);
+  bool constraint_satisfied = false;
+  while (qem_iterations_done < total_lagrange_iterations) {
+    const int remaining_before_cover =
+        std::max(0, cover_start_iteration - qem_iterations_done);
+    const int this_round_max_iteration =
+        (remaining_before_cover > 0)
+            ? std::min(lagrange_block_max_iteration, remaining_before_cover)
+            : lagrange_block_max_iteration;
 
-  BGAL::_LBFGS::_Parameter cover_para(_para);
-  cover_para.max_iteration = 1;
-  BGAL::_LBFGS cover_lbfgs(cover_para);
-  const int max_cover_iterations_per_alternation = 10;
+    BGAL::_LBFGS::_Parameter lagrange_para(_para);
+    lagrange_para.max_iteration = std::max(1, this_round_max_iteration);
+    BGAL::_LBFGS lagrange_lbfgs(lagrange_para);
 
-  suppress_intermediate_output = true;
-  while (qem_iterations_done < total_qem_iterations) {
-    const int qem_step = one_step_lbfgs.minimize(fgm2, iterX2);
-    qem_iterations_done += qem_step;
+    const bool cover_enabled_this_round =
+        (qem_iterations_done >= cover_start_iteration);
+    cover_enabled_for_current_block = cover_enabled_this_round;
 
-    int cover_step = 0;
-    cover_stagnated_in_last_run = false;
-    current_cover_previous_invalid_seed_count = -1;
-    current_cover_same_invalid_seed_count_rounds = 0;
-    for (int cover_iter = 0; cover_iter < max_cover_iterations_per_alternation;
-         ++cover_iter) {
-      const int current_cover_step = cover_lbfgs.minimize(fgm_cover, iterX2);
-      cover_step += current_cover_step;
-      if (cover_satisfied || cover_stagnated_in_last_run ||
-          current_cover_step == 0) {
-        if (cover_stagnated_in_last_run) {
-          cover_step = std::max(cover_step, 1);
-        }
-        break;
+    if (cover_enabled_this_round && !cover_phase_initialized) {
+      lagrange_multiplier =
+          std::max(1.0, rho_cover * std::max(prev_cover_energy, 1e-6));
+      cover_phase_initialized = true;
+    }
+
+    const int steps_done = lagrange_lbfgs.minimize(fgm2, iterX2);
+    sync_sites_from_iterates(iterX2);
+    qem_iterations_done += std::max(steps_done, 1);
+    suppress_intermediate_output = true;
+    flush_outputs(qem_iterations_done + 2);
+
+    if (cover_enabled_this_round) {
+      lagrange_multiplier += rho_cover * last_constraint_loss;
+      if (std::isfinite(prev_cover_energy) &&
+          last_constraint_loss > eta_cover * prev_cover_energy) {
+        rho_cover = std::min(rho_cover * beta_cover, rho_cover_max);
       }
+      prev_cover_energy = last_constraint_loss;
+    } else {
+      prev_cover_energy = last_constraint_loss;
     }
-    flush_final_outputs();
 
-    if (cover_satisfied) {
-      std::cout << "stop alternating optimization: invalidSeeds == 0"
-                << std::endl;
+    std::cout << "[Lagrange] iter=" << qem_iterations_done
+              << " active_quads=" << last_constraint_active_quads
+              << "/" << last_constraint_num_quads
+              << " loss_raw=" << last_constraint_loss_raw
+              << " loss_scaled=" << last_constraint_loss
+              << " cover_scale=" << last_constraint_loss_scale
+              << " min_g=" << last_constraint_min_g
+              << " r=" << last_constraint_r
+              << " lambda_cover=" << lagrange_multiplier
+              << " rho_cover=" << rho_cover
+              << " cover_enabled=" << (cover_enabled_this_round ? 1 : 0)
+              << std::endl;
+
+    if (cover_enabled_this_round &&
+        last_constraint_active_quads == 0 && last_constraint_loss < 1e-14) {
+      constraint_satisfied = true;
       break;
     }
 
-    if (qem_step == 0 && cover_step == 0) {
-      break;
-    }
-
-    if (qem_iterations_done >= total_qem_iterations) {
+    if (steps_done == 0) {
+      if (!cover_enabled_this_round && qem_iterations_done < cover_start_iteration) {
+        qem_iterations_done = cover_start_iteration;
+        continue;
+      }
       break;
     }
   }
+
+  if (!constraint_satisfied) {
+    std::cout << "[Lagrange] stop with active_quads="
+              << last_constraint_active_quads << "/" << last_constraint_num_quads
+              << " loss_raw=" << last_constraint_loss_raw
+              << " loss_scaled=" << last_constraint_loss
+              << " lambda_cover=" << lagrange_multiplier
+              << " rho_cover=" << rho_cover << std::endl;
+  }
+
+  flush_outputs(2);
+
   end = clock();
 
   allTime += (double)(end - start) / CLOCKS_PER_SEC;
   std::cout << "allTime: " << allTime << " RVDtime: " << RVDtime
-            << " L-BFGS time: " << allTime - RVDtime << std::endl;
+            << " Optimizer time: " << allTime - RVDtime << std::endl;
 
-  flush_final_outputs();
+  flush_outputs(2);
 }
 
 } // namespace BGAL

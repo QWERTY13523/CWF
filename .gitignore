@@ -20,3 +20,5 @@ CMakeUserPresets.json
 *.so
 *.dll
 *.exe
+*.csv
+*.xyz
