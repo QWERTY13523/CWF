@@ -1,0 +1,2 @@
+/usr/bin/ar qc /home/yiming/research/CWF/lib/libSphere.a CMakeFiles/Sphere.dir/Sphere.cpp.o
+/usr/bin/ranlib /home/yiming/research/CWF/lib/libSphere.a

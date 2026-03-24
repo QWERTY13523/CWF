@@ -1,0 +1,2 @@
+/usr/bin/ar qc /home/yiming/research/CWF/lib/libMinEnclosingBall.a CMakeFiles/MinEnclosingBall.dir/MinEnclosingBall.cpp.o
+/usr/bin/ranlib /home/yiming/research/CWF/lib/libMinEnclosingBall.a

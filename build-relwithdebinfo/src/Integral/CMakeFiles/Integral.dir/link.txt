@@ -1,0 +1,2 @@
+/usr/bin/ar qc /home/yiming/research/CWF/lib/libIntegral.a CMakeFiles/Integral.dir/Integral.cpp.o CMakeFiles/Integral.dir/Tetrahedron_arbq_rule.cpp.o
+/usr/bin/ranlib /home/yiming/research/CWF/lib/libIntegral.a

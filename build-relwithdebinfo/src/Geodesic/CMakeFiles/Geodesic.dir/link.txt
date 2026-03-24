@@ -1,0 +1,2 @@
+/usr/bin/ar qc /home/yiming/research/CWF/lib/libGeodesic.a CMakeFiles/Geodesic.dir/Dijkstra/Dijkstra.cpp.o CMakeFiles/Geodesic.dir/AbstractMethod.cpp.o
+/usr/bin/ranlib /home/yiming/research/CWF/lib/libGeodesic.a

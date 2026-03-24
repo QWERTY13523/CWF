@@ -4,6 +4,7 @@ set(BGAL_QuadCoverLike_SRC
     QuadCover.cpp
 )
 
+find_package(CGAL REQUIRED)
 add_library(QuadCoverLike STATIC ${BGAL_QuadCoverLike_SRC})
 target_link_libraries(QuadCoverLike
     Algorithm
@@ -13,6 +14,7 @@ target_link_libraries(QuadCoverLike
     Tessellation3D
     Sphere
     Optimization
+    CGAL::CGAL
     ${Boost_LIBRARIES})
 set_target_properties(QuadCoverLike PROPERTIES VERSION ${PROJECT_VERSION})
 set_target_properties(QuadCoverLike PROPERTIES CLEAN_DIRECT_OUTPUT 1)

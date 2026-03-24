@@ -24,7 +24,7 @@ int main(int argc, char **argv) {
   namespace fs = std::filesystem;
 
   std::string model = (argc >= 3) ? argv[2] : "block";
-  int N = (argc >= 4) ? std::max(1, std::atoi(argv[3])) :8000;
+  fs::path input_obj_override = (argc >= 4) ? fs::path(argv[3]) : fs::path();
 
   if (argc >= 2) {
     std::error_code ec;
@@ -47,11 +47,37 @@ int main(int argc, char **argv) {
     return 1;
   }
 
+  fs::path init_obj_path = input_obj_override.empty() ? obj_path : input_obj_override;
+  if (!init_obj_path.is_absolute()) {
+    init_obj_path = fs::current_path() / init_obj_path;
+  }
+  if (!fs::exists(init_obj_path)) {
+    std::cerr << "IOError: init obj " << init_obj_path << " does not exist.\n";
+    return 1;
+  }
+
   Eigen::MatrixXd V;
   Eigen::MatrixXi F;
   if (!igl::readOBJ(obj_path.string(), V, F)) {
     std::cerr << "IOError: " << obj_path << " could not be opened (igl::readOBJ failed).\n";
     return 1;
+  }
+
+  Eigen::MatrixXd init_V;
+  Eigen::MatrixXi init_F;
+  if (!igl::readOBJ(init_obj_path.string(), init_V, init_F)) {
+    std::cerr << "IOError: " << init_obj_path << " could not be opened (igl::readOBJ failed).\n";
+    return 1;
+  }
+  if (init_V.rows() == 0) {
+    std::cerr << "IOError: " << init_obj_path << " has no vertices.\n";
+    return 1;
+  }
+
+  std::vector<BGAL::_Point3> init_sites;
+  init_sites.reserve(init_V.rows());
+  for (int i = 0; i < init_V.rows(); ++i) {
+    init_sites.emplace_back(init_V(i, 0), init_V(i, 1), init_V(i, 2));
   }
 
   const fs::path temp_off_path = project_root / "Temp.off";
@@ -70,6 +96,6 @@ int main(int argc, char **argv) {
 
   BGAL::_QuadCover3D solver(model_mesh, para);
   solver.set_outpath(project_root.generic_string());
-  solver.calculate_(N, (char *)model.c_str(),(char*)"/home/yiming/research/CWF/data/Block/Ours_8000_block_Iter52_Points.xyz");
+  solver.calculate_(init_sites, model);
   return 0;
 }

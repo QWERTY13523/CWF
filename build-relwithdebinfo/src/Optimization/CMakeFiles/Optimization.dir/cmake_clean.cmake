@@ -1,0 +1,41 @@
+file(REMOVE_RECURSE
+  "/home/yiming/research/CWF/lib/libOptimization.a"
+  "/home/yiming/research/CWF/lib/libOptimization.pdb"
+  "CMakeFiles/Optimization.dir/ALGLIB/alglibinternal.cpp.o"
+  "CMakeFiles/Optimization.dir/ALGLIB/alglibinternal.cpp.o.d"
+  "CMakeFiles/Optimization.dir/ALGLIB/alglibmisc.cpp.o"
+  "CMakeFiles/Optimization.dir/ALGLIB/alglibmisc.cpp.o.d"
+  "CMakeFiles/Optimization.dir/ALGLIB/ap.cpp.o"
+  "CMakeFiles/Optimization.dir/ALGLIB/ap.cpp.o.d"
+  "CMakeFiles/Optimization.dir/ALGLIB/dataanalysis.cpp.o"
+  "CMakeFiles/Optimization.dir/ALGLIB/dataanalysis.cpp.o.d"
+  "CMakeFiles/Optimization.dir/ALGLIB/diffequations.cpp.o"
+  "CMakeFiles/Optimization.dir/ALGLIB/diffequations.cpp.o.d"
+  "CMakeFiles/Optimization.dir/ALGLIB/fasttransforms.cpp.o"
+  "CMakeFiles/Optimization.dir/ALGLIB/fasttransforms.cpp.o.d"
+  "CMakeFiles/Optimization.dir/ALGLIB/integration.cpp.o"
+  "CMakeFiles/Optimization.dir/ALGLIB/integration.cpp.o.d"
+  "CMakeFiles/Optimization.dir/ALGLIB/interpolation.cpp.o"
+  "CMakeFiles/Optimization.dir/ALGLIB/interpolation.cpp.o.d"
+  "CMakeFiles/Optimization.dir/ALGLIB/linalg.cpp.o"
+  "CMakeFiles/Optimization.dir/ALGLIB/linalg.cpp.o.d"
+  "CMakeFiles/Optimization.dir/ALGLIB/optimization.cpp.o"
+  "CMakeFiles/Optimization.dir/ALGLIB/optimization.cpp.o.d"
+  "CMakeFiles/Optimization.dir/ALGLIB/solvers.cpp.o"
+  "CMakeFiles/Optimization.dir/ALGLIB/solvers.cpp.o.d"
+  "CMakeFiles/Optimization.dir/ALGLIB/specialfunctions.cpp.o"
+  "CMakeFiles/Optimization.dir/ALGLIB/specialfunctions.cpp.o.d"
+  "CMakeFiles/Optimization.dir/ALGLIB/statistics.cpp.o"
+  "CMakeFiles/Optimization.dir/ALGLIB/statistics.cpp.o.d"
+  "CMakeFiles/Optimization.dir/GradientDescent/GradientDescent.cpp.o"
+  "CMakeFiles/Optimization.dir/GradientDescent/GradientDescent.cpp.o.d"
+  "CMakeFiles/Optimization.dir/LBFGS/LBFGS.cpp.o"
+  "CMakeFiles/Optimization.dir/LBFGS/LBFGS.cpp.o.d"
+  "CMakeFiles/Optimization.dir/LinearSystem/LinearSystem.cpp.o"
+  "CMakeFiles/Optimization.dir/LinearSystem/LinearSystem.cpp.o.d"
+)
+
+# Per-language clean rules from dependency scanning.
+foreach(lang CXX)
+  include(CMakeFiles/Optimization.dir/cmake_clean_${lang}.cmake OPTIONAL)
+endforeach()

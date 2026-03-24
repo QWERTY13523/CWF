@@ -1,0 +1,2 @@
+/usr/bin/ar qc /home/yiming/research/CWF/lib/libModel.a CMakeFiles/Model.dir/Model.cpp.o CMakeFiles/Model.dir/ManifoldModel.cpp.o CMakeFiles/Model.dir/Model_Iterator.cpp.o
+/usr/bin/ranlib /home/yiming/research/CWF/lib/libModel.a

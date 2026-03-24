@@ -1,0 +1,2 @@
+/usr/bin/ar qc /home/yiming/research/CWF/lib/libTessellation2D.a CMakeFiles/Tessellation2D.dir/Side2D.cpp.o CMakeFiles/Tessellation2D.dir/Tessellation2D.cpp.o
+/usr/bin/ranlib /home/yiming/research/CWF/lib/libTessellation2D.a

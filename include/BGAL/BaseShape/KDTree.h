@@ -11,6 +11,7 @@ namespace BGAL
 		int search_(const _Point3& in_p) const;
 		int search_(const _Point3& in_p, double& min_dist) const;
 		std::vector<int> nsearch_(const std::vector<_Point3>& in_ps, const int& k) const;
+		std::vector<int> rsearch_(const _Point3& in_p, const double& in_r) const;
 		std::vector<int> rsearch_(const std::vector<_Point3>& in_p, const double& in_r) const;
 	private:
 		void build_(const std::vector<_Point3>& in_points);

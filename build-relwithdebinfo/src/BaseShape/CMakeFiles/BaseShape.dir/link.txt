@@ -1,0 +1,2 @@
+/usr/bin/ar qc /home/yiming/research/CWF/lib/libBaseShape.a CMakeFiles/BaseShape.dir/KDTree.cpp.o CMakeFiles/BaseShape.dir/Line.cpp.o CMakeFiles/BaseShape.dir/Point.cpp.o CMakeFiles/BaseShape.dir/Polygon.cpp.o CMakeFiles/BaseShape.dir/Triangle.cpp.o
+/usr/bin/ranlib /home/yiming/research/CWF/lib/libBaseShape.a

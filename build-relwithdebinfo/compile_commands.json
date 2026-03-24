@@ -1,0 +1,290 @@
+[
+{
+  "directory": "/home/yiming/research/CWF/build-relwithdebinfo/src/Algorithm",
+  "command": "/usr/bin/c++  -I/home/yiming/research/CWF/include -I/home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include -O2 -g -DNDEBUG -std=c++17 -fPIC -o CMakeFiles/Algorithm.dir/BOC/BOC.cpp.o -c /home/yiming/research/CWF/src/Algorithm/BOC/BOC.cpp",
+  "file": "/home/yiming/research/CWF/src/Algorithm/BOC/BOC.cpp",
+  "output": "src/Algorithm/CMakeFiles/Algorithm.dir/BOC/BOC.cpp.o"
+},
+{
+  "directory": "/home/yiming/research/CWF/build-relwithdebinfo/src/Optimization",
+  "command": "/usr/bin/c++  -I/home/yiming/research/CWF/include -I/home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/eigen3 -O2 -g -DNDEBUG -std=c++17 -fPIC -o CMakeFiles/Optimization.dir/ALGLIB/alglibinternal.cpp.o -c /home/yiming/research/CWF/src/Optimization/ALGLIB/alglibinternal.cpp",
+  "file": "/home/yiming/research/CWF/src/Optimization/ALGLIB/alglibinternal.cpp",
+  "output": "src/Optimization/CMakeFiles/Optimization.dir/ALGLIB/alglibinternal.cpp.o"
+},
+{
+  "directory": "/home/yiming/research/CWF/build-relwithdebinfo/src/Optimization",
+  "command": "/usr/bin/c++  -I/home/yiming/research/CWF/include -I/home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/eigen3 -O2 -g -DNDEBUG -std=c++17 -fPIC -o CMakeFiles/Optimization.dir/ALGLIB/alglibmisc.cpp.o -c /home/yiming/research/CWF/src/Optimization/ALGLIB/alglibmisc.cpp",
+  "file": "/home/yiming/research/CWF/src/Optimization/ALGLIB/alglibmisc.cpp",
+  "output": "src/Optimization/CMakeFiles/Optimization.dir/ALGLIB/alglibmisc.cpp.o"
+},
+{
+  "directory": "/home/yiming/research/CWF/build-relwithdebinfo/src/Optimization",
+  "command": "/usr/bin/c++  -I/home/yiming/research/CWF/include -I/home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/eigen3 -O2 -g -DNDEBUG -std=c++17 -fPIC -o CMakeFiles/Optimization.dir/ALGLIB/ap.cpp.o -c /home/yiming/research/CWF/src/Optimization/ALGLIB/ap.cpp",
+  "file": "/home/yiming/research/CWF/src/Optimization/ALGLIB/ap.cpp",
+  "output": "src/Optimization/CMakeFiles/Optimization.dir/ALGLIB/ap.cpp.o"
+},
+{
+  "directory": "/home/yiming/research/CWF/build-relwithdebinfo/src/Optimization",
+  "command": "/usr/bin/c++  -I/home/yiming/research/CWF/include -I/home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/eigen3 -O2 -g -DNDEBUG -std=c++17 -fPIC -o CMakeFiles/Optimization.dir/ALGLIB/dataanalysis.cpp.o -c /home/yiming/research/CWF/src/Optimization/ALGLIB/dataanalysis.cpp",
+  "file": "/home/yiming/research/CWF/src/Optimization/ALGLIB/dataanalysis.cpp",
+  "output": "src/Optimization/CMakeFiles/Optimization.dir/ALGLIB/dataanalysis.cpp.o"
+},
+{
+  "directory": "/home/yiming/research/CWF/build-relwithdebinfo/src/Optimization",
+  "command": "/usr/bin/c++  -I/home/yiming/research/CWF/include -I/home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/eigen3 -O2 -g -DNDEBUG -std=c++17 -fPIC -o CMakeFiles/Optimization.dir/ALGLIB/diffequations.cpp.o -c /home/yiming/research/CWF/src/Optimization/ALGLIB/diffequations.cpp",
+  "file": "/home/yiming/research/CWF/src/Optimization/ALGLIB/diffequations.cpp",
+  "output": "src/Optimization/CMakeFiles/Optimization.dir/ALGLIB/diffequations.cpp.o"
+},
+{
+  "directory": "/home/yiming/research/CWF/build-relwithdebinfo/src/Optimization",
+  "command": "/usr/bin/c++  -I/home/yiming/research/CWF/include -I/home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/eigen3 -O2 -g -DNDEBUG -std=c++17 -fPIC -o CMakeFiles/Optimization.dir/ALGLIB/fasttransforms.cpp.o -c /home/yiming/research/CWF/src/Optimization/ALGLIB/fasttransforms.cpp",
+  "file": "/home/yiming/research/CWF/src/Optimization/ALGLIB/fasttransforms.cpp",
+  "output": "src/Optimization/CMakeFiles/Optimization.dir/ALGLIB/fasttransforms.cpp.o"
+},
+{
+  "directory": "/home/yiming/research/CWF/build-relwithdebinfo/src/Optimization",
+  "command": "/usr/bin/c++  -I/home/yiming/research/CWF/include -I/home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/eigen3 -O2 -g -DNDEBUG -std=c++17 -fPIC -o CMakeFiles/Optimization.dir/ALGLIB/integration.cpp.o -c /home/yiming/research/CWF/src/Optimization/ALGLIB/integration.cpp",
+  "file": "/home/yiming/research/CWF/src/Optimization/ALGLIB/integration.cpp",
+  "output": "src/Optimization/CMakeFiles/Optimization.dir/ALGLIB/integration.cpp.o"
+},
+{
+  "directory": "/home/yiming/research/CWF/build-relwithdebinfo/src/Optimization",
+  "command": "/usr/bin/c++  -I/home/yiming/research/CWF/include -I/home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/eigen3 -O2 -g -DNDEBUG -std=c++17 -fPIC -o CMakeFiles/Optimization.dir/ALGLIB/interpolation.cpp.o -c /home/yiming/research/CWF/src/Optimization/ALGLIB/interpolation.cpp",
+  "file": "/home/yiming/research/CWF/src/Optimization/ALGLIB/interpolation.cpp",
+  "output": "src/Optimization/CMakeFiles/Optimization.dir/ALGLIB/interpolation.cpp.o"
+},
+{
+  "directory": "/home/yiming/research/CWF/build-relwithdebinfo/src/Optimization",
+  "command": "/usr/bin/c++  -I/home/yiming/research/CWF/include -I/home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/eigen3 -O2 -g -DNDEBUG -std=c++17 -fPIC -o CMakeFiles/Optimization.dir/ALGLIB/linalg.cpp.o -c /home/yiming/research/CWF/src/Optimization/ALGLIB/linalg.cpp",
+  "file": "/home/yiming/research/CWF/src/Optimization/ALGLIB/linalg.cpp",
+  "output": "src/Optimization/CMakeFiles/Optimization.dir/ALGLIB/linalg.cpp.o"
+},
+{
+  "directory": "/home/yiming/research/CWF/build-relwithdebinfo/src/Optimization",
+  "command": "/usr/bin/c++  -I/home/yiming/research/CWF/include -I/home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/eigen3 -O2 -g -DNDEBUG -std=c++17 -fPIC -o CMakeFiles/Optimization.dir/ALGLIB/optimization.cpp.o -c /home/yiming/research/CWF/src/Optimization/ALGLIB/optimization.cpp",
+  "file": "/home/yiming/research/CWF/src/Optimization/ALGLIB/optimization.cpp",
+  "output": "src/Optimization/CMakeFiles/Optimization.dir/ALGLIB/optimization.cpp.o"
+},
+{
+  "directory": "/home/yiming/research/CWF/build-relwithdebinfo/src/Optimization",
+  "command": "/usr/bin/c++  -I/home/yiming/research/CWF/include -I/home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/eigen3 -O2 -g -DNDEBUG -std=c++17 -fPIC -o CMakeFiles/Optimization.dir/ALGLIB/solvers.cpp.o -c /home/yiming/research/CWF/src/Optimization/ALGLIB/solvers.cpp",
+  "file": "/home/yiming/research/CWF/src/Optimization/ALGLIB/solvers.cpp",
+  "output": "src/Optimization/CMakeFiles/Optimization.dir/ALGLIB/solvers.cpp.o"
+},
+{
+  "directory": "/home/yiming/research/CWF/build-relwithdebinfo/src/Optimization",
+  "command": "/usr/bin/c++  -I/home/yiming/research/CWF/include -I/home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/eigen3 -O2 -g -DNDEBUG -std=c++17 -fPIC -o CMakeFiles/Optimization.dir/ALGLIB/specialfunctions.cpp.o -c /home/yiming/research/CWF/src/Optimization/ALGLIB/specialfunctions.cpp",
+  "file": "/home/yiming/research/CWF/src/Optimization/ALGLIB/specialfunctions.cpp",
+  "output": "src/Optimization/CMakeFiles/Optimization.dir/ALGLIB/specialfunctions.cpp.o"
+},
+{
+  "directory": "/home/yiming/research/CWF/build-relwithdebinfo/src/Optimization",
+  "command": "/usr/bin/c++  -I/home/yiming/research/CWF/include -I/home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/eigen3 -O2 -g -DNDEBUG -std=c++17 -fPIC -o CMakeFiles/Optimization.dir/ALGLIB/statistics.cpp.o -c /home/yiming/research/CWF/src/Optimization/ALGLIB/statistics.cpp",
+  "file": "/home/yiming/research/CWF/src/Optimization/ALGLIB/statistics.cpp",
+  "output": "src/Optimization/CMakeFiles/Optimization.dir/ALGLIB/statistics.cpp.o"
+},
+{
+  "directory": "/home/yiming/research/CWF/build-relwithdebinfo/src/Optimization",
+  "command": "/usr/bin/c++  -I/home/yiming/research/CWF/include -I/home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/eigen3 -O2 -g -DNDEBUG -std=c++17 -fPIC -o CMakeFiles/Optimization.dir/LBFGS/LBFGS.cpp.o -c /home/yiming/research/CWF/src/Optimization/LBFGS/LBFGS.cpp",
+  "file": "/home/yiming/research/CWF/src/Optimization/LBFGS/LBFGS.cpp",
+  "output": "src/Optimization/CMakeFiles/Optimization.dir/LBFGS/LBFGS.cpp.o"
+},
+{
+  "directory": "/home/yiming/research/CWF/build-relwithdebinfo/src/Optimization",
+  "command": "/usr/bin/c++  -I/home/yiming/research/CWF/include -I/home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/eigen3 -O2 -g -DNDEBUG -std=c++17 -fPIC -o CMakeFiles/Optimization.dir/GradientDescent/GradientDescent.cpp.o -c /home/yiming/research/CWF/src/Optimization/GradientDescent/GradientDescent.cpp",
+  "file": "/home/yiming/research/CWF/src/Optimization/GradientDescent/GradientDescent.cpp",
+  "output": "src/Optimization/CMakeFiles/Optimization.dir/GradientDescent/GradientDescent.cpp.o"
+},
+{
+  "directory": "/home/yiming/research/CWF/build-relwithdebinfo/src/Optimization",
+  "command": "/usr/bin/c++  -I/home/yiming/research/CWF/include -I/home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/eigen3 -O2 -g -DNDEBUG -std=c++17 -fPIC -o CMakeFiles/Optimization.dir/LinearSystem/LinearSystem.cpp.o -c /home/yiming/research/CWF/src/Optimization/LinearSystem/LinearSystem.cpp",
+  "file": "/home/yiming/research/CWF/src/Optimization/LinearSystem/LinearSystem.cpp",
+  "output": "src/Optimization/CMakeFiles/Optimization.dir/LinearSystem/LinearSystem.cpp.o"
+},
+{
+  "directory": "/home/yiming/research/CWF/build-relwithdebinfo/src/PQP",
+  "command": "/usr/bin/c++  -I/home/yiming/research/CWF/include -I/home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include -O2 -g -DNDEBUG -std=c++17 -fPIC -o CMakeFiles/PQP.dir/Build.cpp.o -c /home/yiming/research/CWF/src/PQP/Build.cpp",
+  "file": "/home/yiming/research/CWF/src/PQP/Build.cpp",
+  "output": "src/PQP/CMakeFiles/PQP.dir/Build.cpp.o"
+},
+{
+  "directory": "/home/yiming/research/CWF/build-relwithdebinfo/src/PQP",
+  "command": "/usr/bin/c++  -I/home/yiming/research/CWF/include -I/home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include -O2 -g -DNDEBUG -std=c++17 -fPIC -o CMakeFiles/PQP.dir/BV.cpp.o -c /home/yiming/research/CWF/src/PQP/BV.cpp",
+  "file": "/home/yiming/research/CWF/src/PQP/BV.cpp",
+  "output": "src/PQP/CMakeFiles/PQP.dir/BV.cpp.o"
+},
+{
+  "directory": "/home/yiming/research/CWF/build-relwithdebinfo/src/PQP",
+  "command": "/usr/bin/c++  -I/home/yiming/research/CWF/include -I/home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include -O2 -g -DNDEBUG -std=c++17 -fPIC -o CMakeFiles/PQP.dir/PQP.cpp.o -c /home/yiming/research/CWF/src/PQP/PQP.cpp",
+  "file": "/home/yiming/research/CWF/src/PQP/PQP.cpp",
+  "output": "src/PQP/CMakeFiles/PQP.dir/PQP.cpp.o"
+},
+{
+  "directory": "/home/yiming/research/CWF/build-relwithdebinfo/src/PQP",
+  "command": "/usr/bin/c++  -I/home/yiming/research/CWF/include -I/home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include -O2 -g -DNDEBUG -std=c++17 -fPIC -o CMakeFiles/PQP.dir/TriDist.cpp.o -c /home/yiming/research/CWF/src/PQP/TriDist.cpp",
+  "file": "/home/yiming/research/CWF/src/PQP/TriDist.cpp",
+  "output": "src/PQP/CMakeFiles/PQP.dir/TriDist.cpp.o"
+},
+{
+  "directory": "/home/yiming/research/CWF/build-relwithdebinfo/src/BaseShape",
+  "command": "/usr/bin/c++ -DCGAL_USE_GMPXX=1 -I/home/yiming/research/CWF/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/eigen3 -O2 -g -DNDEBUG -std=c++17 -fPIC -frounding-math -o CMakeFiles/BaseShape.dir/KDTree.cpp.o -c /home/yiming/research/CWF/src/BaseShape/KDTree.cpp",
+  "file": "/home/yiming/research/CWF/src/BaseShape/KDTree.cpp",
+  "output": "src/BaseShape/CMakeFiles/BaseShape.dir/KDTree.cpp.o"
+},
+{
+  "directory": "/home/yiming/research/CWF/build-relwithdebinfo/src/BaseShape",
+  "command": "/usr/bin/c++ -DCGAL_USE_GMPXX=1 -I/home/yiming/research/CWF/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/eigen3 -O2 -g -DNDEBUG -std=c++17 -fPIC -frounding-math -o CMakeFiles/BaseShape.dir/Line.cpp.o -c /home/yiming/research/CWF/src/BaseShape/Line.cpp",
+  "file": "/home/yiming/research/CWF/src/BaseShape/Line.cpp",
+  "output": "src/BaseShape/CMakeFiles/BaseShape.dir/Line.cpp.o"
+},
+{
+  "directory": "/home/yiming/research/CWF/build-relwithdebinfo/src/BaseShape",
+  "command": "/usr/bin/c++ -DCGAL_USE_GMPXX=1 -I/home/yiming/research/CWF/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/eigen3 -O2 -g -DNDEBUG -std=c++17 -fPIC -frounding-math -o CMakeFiles/BaseShape.dir/Point.cpp.o -c /home/yiming/research/CWF/src/BaseShape/Point.cpp",
+  "file": "/home/yiming/research/CWF/src/BaseShape/Point.cpp",
+  "output": "src/BaseShape/CMakeFiles/BaseShape.dir/Point.cpp.o"
+},
+{
+  "directory": "/home/yiming/research/CWF/build-relwithdebinfo/src/BaseShape",
+  "command": "/usr/bin/c++ -DCGAL_USE_GMPXX=1 -I/home/yiming/research/CWF/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/eigen3 -O2 -g -DNDEBUG -std=c++17 -fPIC -frounding-math -o CMakeFiles/BaseShape.dir/Polygon.cpp.o -c /home/yiming/research/CWF/src/BaseShape/Polygon.cpp",
+  "file": "/home/yiming/research/CWF/src/BaseShape/Polygon.cpp",
+  "output": "src/BaseShape/CMakeFiles/BaseShape.dir/Polygon.cpp.o"
+},
+{
+  "directory": "/home/yiming/research/CWF/build-relwithdebinfo/src/BaseShape",
+  "command": "/usr/bin/c++ -DCGAL_USE_GMPXX=1 -I/home/yiming/research/CWF/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/eigen3 -O2 -g -DNDEBUG -std=c++17 -fPIC -frounding-math -o CMakeFiles/BaseShape.dir/Triangle.cpp.o -c /home/yiming/research/CWF/src/BaseShape/Triangle.cpp",
+  "file": "/home/yiming/research/CWF/src/BaseShape/Triangle.cpp",
+  "output": "src/BaseShape/CMakeFiles/BaseShape.dir/Triangle.cpp.o"
+},
+{
+  "directory": "/home/yiming/research/CWF/build-relwithdebinfo/src/Draw",
+  "command": "/usr/bin/c++ -DCGAL_USE_GMPXX=1 -I/home/yiming/research/CWF/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/eigen3 -O2 -g -DNDEBUG -std=c++17 -fPIC -frounding-math -o CMakeFiles/Draw.dir/DrawPS.cpp.o -c /home/yiming/research/CWF/src/Draw/DrawPS.cpp",
+  "file": "/home/yiming/research/CWF/src/Draw/DrawPS.cpp",
+  "output": "src/Draw/CMakeFiles/Draw.dir/DrawPS.cpp.o"
+},
+{
+  "directory": "/home/yiming/research/CWF/build-relwithdebinfo/src/Integral",
+  "command": "/usr/bin/c++ -DCGAL_USE_GMPXX=1 -I/home/yiming/research/CWF/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/eigen3 -O2 -g -DNDEBUG -std=c++17 -fPIC -frounding-math -o CMakeFiles/Integral.dir/Integral.cpp.o -c /home/yiming/research/CWF/src/Integral/Integral.cpp",
+  "file": "/home/yiming/research/CWF/src/Integral/Integral.cpp",
+  "output": "src/Integral/CMakeFiles/Integral.dir/Integral.cpp.o"
+},
+{
+  "directory": "/home/yiming/research/CWF/build-relwithdebinfo/src/Integral",
+  "command": "/usr/bin/c++ -DCGAL_USE_GMPXX=1 -I/home/yiming/research/CWF/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/eigen3 -O2 -g -DNDEBUG -std=c++17 -fPIC -frounding-math -o CMakeFiles/Integral.dir/Tetrahedron_arbq_rule.cpp.o -c /home/yiming/research/CWF/src/Integral/Tetrahedron_arbq_rule.cpp",
+  "file": "/home/yiming/research/CWF/src/Integral/Tetrahedron_arbq_rule.cpp",
+  "output": "src/Integral/CMakeFiles/Integral.dir/Tetrahedron_arbq_rule.cpp.o"
+},
+{
+  "directory": "/home/yiming/research/CWF/build-relwithdebinfo/src/PointCloudProcessing",
+  "command": "/usr/bin/c++ -DCGAL_USE_GMPXX=1 -I/home/yiming/research/CWF/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/eigen3 -O2 -g -DNDEBUG -std=c++17 -fPIC -frounding-math -o CMakeFiles/PointCloudProcessing.dir/Registration/ICP/ICP.cpp.o -c /home/yiming/research/CWF/src/PointCloudProcessing/Registration/ICP/ICP.cpp",
+  "file": "/home/yiming/research/CWF/src/PointCloudProcessing/Registration/ICP/ICP.cpp",
+  "output": "src/PointCloudProcessing/CMakeFiles/PointCloudProcessing.dir/Registration/ICP/ICP.cpp.o"
+},
+{
+  "directory": "/home/yiming/research/CWF/build-relwithdebinfo/src/Tessellation2D",
+  "command": "/usr/bin/c++ -DCGAL_USE_GMPXX=1 -I/home/yiming/research/CWF/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/eigen3 -O2 -g -DNDEBUG -std=c++17 -fPIC -frounding-math -o CMakeFiles/Tessellation2D.dir/Side2D.cpp.o -c /home/yiming/research/CWF/src/Tessellation2D/Side2D.cpp",
+  "file": "/home/yiming/research/CWF/src/Tessellation2D/Side2D.cpp",
+  "output": "src/Tessellation2D/CMakeFiles/Tessellation2D.dir/Side2D.cpp.o"
+},
+{
+  "directory": "/home/yiming/research/CWF/build-relwithdebinfo/src/Tessellation2D",
+  "command": "/usr/bin/c++ -DCGAL_USE_GMPXX=1 -I/home/yiming/research/CWF/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/eigen3 -O2 -g -DNDEBUG -std=c++17 -fPIC -frounding-math -o CMakeFiles/Tessellation2D.dir/Tessellation2D.cpp.o -c /home/yiming/research/CWF/src/Tessellation2D/Tessellation2D.cpp",
+  "file": "/home/yiming/research/CWF/src/Tessellation2D/Tessellation2D.cpp",
+  "output": "src/Tessellation2D/CMakeFiles/Tessellation2D.dir/Tessellation2D.cpp.o"
+},
+{
+  "directory": "/home/yiming/research/CWF/build-relwithdebinfo/src/Model",
+  "command": "/usr/bin/c++ -DCGAL_USE_GMPXX=1 -I/home/yiming/research/CWF/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/eigen3 -O2 -g -DNDEBUG -std=c++17 -fPIC -frounding-math -o CMakeFiles/Model.dir/Model.cpp.o -c /home/yiming/research/CWF/src/Model/Model.cpp",
+  "file": "/home/yiming/research/CWF/src/Model/Model.cpp",
+  "output": "src/Model/CMakeFiles/Model.dir/Model.cpp.o"
+},
+{
+  "directory": "/home/yiming/research/CWF/build-relwithdebinfo/src/Model",
+  "command": "/usr/bin/c++ -DCGAL_USE_GMPXX=1 -I/home/yiming/research/CWF/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/eigen3 -O2 -g -DNDEBUG -std=c++17 -fPIC -frounding-math -o CMakeFiles/Model.dir/ManifoldModel.cpp.o -c /home/yiming/research/CWF/src/Model/ManifoldModel.cpp",
+  "file": "/home/yiming/research/CWF/src/Model/ManifoldModel.cpp",
+  "output": "src/Model/CMakeFiles/Model.dir/ManifoldModel.cpp.o"
+},
+{
+  "directory": "/home/yiming/research/CWF/build-relwithdebinfo/src/Model",
+  "command": "/usr/bin/c++ -DCGAL_USE_GMPXX=1 -I/home/yiming/research/CWF/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/eigen3 -O2 -g -DNDEBUG -std=c++17 -fPIC -frounding-math -o CMakeFiles/Model.dir/Model_Iterator.cpp.o -c /home/yiming/research/CWF/src/Model/Model_Iterator.cpp",
+  "file": "/home/yiming/research/CWF/src/Model/Model_Iterator.cpp",
+  "output": "src/Model/CMakeFiles/Model.dir/Model_Iterator.cpp.o"
+},
+{
+  "directory": "/home/yiming/research/CWF/build-relwithdebinfo/src/Geodesic",
+  "command": "/usr/bin/c++ -DCGAL_USE_GMPXX=1 -I/home/yiming/research/CWF/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/eigen3 -O2 -g -DNDEBUG -std=c++17 -fPIC -frounding-math -o CMakeFiles/Geodesic.dir/Dijkstra/Dijkstra.cpp.o -c /home/yiming/research/CWF/src/Geodesic/Dijkstra/Dijkstra.cpp",
+  "file": "/home/yiming/research/CWF/src/Geodesic/Dijkstra/Dijkstra.cpp",
+  "output": "src/Geodesic/CMakeFiles/Geodesic.dir/Dijkstra/Dijkstra.cpp.o"
+},
+{
+  "directory": "/home/yiming/research/CWF/build-relwithdebinfo/src/Geodesic",
+  "command": "/usr/bin/c++ -DCGAL_USE_GMPXX=1 -I/home/yiming/research/CWF/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/eigen3 -O2 -g -DNDEBUG -std=c++17 -fPIC -frounding-math -o CMakeFiles/Geodesic.dir/AbstractMethod.cpp.o -c /home/yiming/research/CWF/src/Geodesic/AbstractMethod.cpp",
+  "file": "/home/yiming/research/CWF/src/Geodesic/AbstractMethod.cpp",
+  "output": "src/Geodesic/CMakeFiles/Geodesic.dir/AbstractMethod.cpp.o"
+},
+{
+  "directory": "/home/yiming/research/CWF/build-relwithdebinfo/src/Reconstruction",
+  "command": "/usr/bin/c++ -DCGAL_USE_GMPXX=1 -I/home/yiming/research/CWF/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/eigen3 -O2 -g -DNDEBUG -std=c++17 -fPIC -frounding-math -o CMakeFiles/Reconstruction.dir/MarchingTerahedra/MarchingTetrahedra.cpp.o -c /home/yiming/research/CWF/src/Reconstruction/MarchingTerahedra/MarchingTetrahedra.cpp",
+  "file": "/home/yiming/research/CWF/src/Reconstruction/MarchingTerahedra/MarchingTetrahedra.cpp",
+  "output": "src/Reconstruction/CMakeFiles/Reconstruction.dir/MarchingTerahedra/MarchingTetrahedra.cpp.o"
+},
+{
+  "directory": "/home/yiming/research/CWF/build-relwithdebinfo/src/Tessellation3D",
+  "command": "/usr/bin/c++ -DCGAL_USE_GMPXX=1 -I/home/yiming/research/CWF/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/eigen3 -O2 -g -DNDEBUG -std=c++17 -fPIC -frounding-math -o CMakeFiles/Tessellation3D.dir/Side3D.cpp.o -c /home/yiming/research/CWF/src/Tessellation3D/Side3D.cpp",
+  "file": "/home/yiming/research/CWF/src/Tessellation3D/Side3D.cpp",
+  "output": "src/Tessellation3D/CMakeFiles/Tessellation3D.dir/Side3D.cpp.o"
+},
+{
+  "directory": "/home/yiming/research/CWF/build-relwithdebinfo/src/Tessellation3D",
+  "command": "/usr/bin/c++ -DCGAL_USE_GMPXX=1 -I/home/yiming/research/CWF/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/eigen3 -O2 -g -DNDEBUG -std=c++17 -fPIC -frounding-math -o CMakeFiles/Tessellation3D.dir/Tessellation3D.cpp.o -c /home/yiming/research/CWF/src/Tessellation3D/Tessellation3D.cpp",
+  "file": "/home/yiming/research/CWF/src/Tessellation3D/Tessellation3D.cpp",
+  "output": "src/Tessellation3D/CMakeFiles/Tessellation3D.dir/Tessellation3D.cpp.o"
+},
+{
+  "directory": "/home/yiming/research/CWF/build-relwithdebinfo/src/CVTLike",
+  "command": "/usr/bin/c++ -DCGAL_USE_GMPXX=1 -DNOMINMAX -I/home/yiming/research/CWF/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/eigen3 -O2 -g -DNDEBUG -std=c++17 -fPIC -frounding-math -fopenmp -o CMakeFiles/CVTLike.dir/CPD.cpp.o -c /home/yiming/research/CWF/src/CVTLike/CPD.cpp",
+  "file": "/home/yiming/research/CWF/src/CVTLike/CPD.cpp",
+  "output": "src/CVTLike/CMakeFiles/CVTLike.dir/CPD.cpp.o"
+},
+{
+  "directory": "/home/yiming/research/CWF/build-relwithdebinfo/src/CVTLike",
+  "command": "/usr/bin/c++ -DCGAL_USE_GMPXX=1 -DNOMINMAX -I/home/yiming/research/CWF/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/eigen3 -O2 -g -DNDEBUG -std=c++17 -fPIC -frounding-math -fopenmp -o CMakeFiles/CVTLike.dir/CVT.cpp.o -c /home/yiming/research/CWF/src/CVTLike/CVT.cpp",
+  "file": "/home/yiming/research/CWF/src/CVTLike/CVT.cpp",
+  "output": "src/CVTLike/CMakeFiles/CVTLike.dir/CVT.cpp.o"
+},
+{
+  "directory": "/home/yiming/research/CWF/build-relwithdebinfo/src/QuadCoverLike",
+  "command": "/usr/bin/c++ -DCGAL_USE_GMPXX=1 -I/home/yiming/research/CWF/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/eigen3 -O2 -g -DNDEBUG -std=c++17 -fPIC -frounding-math -o CMakeFiles/QuadCoverLike.dir/QuadCover.cpp.o -c /home/yiming/research/CWF/src/QuadCoverLike/QuadCover.cpp",
+  "file": "/home/yiming/research/CWF/src/QuadCoverLike/QuadCover.cpp",
+  "output": "src/QuadCoverLike/CMakeFiles/QuadCoverLike.dir/QuadCover.cpp.o"
+},
+{
+  "directory": "/home/yiming/research/CWF/build-relwithdebinfo/src/Sphere",
+  "command": "/usr/bin/c++ -DCGAL_USE_GMPXX=1 -I/home/yiming/research/CWF/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/eigen3 -O2 -g -DNDEBUG -std=c++17 -fPIC -frounding-math -o CMakeFiles/Sphere.dir/Sphere.cpp.o -c /home/yiming/research/CWF/src/Sphere/Sphere.cpp",
+  "file": "/home/yiming/research/CWF/src/Sphere/Sphere.cpp",
+  "output": "src/Sphere/CMakeFiles/Sphere.dir/Sphere.cpp.o"
+},
+{
+  "directory": "/home/yiming/research/CWF/build-relwithdebinfo/src/MinEnclosingBall",
+  "command": "/usr/bin/c++ -DCGAL_USE_GMPXX=1 -I/home/yiming/research/CWF/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/eigen3 -O2 -g -DNDEBUG -std=c++17 -fPIC -frounding-math -o CMakeFiles/MinEnclosingBall.dir/MinEnclosingBall.cpp.o -c /home/yiming/research/CWF/src/MinEnclosingBall/MinEnclosingBall.cpp",
+  "file": "/home/yiming/research/CWF/src/MinEnclosingBall/MinEnclosingBall.cpp",
+  "output": "src/MinEnclosingBall/CMakeFiles/MinEnclosingBall.dir/MinEnclosingBall.cpp.o"
+},
+{
+  "directory": "/home/yiming/research/CWF/build-relwithdebinfo/MAIN",
+  "command": "/usr/bin/c++ -DCGAL_USE_GMPXX=1 -I/home/yiming/research/CWF/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/eigen3 -O2 -g -DNDEBUG -std=c++17 -fPIE -frounding-math -fopenmp -o CMakeFiles/MAIN.dir/main.cpp.o -c /home/yiming/research/CWF/MAIN/main.cpp",
+  "file": "/home/yiming/research/CWF/MAIN/main.cpp",
+  "output": "MAIN/CMakeFiles/MAIN.dir/main.cpp.o"
+},
+{
+  "directory": "/home/yiming/research/CWF/build-relwithdebinfo/MAIN",
+  "command": "/usr/bin/c++ -DCGAL_USE_GMPXX=1 -I/home/yiming/research/CWF/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/eigen3 -O2 -g -DNDEBUG -std=c++17 -fPIE -frounding-math -fopenmp -o CMakeFiles/cwf.dir/cwf.cpp.o -c /home/yiming/research/CWF/MAIN/cwf.cpp",
+  "file": "/home/yiming/research/CWF/MAIN/cwf.cpp",
+  "output": "MAIN/CMakeFiles/cwf.dir/cwf.cpp.o"
+},
+{
+  "directory": "/home/yiming/research/CWF/build-relwithdebinfo/MAIN",
+  "command": "/usr/bin/c++ -DCGAL_USE_GMPXX=1 -I/home/yiming/research/CWF/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/eigen3 -O2 -g -DNDEBUG -std=c++17 -fPIE -frounding-math -fopenmp -o CMakeFiles/quadcover_main.dir/quadcover_main.cpp.o -c /home/yiming/research/CWF/MAIN/quadcover_main.cpp",
+  "file": "/home/yiming/research/CWF/MAIN/quadcover_main.cpp",
+  "output": "MAIN/CMakeFiles/quadcover_main.dir/quadcover_main.cpp.o"
+}
+]
