@@ -34,8 +34,8 @@ guess_data_root(const std::filesystem::path &exe_path) {
   return {}; // not found
 }
 
-void CWF3DTest(const std::filesystem::path &exe_path, int Nums = 8000,
-               std::string file = "block") {
+void CWF3DTest(const std::filesystem::path &exe_path, int Nums = 30000,
+               std::string file = "bunny") {
   namespace fs = std::filesystem;
 
   std::cout << "CWD: " << fs::current_path() << "\n";
@@ -92,8 +92,8 @@ void CWF3DTest(const std::filesystem::path &exe_path, int Nums = 8000,
 
 int main(int argc, char **argv) {
   // 允许从命令行指定：  MAIN [data_root] [model_name] [num_sites]
-  std::string model = (argc >= 3) ? argv[2] : "block";
-  int N = (argc >= 4) ? std::max(1, std::atoi(argv[3])) :8000;
+  std::string model = (argc >= 3) ? argv[2] : "bunny";
+  int N = (argc >= 4) ? std::max(1, std::atoi(argv[3])) :30000;
 
   // 如果用户显式传 data_root，就先把 CWD 切过去（这样 Temp/输出更直观）
   if (argc >= 2) {

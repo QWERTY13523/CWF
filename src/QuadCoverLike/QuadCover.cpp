@@ -75,6 +75,17 @@ struct LBFGSPair {
   double rho = 0.0;
 };
 
+struct AdamState {
+  Eigen::VectorXd m;
+  Eigen::VectorXd v;
+  int t = 0;
+
+  explicit AdamState(int dim = 0)
+      : m(Eigen::VectorXd::Zero(dim)),
+        v(Eigen::VectorXd::Zero(dim)),
+        t(0) {}
+};
+
 static inline Eigen::VectorXd flatten_matrix(const Eigen::MatrixXd &M) {
   Eigen::VectorXd x(M.rows() * 3);
   // Flattening is fast, but we can parallelize if sizes are huge
@@ -603,6 +614,7 @@ static inline void build_quads_from_search_faces(
   if (n <= 0 || faces.empty()) return;
 
   double global_rmax = 0.0;
+  #pragma omp parallel for reduction(max:global_rmax)
   for (int i = 0; i < n; ++i) {
     const double ri = (double)spheres[i].r;
     if (std::isfinite(ri) && ri >= 0.0) {
@@ -913,11 +925,11 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
   std::string outpath =
       (std::filesystem::current_path() / "data" / "QuadCover").string();
 
-  double total_rebuild_time = 0.0;
+  double total_rebuild_non_rvd_time = 0.0;
   double total_rvd_time = 0.0;
-  double total_sample_time = 0.0;
+  double total_sample_phase_time = 0.0;
   double total_line_search_time = 0.0;
-  double total_recovery_time = 0.0;
+  double total_recovery_phase_time = 0.0;
   double total_output_time = 0.0;
 
   struct RebuiltState {
@@ -937,7 +949,7 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
   auto rebuild_state = [&](const std::vector<_Point3> &sites_in,
                            bool need_grad,
                            _Restricted_Tessellation3D &rvd,
-                           double &rebuild_time_acc,
+                           double &rebuild_non_rvd_acc,
                            double &rvd_time_acc) -> RebuiltState {
     const double rebuild_start = omp_get_wtime();
     RebuiltState state(need_grad ? n : 0);
@@ -962,7 +974,11 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
     state.avg_r = sum_r / std::max(1, n);
     state.eps = 1e-4 * state.avg_r * state.avg_r;
 
-    update_surface_normals(_model, state.sites, state.surface_normals);
+    if (need_grad) {
+      update_surface_normals(_model, state.sites, state.surface_normals);
+    } else {
+      state.surface_normals.clear();
+    }
     state.rdt_faces = build_rdt_faces_from_edges(n, rvd.get_edges_());
     build_quads_from_search_faces(state.rdt_faces, state.sites, state.spheres,
                                   state.search_quads);
@@ -970,7 +986,8 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
     state.eval = evaluate_dynamic_radius_surrogate(
         state.sites, state.frozen_poles, state.surface_normals,
         state.search_quads, state.eps, need_grad);
-    rebuild_time_acc += std::max(0.0, wall_seconds_since(rebuild_start) - rvd_elapsed);
+    rebuild_non_rvd_acc +=
+        std::max(0.0, wall_seconds_since(rebuild_start) - rvd_elapsed);
     return state;
   };
 
@@ -997,37 +1014,31 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
     return cand_E < ref_E;
   };
 
-  const uint32_t base_seed = 123456789u;
-  RebuiltState current_state =
-      rebuild_state(_sites, true, _RVD, total_rebuild_time, total_rvd_time);
+  RebuiltState current_state = rebuild_state(
+      _sites, true, _RVD, total_rebuild_non_rvd_time, total_rvd_time);
   double current_rebuilt_E = rebuilt_energy(current_state);
   const double initial_rebuilt_E = std::max(current_rebuilt_E, 1e-30);
 
   std::vector<_Point3> best_sites = current_state.sites;
   double best_rebuilt_E = current_rebuilt_E;
 
-  double step_radius =
-      std::max(1e-6, 0.03 * std::max(current_state.avg_r, 1e-8) *
-                         std::sqrt((double)count_active_sites(current_state)));
-  int stagnation_streak = 0;
-
-  std::vector<LBFGSPair> lbfgs_history;
-  const int lbfgs_memory = 5;
-  const double lbfgs_descent_eta = 1e-3;
-  const double alpha_clear_threshold = 0.05;
-  const int recovery_stag_trigger = 2;
-  const double recovery_min_step_ratio = 1e-3;
-
+  const double adam_lr_init = 0.02;
+  const double adam_beta1 = 0.9;
+  const double adam_beta2 = 0.999;
+  const double adam_eps = 1e-8;
+  const double adam_lr_decay = 0.98;
+  const double adam_lr_min = 1e-6;
+  const double step_cap_ratio = 0.05;
   const double outer_stop_tol = 1e-12;
-  const double c1 = 1e-4;
+  const int stagnation_patience = 8;
+
+  AdamState adam(3 * n);
+  int stagnation_streak = 0;
 
   for (int outer = 0; outer < _para.max_outer_iterations; ++outer) {
     const double iter_start = omp_get_wtime();
-    const double rebuild_time_before = total_rebuild_time;
+    const double rebuild_time_before = total_rebuild_non_rvd_time;
     const double rvd_time_before = total_rvd_time;
-    const double sample_time_before = total_sample_time;
-    const double line_search_time_before = total_line_search_time;
-    const double recovery_time_before = total_recovery_time;
     const double output_time_before = total_output_time;
 
     _sites = current_state.sites;
@@ -1057,14 +1068,20 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
 
       if (_para.is_show) {
         const double iter_time = wall_seconds_since(iter_start);
-        std::cout << "[QuadCoverLike][GS] iter=" << info.iteration
+        const double iter_rebuild_time =
+            total_rebuild_non_rvd_time - rebuild_time_before;
+        const double iter_rvd_time = total_rvd_time - rvd_time_before;
+        const double iter_output_time = total_output_time - output_time_before;
+        std::cout << "[QuadCoverLike][Adam] iter=" << info.iteration
                   << " | Quads=" << info.num_quads
                   << " | Act=" << info.active_quads
                   << " | E(rebuilt)=" << std::scientific
                   << std::setprecision(3) << current_rebuilt_E
                   << " | iterT=" << std::fixed << std::setprecision(3)
                   << iter_time << "s"
-                  << " | stepR=" << step_radius
+                  << " | rebuildT=" << iter_rebuild_time << "s"
+                  << " | rvdT=" << iter_rvd_time << "s"
+                  << " | outputT=" << iter_output_time << "s"
                   << " | STOP (Constraint Satisfied)" << std::endl;
       }
       break;
@@ -1081,380 +1098,65 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
     std::vector<char> opt_mask = expand_active_mask_one_ring(
         active_mask, current_state.rdt_faces, n, 1);
     if (!has_any_active(opt_mask)) opt_mask = make_all_active_mask(n);
-    const int active_site_count = std::max(1, count_active_mask(opt_mask));
 
-    Eigen::MatrixXd center_grad_mat = current_state.eval.grads;
-    zero_out_inactive_rows(center_grad_mat, opt_mask);
-    Eigen::VectorXd center_grad_vec = flatten_matrix(center_grad_mat);
+    Eigen::MatrixXd grad_mat = current_state.eval.grads;
+    zero_out_inactive_rows(grad_mat, opt_mask);
+    Eigen::VectorXd grad_vec = flatten_matrix(grad_mat);
+    const double grad_norm = grad_vec.norm();
 
-    const bool late_stage =
-        (current_state.eval.active_quads <= 96) ||
-        (active_site_count <= 192) ||
-        (current_rebuilt_E <= 1e-3 * std::max(initial_rebuilt_E, 1e-30));
+    const double lr = std::max(adam_lr_min,
+                               adam_lr_init * std::pow(adam_lr_decay, outer));
 
-    const int num_samples = 6;
-    const double sigma_base = std::max(
-        1e-6,
-        (late_stage ? 0.020 : 0.035) * std::max(current_state.avg_r, 1e-8) *
-            (1.0 + 0.15 * std::min(stagnation_streak, 8)));
+    adam.t += 1;
+    adam.m = adam_beta1 * adam.m + (1.0 - adam_beta1) * grad_vec;
+    adam.v = adam_beta2 * adam.v +
+             (1.0 - adam_beta2) * grad_vec.array().square().matrix();
 
-    std::vector<Eigen::VectorXd> gs_grads;
-    gs_grads.reserve(num_samples + 1);
-    gs_grads.push_back(center_grad_vec);
+    const double bias_c1 = 1.0 - std::pow(adam_beta1, adam.t);
+    const double bias_c2 = 1.0 - std::pow(adam_beta2, adam.t);
+    Eigen::VectorXd mhat = adam.m / std::max(bias_c1, 1e-16);
+    Eigen::VectorXd vhat = adam.v / std::max(bias_c2, 1e-16);
 
-    RebuiltState best_sample_state = current_state;
-    double best_sample_E = prev_E;
+    Eigen::VectorXd step_vec =
+        (-lr * mhat.array() / (vhat.array().sqrt() + adam_eps)).matrix();
+    Eigen::MatrixXd step_mat = unflatten_vector(step_vec, n);
+    zero_out_inactive_rows(step_mat, opt_mask);
 
-    std::vector<RebuiltState> sample_states(num_samples);
-    std::vector<Eigen::VectorXd> sample_grad_vecs(num_samples);
-    std::vector<double> sample_energies(
-        num_samples, std::numeric_limits<double>::infinity());
-
-    const double sample_start = omp_get_wtime();
-    #pragma omp parallel
-    {
-      _Restricted_Tessellation3D local_rvd(_model);
-      double local_rebuild_time = 0.0;
-      double local_rvd_time = 0.0;
-
-      #pragma omp for schedule(dynamic, 1)
-      for (int s = 0; s < num_samples; ++s) {
-        std::seed_seq seq{base_seed, static_cast<uint32_t>(outer + 1),
-                          static_cast<uint32_t>(s + 1), 0xA511E9B3u};
-        std::mt19937 local_rng(seq);
-
-        std::vector<_Point3> sample_sites = perturb_sites_for_next_proposal(
-            current_state.sites, current_state.surface_normals, opt_mask,
-            sigma_base, _model, local_rng);
-        RebuiltState sample_state = rebuild_state(
-            sample_sites, true, local_rvd, local_rebuild_time, local_rvd_time);
-
-        Eigen::MatrixXd gmat = sample_state.eval.grads;
-        zero_out_inactive_rows(gmat, opt_mask);
-        sample_grad_vecs[s] = flatten_matrix(gmat);
-        sample_energies[s] = rebuilt_energy(sample_state);
-        sample_states[s] = std::move(sample_state);
-      }
-
-      #pragma omp critical
-      {
-        total_rebuild_time += local_rebuild_time;
-        total_rvd_time += local_rvd_time;
-      }
-    }
-    total_sample_time += wall_seconds_since(sample_start);
-
-    for (int s = 0; s < num_samples; ++s) {
-      gs_grads.push_back(std::move(sample_grad_vecs[s]));
-      const double sample_E = sample_energies[s];
-      if (sample_E < best_sample_E ||
-          is_better_candidate(sample_states[s], best_sample_state, sample_E,
-                              best_sample_E)) {
-        best_sample_E = sample_E;
-        best_sample_state = std::move(sample_states[s]);
+    const double local_step_cap =
+        std::max(1e-6, step_cap_ratio * std::max(current_state.avg_r, 1e-8));
+    #pragma omp parallel for
+    for (int i = 0; i < step_mat.rows(); ++i) {
+      const double row_norm = step_mat.row(i).norm();
+      if (row_norm > local_step_cap && row_norm > 1e-16) {
+        step_mat.row(i) *= (local_step_cap / row_norm);
       }
     }
 
-    const Eigen::VectorXd lambda = solve_min_norm_convex_combination(
-        gs_grads, late_stage ? 192 : 96, 1e-10);
-    Eigen::VectorXd gs_grad_vec = convex_combine_gradients(gs_grads, lambda);
-    Eigen::MatrixXd gs_grad_mat = unflatten_vector(gs_grad_vec, n);
-    zero_out_inactive_rows(gs_grad_mat, opt_mask);
-    gs_grad_vec = flatten_matrix(gs_grad_mat);
+    std::vector<_Point3> trial_sites =
+        apply_projected_step(current_state.sites, step_mat, _model);
+    RebuiltState candidate_state = rebuild_state(
+        trial_sites, true, _RVD, total_rebuild_non_rvd_time, total_rvd_time);
+    const double cand_E = rebuilt_energy(candidate_state);
+    const Eigen::MatrixXd realized =
+        realized_step_matrix(current_state.sites, candidate_state.sites);
+    const double accepted_step = max_row_norm(realized);
 
-    const double stationarity = gs_grad_vec.norm();
-    bool used_lbfgs_metric = false;
-    Eigen::VectorXd dir_vec = -gs_grad_vec;
-    if (!lbfgs_history.empty() && stationarity > 1e-14) {
-      Eigen::VectorXd metric_dir = lbfgs_two_loop_direction(gs_grad_vec, lbfgs_history);
-      Eigen::MatrixXd metric_dir_mat = unflatten_vector(metric_dir, n);
-      zero_out_inactive_rows(metric_dir_mat, opt_mask);
-      metric_dir = flatten_matrix(metric_dir_mat);
+    const bool improved =
+        (cand_E < prev_E - std::max(1e-10, 1e-4 * std::max(prev_E, 1e-12))) ||
+        (candidate_state.eval.active_quads < prev_active_quads) ||
+        (candidate_state.eval.min_g > prev_min_g + 1e-10);
 
-      const double metric_norm = metric_dir.norm();
-      const double metric_dirderiv = gs_grad_vec.dot(metric_dir);
-      if (std::isfinite(metric_norm) && metric_norm > 1e-14 &&
-          std::isfinite(metric_dirderiv) &&
-          metric_dirderiv <= -lbfgs_descent_eta * gs_grad_vec.squaredNorm()) {
-        dir_vec = metric_dir;
-        used_lbfgs_metric = true;
-      }
+    current_state = std::move(candidate_state);
+    current_rebuilt_E = cand_E;
+    _sites = current_state.sites;
+
+    if (current_rebuilt_E < best_rebuilt_E) {
+      best_rebuilt_E = current_rebuilt_E;
+      best_sites = current_state.sites;
     }
 
-    Eigen::MatrixXd dir_mat = unflatten_vector(dir_vec, n);
-    zero_out_inactive_rows(dir_mat, opt_mask);
-    dir_vec = flatten_matrix(dir_mat);
-    const double dir_norm = dir_vec.norm();
-
-    bool accepted = false;
-    bool accepted_sample = false;
-    bool forced_accept_clear = false;
-    bool recovery_accept = false;
-    double accepted_step = 0.0;
-    double alpha_used = 0.0;
-    double last_alpha_tried = 0.0;
-    bool memory_cleared = false;
-    RebuiltState candidate_state = current_state;
-    double cand_E = prev_E;
-
-    const double improve_E_tol =
-        std::max(1e-8, 1e-4 * std::max(prev_E, 1e-12));
-    const double improve_g_tol =
-        std::max(1e-6, 5e-3 * std::max(std::abs(prev_min_g), 1e-3));
-
-    const double local_step_min =
-        std::max(1e-12, 1e-4 * std::max(current_state.avg_r, 1e-12));
-    const double local_step_max = std::max(
-        local_step_min * 10.0,
-        0.10 * std::max(current_state.avg_r, 1e-12) *
-            std::sqrt((double)std::max(1, n)));
-    step_radius = std::min(local_step_max, std::max(local_step_min, step_radius));
-
-    if (stationarity > 1e-14 && dir_norm > 1e-14) {
-      const double line_search_start = omp_get_wtime();
-      double alpha = std::min(1.0, step_radius / std::max(dir_norm, 1e-16));
-      const int max_backtracking = late_stage ? 12 : 10;
-
-      for (int bt = 0; bt < max_backtracking; ++bt) {
-        last_alpha_tried = alpha;
-        Eigen::MatrixXd proposed_step = alpha * dir_mat;
-        std::vector<_Point3> trial_sites =
-            apply_projected_step(current_state.sites, proposed_step, _model);
-        Eigen::MatrixXd realized =
-            realized_step_matrix(current_state.sites, trial_sites);
-        zero_out_inactive_rows(realized, opt_mask);
-        Eigen::VectorXd realized_vec = flatten_matrix(realized);
-        const double realized_norm = realized_vec.norm();
-        if (!(realized_norm > 1e-16)) {
-          alpha *= 0.5;
-          continue;
-        }
-
-        const double dirderiv = gs_grad_vec.dot(realized_vec);
-        if (!(dirderiv < -1e-18)) {
-          alpha *= 0.5;
-          continue;
-        }
-
-        RebuiltState trial_state = rebuild_state(
-            trial_sites, false, _RVD, total_rebuild_time, total_rvd_time);
-        const double trial_E = rebuilt_energy(trial_state);
-        const double armijo_rhs = prev_E + c1 * dirderiv;
-
-        if (trial_E <= armijo_rhs + 1e-14 ||
-            trial_E < prev_E - std::max(1e-8, 1e-4 * std::max(prev_E, 1e-12))) {
-          accepted = true;
-          candidate_state = rebuild_state(
-              trial_sites, true, _RVD, total_rebuild_time, total_rvd_time);
-          cand_E = rebuilt_energy(candidate_state);
-          accepted_step = max_row_norm(realized_step_matrix(current_state.sites,
-                                                            candidate_state.sites));
-          alpha_used = alpha;
-          break;
-        }
-        alpha *= 0.5;
-      }
-      total_line_search_time += wall_seconds_since(line_search_start);
-    }
-
-    if (!accepted && best_sample_E < prev_E) {
-      accepted = true;
-      accepted_sample = true;
-      candidate_state = std::move(best_sample_state);
-      cand_E = best_sample_E;
-      accepted_step = max_row_norm(
-          realized_step_matrix(current_state.sites, candidate_state.sites));
-      alpha_used = 0.0;
-    }
-
-    const bool provisional_improved = accepted &&
-        (cand_E < prev_E - improve_E_tol ||
-         candidate_state.eval.active_quads < prev_active_quads ||
-         candidate_state.eval.min_g > prev_min_g + improve_g_tol);
-    const bool tiny_motion_stall = accepted && !accepted_sample &&
-        accepted_step <= recovery_min_step_ratio * std::max(step_radius, 1e-16) &&
-        !provisional_improved;
-    const bool should_try_recovery =
-        ((!accepted && last_alpha_tried > 0.0 && last_alpha_tried < alpha_clear_threshold) ||
-         (stagnation_streak >= recovery_stag_trigger && (!accepted || tiny_motion_stall)));
-
-    if (should_try_recovery) {
-      const double recovery_start = omp_get_wtime();
-      lbfgs_history.clear();
-      memory_cleared = true;
-
-      const int rescue_samples = late_stage ? 6 : 4;
-      double rescue_sigma = std::max(
-          2.5 * sigma_base,
-          0.05 * std::max(current_state.avg_r, 1e-8) *
-              (1.0 + 0.20 * std::min(stagnation_streak, 10)));
-
-      auto recovery_admissible = [&](const RebuiltState &cand, double cand_eval_E) {
-        const bool act_better = cand.eval.active_quads < prev_active_quads;
-        const bool margin_better = cand.eval.min_g > prev_min_g + improve_g_tol;
-        const bool energy_better = cand_eval_E < prev_E - improve_E_tol;
-        const bool all_worse =
-            (cand.eval.active_quads > prev_active_quads) &&
-            (cand.eval.min_g < prev_min_g - improve_g_tol) &&
-            (cand_eval_E > prev_E + improve_E_tol);
-        return !all_worse && (act_better || margin_better || energy_better);
-      };
-
-      auto better_recovery = [&](const RebuiltState &cand, double cand_eval_E,
-                                 const RebuiltState &ref, double ref_eval_E) {
-        if (cand.eval.active_quads != ref.eval.active_quads) {
-          return cand.eval.active_quads < ref.eval.active_quads;
-        }
-        if (std::abs(cand.eval.min_g - ref.eval.min_g) > improve_g_tol) {
-          return cand.eval.min_g > ref.eval.min_g;
-        }
-        return cand_eval_E < ref_eval_E - improve_E_tol;
-      };
-
-      RebuiltState best_recovery_state = current_state;
-      double best_recovery_E = prev_E;
-      bool found_recovery = false;
-
-      for (int pass = 0; pass < 1; ++pass) {
-        std::vector<RebuiltState> recovery_states(rescue_samples);
-        std::vector<double> recovery_energies(
-            rescue_samples, std::numeric_limits<double>::infinity());
-        std::vector<char> recovery_valid(rescue_samples, 0);
-
-        #pragma omp parallel
-        {
-          _Restricted_Tessellation3D local_rvd(_model);
-          double local_rebuild_time = 0.0;
-          double local_rvd_time = 0.0;
-
-          #pragma omp for schedule(dynamic, 1)
-          for (int s = 0; s < rescue_samples; ++s) {
-            std::seed_seq seq{base_seed, static_cast<uint32_t>(outer + 1),
-                              static_cast<uint32_t>(pass + 1),
-                              static_cast<uint32_t>(s + 1), 0x85EBCA6Bu};
-            std::mt19937 local_rng(seq);
-
-            std::vector<_Point3> sample_sites = perturb_sites_for_next_proposal(
-                current_state.sites, current_state.surface_normals, opt_mask,
-                rescue_sigma, _model, local_rng);
-            Eigen::MatrixXd realized =
-                realized_step_matrix(current_state.sites, sample_sites);
-            zero_out_inactive_rows(realized, opt_mask);
-            const double realized_step = max_row_norm(realized);
-            if (!(realized_step > 1e-10)) continue;
-
-            RebuiltState sample_state = rebuild_state(
-                sample_sites, false, local_rvd, local_rebuild_time, local_rvd_time);
-            const double sample_E = rebuilt_energy(sample_state);
-            if (!recovery_admissible(sample_state, sample_E)) continue;
-
-            recovery_valid[s] = 1;
-            recovery_energies[s] = sample_E;
-            recovery_states[s] = std::move(sample_state);
-          }
-
-          #pragma omp critical
-          {
-            total_rebuild_time += local_rebuild_time;
-            total_rvd_time += local_rvd_time;
-          }
-        }
-
-        for (int s = 0; s < rescue_samples; ++s) {
-          if (!recovery_valid[s]) continue;
-          const double sample_E = recovery_energies[s];
-          if (!found_recovery ||
-              better_recovery(recovery_states[s], sample_E, best_recovery_state,
-                              best_recovery_E)) {
-            best_recovery_state = std::move(recovery_states[s]);
-            best_recovery_E = sample_E;
-            found_recovery = true;
-          }
-        }
-        if (found_recovery) break;
-        rescue_sigma *= 2.0;
-      }
-
-      if (found_recovery) {
-        accepted = true;
-        accepted_sample = true;
-        forced_accept_clear = true;
-        recovery_accept = true;
-        candidate_state = rebuild_state(
-            best_recovery_state.sites, true, _RVD, total_rebuild_time,
-            total_rvd_time);
-        cand_E = rebuilt_energy(candidate_state);
-        accepted_step = max_row_norm(
-            realized_step_matrix(current_state.sites, candidate_state.sites));
-        alpha_used = 0.0;
-      }
-      total_recovery_time += wall_seconds_since(recovery_start);
-    }
-
-    if (accepted) {
-      std::vector<char> next_active_mask = build_active_site_mask(
-          candidate_state.sites, candidate_state.frozen_poles,
-          candidate_state.search_quads, candidate_state.eps);
-      std::vector<char> next_opt_mask = expand_active_mask_one_ring(
-          next_active_mask, candidate_state.rdt_faces, n, 1);
-      if (!has_any_active(next_opt_mask)) next_opt_mask = make_all_active_mask(n);
-
-      std::vector<char> hist_mask(n, 0);
-      for (int i = 0; i < n; ++i) {
-        hist_mask[i] = (opt_mask[i] != 0 || next_opt_mask[i] != 0) ? 1 : 0;
-      }
-
-      Eigen::MatrixXd prev_hist_grad = current_state.eval.grads;
-      Eigen::MatrixXd next_hist_grad = candidate_state.eval.grads;
-      zero_out_inactive_rows(prev_hist_grad, hist_mask);
-      zero_out_inactive_rows(next_hist_grad, hist_mask);
-
-      Eigen::MatrixXd s_mat =
-          realized_step_matrix(current_state.sites, candidate_state.sites);
-      zero_out_inactive_rows(s_mat, hist_mask);
-
-      const Eigen::VectorXd s_vec = flatten_matrix(s_mat);
-      const Eigen::VectorXd y_vec =
-          flatten_matrix(next_hist_grad) - flatten_matrix(prev_hist_grad);
-      if (!forced_accept_clear && s_vec.norm() > 1e-16) {
-        push_lbfgs_pair(lbfgs_history, s_vec, y_vec, lbfgs_memory);
-      }
-
-      current_state = std::move(candidate_state);
-      current_rebuilt_E = cand_E;
-      _sites = current_state.sites;
-      if (current_rebuilt_E < best_rebuilt_E) {
-        best_rebuilt_E = current_rebuilt_E;
-        best_sites = current_state.sites;
-      }
-
-      if (recovery_accept && accepted_step > 0.0) {
-        step_radius = std::min(local_step_max,
-                               std::max(1.10 * step_radius, 1.75 * accepted_step));
-      } else if (!accepted_sample && alpha_used >= 0.8 && accepted_step >= 0.8 * step_radius) {
-        step_radius = std::min(local_step_max,
-                               std::max(1.35 * step_radius, 1.25 * accepted_step));
-      } else if (accepted_step > 0.0) {
-        step_radius = std::min(local_step_max,
-                               std::max(0.95 * step_radius, 1.50 * accepted_step));
-      }
-    } else {
-      current_rebuilt_E = prev_E;
-      step_radius = std::max(local_step_min, 0.5 * step_radius);
-    }
-
-    const bool improved = accepted &&
-        (cand_E < prev_E - improve_E_tol ||
-         current_state.eval.active_quads < prev_active_quads ||
-         current_state.eval.min_g > prev_min_g + improve_g_tol);
     if (improved) stagnation_streak = 0;
     else ++stagnation_streak;
-
-    if (accepted && !accepted_sample && !forced_accept_clear && !improved &&
-        alpha_used > 0.0 && alpha_used < alpha_clear_threshold) {
-      lbfgs_history.clear();
-      memory_cleared = true;
-    }
 
     _quads.clear();
     for (const auto &q : current_state.search_quads) _quads.push_back({q});
@@ -1464,20 +1166,16 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
     info.num_quads = (int)current_state.search_quads.size();
     info.active_quads = current_state.eval.active_quads;
     info.min_margin = current_state.eval.min_g;
-    info.accepted_step = accepted ? accepted_step : 0.0;
+    info.accepted_step = accepted_step;
     _history.push_back(info);
 
     if (_para.is_show) {
       const double iter_time = wall_seconds_since(iter_start);
-      const double iter_rebuild_time = total_rebuild_time - rebuild_time_before;
+      const double iter_rebuild_time =
+          total_rebuild_non_rvd_time - rebuild_time_before;
       const double iter_rvd_time = total_rvd_time - rvd_time_before;
-      const double iter_sample_time = total_sample_time - sample_time_before;
-      const double iter_line_search_time =
-          total_line_search_time - line_search_time_before;
-      const double iter_recovery_time =
-          total_recovery_time - recovery_time_before;
       const double iter_output_time = total_output_time - output_time_before;
-      std::cout << "[QuadCoverLike][GS] iter=" << info.iteration
+      std::cout << "[QuadCoverLike][Adam] iter=" << info.iteration
                 << " | Quads(prev/curr)=" << prev_num_quads << "/"
                 << info.num_quads
                 << " | Act(prev/curr)=" << prev_active_quads << "/"
@@ -1486,32 +1184,22 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
                 << prev_E << " -> " << current_rebuilt_E
                 << " | min_g(prev/curr)=" << prev_min_g << "/"
                 << info.min_margin
-                << " | samples=" << num_samples
-                << " | sigma=" << sigma_base
-                << " | ||g_GS||=" << stationarity
-                << " | ||d||=" << dir_norm
-                << " | metric=" << (used_lbfgs_metric ? "LBFGS" : "GS")
-                << " | mem=" << lbfgs_history.size()
-                << " | memReset=" << (memory_cleared ? 1 : 0)
+                << " | lr=" << lr
+                << " | ||g||=" << grad_norm
                 << " | step=" << accepted_step
-                << " | alpha=" << alpha_used
-                << " | sampleAccept=" << (accepted_sample ? 1 : 0)
-                << " | recoverAccept=" << (recovery_accept ? 1 : 0)
                 << " | stag=" << stagnation_streak
                 << " | iterT=" << std::fixed << std::setprecision(3)
                 << iter_time << "s"
                 << " | rebuildT=" << iter_rebuild_time << "s"
                 << " | rvdT=" << iter_rvd_time << "s"
-                << " | sampleT=" << iter_sample_time << "s"
-                << " | lineT=" << iter_line_search_time << "s"
-                << " | recoverT=" << iter_recovery_time << "s"
                 << " | outputT=" << iter_output_time << "s"
-                << " | stepR=" << step_radius
-                << " | " << (accepted ? "ACCEPT" : "REJECT")
                 << std::endl;
     }
-  }
 
+    if (stagnation_streak >= stagnation_patience && grad_norm < 1e-10) {
+      break;
+    }
+  }
   _sites = best_sites;
   const double final_rvd_start = omp_get_wtime();
   _RVD.calculate_(_sites);
@@ -1528,13 +1216,15 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
   if (_para.is_show) {
     const double total_time = wall_seconds_since(total_start);
     std::cout << "\n--- QuadCover Finished ---\n"
-              << "Total Time: " << std::fixed << std::setprecision(3)
+              << "Total Wall Time: " << std::fixed << std::setprecision(3)
               << total_time << " s\n"
-              << "Rebuild State Time: " << total_rebuild_time << " s\n"
+              << "Rebuild Time (non-RVD): " << total_rebuild_non_rvd_time
+              << " s\n"
               << "RVD Calculation Time: " << total_rvd_time << " s\n"
-              << "Gradient Sampling Time: " << total_sample_time << " s\n"
+              << "Sample Phase Time: " << total_sample_phase_time << " s\n"
               << "Line Search Time: " << total_line_search_time << " s\n"
-              << "Recovery Search Time: " << total_recovery_time << " s\n"
+              << "Recovery Phase Time: " << total_recovery_phase_time
+              << " s\n"
               << "Output Time: " << total_output_time << " s\n"
               << std::endl;
   }
