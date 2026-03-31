@@ -1,5 +1,28 @@
 cmake_minimum_required(VERSION 3.17)
+
+if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
+  set(CMAKE_TOOLCHAIN_FILE
+      "/home/yiming/.vcpkg-clion/vcpkg/scripts/buildsystems/vcpkg.cmake"
+      CACHE PATH "Vcpkg toolchain file")
+endif()
+
 project(BGAL VERSION 1.0 LANGUAGES CXX)
+
+# ---------- Torch 路径 ----------
+set(BGAL_TORCH_ROOT "$ENV{HOME}/libtorch" CACHE PATH "Path to standalone libtorch")
+if(EXISTS "${BGAL_TORCH_ROOT}/share/cmake/Torch/TorchConfig.cmake")
+  unset(TORCH_LIBRARY CACHE)
+  unset(c10_LIBRARY CACHE)
+  unset(Torch_FOUND CACHE)
+  unset(Caffe2_FOUND CACHE)
+  set(MKL_INCLUDE_DIR "${BGAL_TORCH_ROOT}/include" CACHE PATH "Fallback MKL include directory for standalone libtorch" FORCE)
+  set(MKL_ROOT "${BGAL_TORCH_ROOT}" CACHE PATH "Fallback MKL root for standalone libtorch" FORCE)
+  list(PREPEND CMAKE_PREFIX_PATH "${BGAL_TORCH_ROOT}")
+  set(Caffe2_DIR "${BGAL_TORCH_ROOT}/share/cmake/Caffe2" CACHE PATH "Caffe2Config directory" FORCE)
+  set(Torch_DIR "${BGAL_TORCH_ROOT}/share/cmake/Torch" CACHE PATH "TorchConfig directory" FORCE)
+  set(TORCH_LIBRARY "${BGAL_TORCH_ROOT}/lib/libtorch.so" CACHE FILEPATH "Torch shared library" FORCE)
+  set(c10_LIBRARY "${BGAL_TORCH_ROOT}/lib/libc10.so" CACHE FILEPATH "c10 shared library" FORCE)
+endif()
 
 # ---------- 编译选项 ----------
 if(NOT CMAKE_BUILD_TYPE)
@@ -12,6 +35,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(VERSION ${PROJECT_VERSION})
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+list(APPEND CMAKE_BUILD_RPATH "${BGAL_TORCH_ROOT}/lib")
 
 # 统一输出目录（四种配置）
 foreach(conf IN ITEMS Debug Release RelWithDebInfo MinSizeRel)

@@ -1,5 +1,6 @@
 #include <filesystem>
 #include <iostream>
+#include <string>
 #include <vector>
 
 #include <igl/readOBJ.h>
@@ -20,19 +21,103 @@ static std::filesystem::path guess_data_root(const std::filesystem::path &exe_pa
   return {};
 }
 
+struct CliOptions {
+  std::filesystem::path workdir;
+  std::string model = "block";
+  std::filesystem::path input_obj;
+  bool show_help = false;
+};
+
+static void print_usage(const char *exe_name) {
+  std::cout
+      << "Usage:\n"
+      << "  " << exe_name
+      << " [--workdir DIR] [--model NAME] [--input FILE]\n\n"
+      << "Options:\n"
+      << "  --workdir DIR   Change working directory before resolving paths.\n"
+      << "  --model NAME    Use data/NAME.obj as the target surface. Default: block\n"
+      << "  --input FILE    Use FILE as the initialization OBJ.\n"
+      << "  -h, --help      Show this help message.\n\n"
+      << "Legacy positional form is still supported:\n"
+      << "  " << exe_name << " [workdir] [model] [input_obj]\n";
+}
+
+static bool parse_args(int argc, char **argv, CliOptions &opts) {
+  std::vector<std::string> positional;
+
+  for (int i = 1; i < argc; ++i) {
+    const std::string arg = argv[i];
+    auto need_value = [&](const char *flag) -> const char * {
+      if (i + 1 >= argc) {
+        std::cerr << "Error: missing value for " << flag << "\n";
+        return nullptr;
+      }
+      return argv[++i];
+    };
+
+    if (arg == "-h" || arg == "--help") {
+      opts.show_help = true;
+      return true;
+    }
+    if (arg == "--workdir") {
+      const char *value = need_value("--workdir");
+      if (!value) return false;
+      opts.workdir = value;
+      continue;
+    }
+    if (arg == "--model") {
+      const char *value = need_value("--model");
+      if (!value) return false;
+      opts.model = value;
+      continue;
+    }
+    if (arg == "--input") {
+      const char *value = need_value("--input");
+      if (!value) return false;
+      opts.input_obj = value;
+      continue;
+    }
+    if (!arg.empty() && arg[0] == '-') {
+      std::cerr << "Error: unknown option " << arg << "\n";
+      return false;
+    }
+    positional.push_back(arg);
+  }
+
+  if (positional.size() > 3) {
+    std::cerr << "Error: too many positional arguments.\n";
+    return false;
+  }
+  if (!positional.empty() && opts.workdir.empty()) opts.workdir = positional[0];
+  if (positional.size() >= 2 && opts.model == "block") opts.model = positional[1];
+  if (positional.size() >= 3 && opts.input_obj.empty()) opts.input_obj = positional[2];
+  return true;
+}
+
 int main(int argc, char **argv) {
   namespace fs = std::filesystem;
 
-  std::string model = (argc >= 3) ? argv[2] : "block";
-  fs::path input_obj_override = (argc >= 4) ? fs::path(argv[3]) : fs::path();
+  CliOptions options;
+  if (!parse_args(argc, argv, options)) {
+    print_usage((argc > 0) ? argv[0] : "quadcover_main");
+    return 1;
+  }
+  if (options.show_help) {
+    print_usage((argc > 0) ? argv[0] : "quadcover_main");
+    return 0;
+  }
 
-  if (argc >= 2) {
+  if (!options.workdir.empty()) {
     std::error_code ec;
-    fs::current_path(fs::path(argv[1]), ec);
+    fs::current_path(options.workdir, ec);
     if (ec) {
-      std::cerr << "Warning: failed to chdir to " << argv[1] << " (" << ec.message() << ")\n";
+      std::cerr << "Warning: failed to chdir to " << options.workdir
+                << " (" << ec.message() << ")\n";
     }
   }
+
+  const std::string &model = options.model;
+  fs::path input_obj_override = options.input_obj;
 
   fs::path data_root = guess_data_root((argc > 0) ? fs::path(argv[0]) : fs::path());
   if (data_root.empty()) {
@@ -89,7 +174,7 @@ int main(int argc, char **argv) {
   BGAL::_QuadCover3D::_Parameter para;
   para.is_show = true;
   para.export_each_iteration = true;
-  para.max_outer_iterations = 500;
+  para.max_outer_iterations = 800;
   para.max_line_search = 10;
   para.active_eps = 1e-8;
   para.step_cap_scale = 0.02;

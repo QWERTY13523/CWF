@@ -6,10 +6,12 @@
 #include <CGAL/Fuzzy_sphere.h>
 
 #include <Eigen/Dense>
+#include <torch/torch.h>
 
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <deque>
 #include <filesystem>
 #include <fstream>
 #include <functional>
@@ -75,17 +77,6 @@ struct LBFGSPair {
   double rho = 0.0;
 };
 
-struct AdamState {
-  Eigen::VectorXd m;
-  Eigen::VectorXd v;
-  int t = 0;
-
-  explicit AdamState(int dim = 0)
-      : m(Eigen::VectorXd::Zero(dim)),
-        v(Eigen::VectorXd::Zero(dim)),
-        t(0) {}
-};
-
 static inline Eigen::VectorXd flatten_matrix(const Eigen::MatrixXd &M) {
   Eigen::VectorXd x(M.rows() * 3);
   // Flattening is fast, but we can parallelize if sizes are huge
@@ -122,6 +113,69 @@ static inline Eigen::MatrixXd unflatten_vector(const Eigen::VectorXd &x, int n) 
     M.row(i) = x.segment<3>(3 * i).transpose();
   }
   return M;
+}
+
+static inline Eigen::MatrixXd sites_to_matrix(const std::vector<_Point3> &sites) {
+  Eigen::MatrixXd M((int)sites.size(), 3);
+  #pragma omp parallel for
+  for (int i = 0; i < (int)sites.size(); ++i) {
+    M(i, 0) = sites[i].x();
+    M(i, 1) = sites[i].y();
+    M(i, 2) = sites[i].z();
+  }
+  return M;
+}
+
+static inline torch::Tensor sites_to_tensor(const std::vector<_Point3> &sites,
+                                            torch::Device device = torch::kCPU) {
+  auto t = torch::empty({(long long)sites.size(), 3},
+                        torch::TensorOptions().dtype(torch::kFloat64).device(device));
+  auto acc = t.accessor<double, 2>();
+  for (int i = 0; i < (int)sites.size(); ++i) {
+    acc[i][0] = sites[i].x();
+    acc[i][1] = sites[i].y();
+    acc[i][2] = sites[i].z();
+  }
+  return t;
+}
+
+static inline torch::Tensor eigen_matrix_to_tensor(const Eigen::MatrixXd &M,
+                                                   torch::Device device = torch::kCPU) {
+  auto t = torch::empty({(long long)M.rows(), (long long)M.cols()},
+                        torch::TensorOptions().dtype(torch::kFloat64).device(device));
+  auto acc = t.accessor<double, 2>();
+  for (int i = 0; i < M.rows(); ++i) {
+    for (int j = 0; j < M.cols(); ++j) {
+      acc[i][j] = M(i, j);
+    }
+  }
+  return t;
+}
+
+static inline Eigen::MatrixXd tensor_to_matrix(const torch::Tensor &tensor_in) {
+  torch::Tensor t = tensor_in.detach().to(torch::kCPU).contiguous();
+  TORCH_CHECK(t.dim() == 2 && t.size(1) == 3, "tensor_to_matrix expects shape [N,3]");
+  Eigen::MatrixXd M((int)t.size(0), 3);
+  auto acc = t.accessor<double, 2>();
+  #pragma omp parallel for
+  for (int i = 0; i < (int)t.size(0); ++i) {
+    M(i, 0) = acc[i][0];
+    M(i, 1) = acc[i][1];
+    M(i, 2) = acc[i][2];
+  }
+  return M;
+}
+
+static inline double get_adam_lr(torch::optim::Adam &optimizer) {
+  auto &options =
+      static_cast<torch::optim::AdamOptions &>(optimizer.param_groups()[0].options());
+  return options.lr();
+}
+
+static inline void set_adam_lr(torch::optim::Adam &optimizer, double lr) {
+  auto &options =
+      static_cast<torch::optim::AdamOptions &>(optimizer.param_groups()[0].options());
+  options.lr(lr);
 }
 
 static inline double max_row_norm(const Eigen::MatrixXd &M) {
@@ -927,9 +981,7 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
 
   double total_rebuild_non_rvd_time = 0.0;
   double total_rvd_time = 0.0;
-  double total_sample_phase_time = 0.0;
-  double total_line_search_time = 0.0;
-  double total_recovery_phase_time = 0.0;
+  double total_adam_time = 0.0;
   double total_output_time = 0.0;
 
   struct RebuiltState {
@@ -1005,13 +1057,16 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
                                  const RebuiltState &ref,
                                  double cand_E,
                                  double ref_E) -> bool {
+    if (std::abs(cand_E - ref_E) > 1e-15) {
+      return cand_E < ref_E;
+    }
     if (cand.eval.active_quads != ref.eval.active_quads) {
       return cand.eval.active_quads < ref.eval.active_quads;
     }
     if (std::abs(cand.eval.min_g - ref.eval.min_g) > 1e-15) {
       return cand.eval.min_g > ref.eval.min_g;
     }
-    return cand_E < ref_E;
+    return false;
   };
 
   RebuiltState current_state = rebuild_state(
@@ -1021,24 +1076,123 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
 
   std::vector<_Point3> best_sites = current_state.sites;
   double best_rebuilt_E = current_rebuilt_E;
+  int best_active_quads = current_state.eval.active_quads;
+  double best_min_g = current_state.eval.min_g;
 
-  const double adam_lr_init = 0.02;
+  auto update_best_state = [&](const RebuiltState &state, double state_E) {
+    const bool better =
+        (state_E < best_rebuilt_E - 1e-15) ||
+        (std::abs(state_E - best_rebuilt_E) <= 1e-15 &&
+         state.eval.active_quads < best_active_quads) ||
+        (std::abs(state_E - best_rebuilt_E) <= 1e-15 &&
+         state.eval.active_quads == best_active_quads &&
+         state.eval.min_g > best_min_g + 1e-15);
+    if (better) {
+      best_sites = state.sites;
+      best_rebuilt_E = state_E;
+      best_active_quads = state.eval.active_quads;
+      best_min_g = state.eval.min_g;
+    }
+  };
+
+  const double adam_lr_init = 4e-4;
   const double adam_beta1 = 0.9;
   const double adam_beta2 = 0.999;
   const double adam_eps = 1e-8;
-  const double adam_lr_decay = 0.98;
   const double adam_lr_min = 1e-6;
-  const double step_cap_ratio = 0.05;
+  const double adam_lr_reduce_factor = 0.5;
+  const int adam_lr_plateau_patience = 2;
+  const int adam_lr_plateau_cooldown = 1;
+  const double adam_lr_plateau_rel_tol = 5e-3;
+  const int adam_lr_recent_best_window = 5;
   const double outer_stop_tol = 1e-12;
-  const int stagnation_patience = 8;
+  const int stagnation_patience = 4;
+  const int stagnation_hard_patience = 2 * stagnation_patience;
+  const double stagnation_perturb_ratio = 0.01;
+  const double stagnation_lr_trigger = 5e-2 * adam_lr_init;
+  const double stagnation_prop_trigger = 1.0;
+  const double perturb_scale_cap = 8.0;
+  const int log_value_precision = 6;
+  const int log_time_precision = 3;
 
-  AdamState adam(3 * n);
+  torch::Device optim_device(torch::kCPU);
+  std::mt19937 perturb_rng(123456789u);
+
+  torch::Tensor site_param =
+      sites_to_tensor(current_state.sites, optim_device).clone().detach();
+  site_param.set_requires_grad(true);
+
+  torch::optim::Adam optimizer(
+      std::vector<torch::Tensor>{site_param},
+      torch::optim::AdamOptions(adam_lr_init)
+          .betas(std::make_tuple(adam_beta1, adam_beta2))
+          .eps(adam_eps));
+
+  std::deque<double> recent_lr_metrics;
+  int lr_bad_epochs = 0;
+  int lr_cooldown_counter = 0;
+
+  auto reset_recent_lr_scheduler = [&](double seed_metric) {
+    recent_lr_metrics.clear();
+    recent_lr_metrics.push_back(seed_metric);
+    lr_bad_epochs = 0;
+    lr_cooldown_counter = 0;
+  };
+
+  auto step_recent_lr_scheduler = [&](double metric) -> bool {
+    bool improved_for_scheduler = true;
+    if (!recent_lr_metrics.empty()) {
+      const double recent_best =
+          *std::min_element(recent_lr_metrics.begin(), recent_lr_metrics.end());
+      improved_for_scheduler =
+          metric < recent_best * (1.0 - adam_lr_plateau_rel_tol);
+    }
+
+    if (lr_cooldown_counter > 0) {
+      --lr_cooldown_counter;
+      lr_bad_epochs = 0;
+    }
+
+    if (improved_for_scheduler) {
+      lr_bad_epochs = 0;
+    } else if (lr_cooldown_counter == 0) {
+      ++lr_bad_epochs;
+    }
+
+    recent_lr_metrics.push_back(metric);
+    while ((int)recent_lr_metrics.size() > adam_lr_recent_best_window) {
+      recent_lr_metrics.pop_front();
+    }
+
+    if (lr_bad_epochs > adam_lr_plateau_patience) {
+      const double old_lr = get_adam_lr(optimizer);
+      const double new_lr =
+          std::max(adam_lr_min, old_lr * adam_lr_reduce_factor);
+      if (new_lr < old_lr - 1e-18) {
+        set_adam_lr(optimizer, new_lr);
+        lr_cooldown_counter = adam_lr_plateau_cooldown;
+        lr_bad_epochs = 0;
+        return true;
+      }
+      lr_bad_epochs = 0;
+    }
+    return false;
+  };
+
+  reset_recent_lr_scheduler(current_rebuilt_E);
+
+  double proposal_scale = 1.0;
+  const double proposal_scale_min = 1e-3;
+  const double proposal_scale_max = 4.0;
+  const double proposal_grow = 1.10;
+
   int stagnation_streak = 0;
 
   for (int outer = 0; outer < _para.max_outer_iterations; ++outer) {
     const double iter_start = omp_get_wtime();
     const double rebuild_time_before = total_rebuild_non_rvd_time;
     const double rvd_time_before = total_rvd_time;
+    const double adam_time_before = total_adam_time;
     const double output_time_before = total_output_time;
 
     _sites = current_state.sites;
@@ -1075,9 +1229,9 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
         std::cout << "[QuadCoverLike][Adam] iter=" << info.iteration
                   << " | Quads=" << info.num_quads
                   << " | Act=" << info.active_quads
-                  << " | E(rebuilt)=" << std::scientific
-                  << std::setprecision(3) << current_rebuilt_E
-                  << " | iterT=" << std::fixed << std::setprecision(3)
+                  << " | E(curr)=" << std::scientific
+                  << std::setprecision(log_value_precision) << current_rebuilt_E
+                  << " | iterT=" << std::fixed << std::setprecision(log_time_precision)
                   << iter_time << "s"
                   << " | rebuildT=" << iter_rebuild_time << "s"
                   << " | rvdT=" << iter_rvd_time << "s"
@@ -1098,39 +1252,31 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
     std::vector<char> opt_mask = expand_active_mask_one_ring(
         active_mask, current_state.rdt_faces, n, 1);
     if (!has_any_active(opt_mask)) opt_mask = make_all_active_mask(n);
+    const int active_site_count = std::max(1, count_active_mask(opt_mask));
 
     Eigen::MatrixXd grad_mat = current_state.eval.grads;
     zero_out_inactive_rows(grad_mat, opt_mask);
     Eigen::VectorXd grad_vec = flatten_matrix(grad_mat);
     const double grad_norm = grad_vec.norm();
 
-    const double lr = std::max(adam_lr_min,
-                               adam_lr_init * std::pow(adam_lr_decay, outer));
+    const double lr = get_adam_lr(optimizer);
 
-    adam.t += 1;
-    adam.m = adam_beta1 * adam.m + (1.0 - adam_beta1) * grad_vec;
-    adam.v = adam_beta2 * adam.v +
-             (1.0 - adam_beta2) * grad_vec.array().square().matrix();
-
-    const double bias_c1 = 1.0 - std::pow(adam_beta1, adam.t);
-    const double bias_c2 = 1.0 - std::pow(adam_beta2, adam.t);
-    Eigen::VectorXd mhat = adam.m / std::max(bias_c1, 1e-16);
-    Eigen::VectorXd vhat = adam.v / std::max(bias_c2, 1e-16);
-
-    Eigen::VectorXd step_vec =
-        (-lr * mhat.array() / (vhat.array().sqrt() + adam_eps)).matrix();
-    Eigen::MatrixXd step_mat = unflatten_vector(step_vec, n);
-    zero_out_inactive_rows(step_mat, opt_mask);
-
-    const double local_step_cap =
-        std::max(1e-6, step_cap_ratio * std::max(current_state.avg_r, 1e-8));
-    #pragma omp parallel for
-    for (int i = 0; i < step_mat.rows(); ++i) {
-      const double row_norm = step_mat.row(i).norm();
-      if (row_norm > local_step_cap && row_norm > 1e-16) {
-        step_mat.row(i) *= (local_step_cap / row_norm);
-      }
+    const double adam_start = omp_get_wtime();
+    {
+      torch::NoGradGuard no_grad;
+      site_param.copy_(sites_to_tensor(current_state.sites, optim_device));
     }
+
+    optimizer.zero_grad();
+    site_param.mutable_grad() = eigen_matrix_to_tensor(grad_mat, optim_device).clone();
+    optimizer.step();
+
+    Eigen::MatrixXd step_mat =
+        tensor_to_matrix(site_param) - sites_to_matrix(current_state.sites);
+    zero_out_inactive_rows(step_mat, opt_mask);
+    step_mat *= proposal_scale;
+
+    total_adam_time += wall_seconds_since(adam_start);
 
     std::vector<_Point3> trial_sites =
         apply_projected_step(current_state.sites, step_mat, _model);
@@ -1139,24 +1285,42 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
     const double cand_E = rebuilt_energy(candidate_state);
     const Eigen::MatrixXd realized =
         realized_step_matrix(current_state.sites, candidate_state.sites);
-    const double accepted_step = max_row_norm(realized);
+    const double attempted_step_for_log = max_row_norm(realized);
 
+    const double improve_E_tol =
+        std::max(1e-10, 1e-4 * std::max(prev_E, 1e-12));
+    const double improve_g_tol = 1e-10;
     const bool improved =
-        (cand_E < prev_E - std::max(1e-10, 1e-4 * std::max(prev_E, 1e-12))) ||
-        (candidate_state.eval.active_quads < prev_active_quads) ||
-        (candidate_state.eval.min_g > prev_min_g + 1e-10);
+        (cand_E < prev_E - improve_E_tol ||
+         (std::abs(cand_E - prev_E) <= improve_E_tol &&
+          candidate_state.eval.active_quads < prev_active_quads) ||
+         (std::abs(cand_E - prev_E) <= improve_E_tol &&
+          candidate_state.eval.active_quads == prev_active_quads &&
+          candidate_state.eval.min_g > prev_min_g + improve_g_tol));
 
     current_state = std::move(candidate_state);
     current_rebuilt_E = cand_E;
     _sites = current_state.sites;
+    update_best_state(current_state, current_rebuilt_E);
+    const double step_for_log = attempted_step_for_log;
 
-    if (current_rebuilt_E < best_rebuilt_E) {
-      best_rebuilt_E = current_rebuilt_E;
-      best_sites = current_state.sites;
+    {
+      torch::NoGradGuard no_grad;
+      site_param.copy_(sites_to_tensor(current_state.sites, optim_device));
     }
 
-    if (improved) stagnation_streak = 0;
-    else ++stagnation_streak;
+    const double lr_before_sched = get_adam_lr(optimizer);
+    const bool lr_reduced = step_recent_lr_scheduler(current_rebuilt_E);
+    const double lr_after_sched = get_adam_lr(optimizer);
+
+    if (improved) {
+      proposal_scale = std::min(proposal_scale_max,
+                                proposal_grow * proposal_scale);
+      stagnation_streak = 0;
+    } else {
+      proposal_scale = std::max(proposal_scale_min, 0.85 * proposal_scale);
+      ++stagnation_streak;
+    }
 
     _quads.clear();
     for (const auto &q : current_state.search_quads) _quads.push_back({q});
@@ -1166,7 +1330,7 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
     info.num_quads = (int)current_state.search_quads.size();
     info.active_quads = current_state.eval.active_quads;
     info.min_margin = current_state.eval.min_g;
-    info.accepted_step = accepted_step;
+    info.accepted_step = step_for_log;
     _history.push_back(info);
 
     if (_para.is_show) {
@@ -1174,30 +1338,86 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
       const double iter_rebuild_time =
           total_rebuild_non_rvd_time - rebuild_time_before;
       const double iter_rvd_time = total_rvd_time - rvd_time_before;
+      const double iter_adam_time = total_adam_time - adam_time_before;
       const double iter_output_time = total_output_time - output_time_before;
       std::cout << "[QuadCoverLike][Adam] iter=" << info.iteration
                 << " | Quads(prev/curr)=" << prev_num_quads << "/"
                 << info.num_quads
                 << " | Act(prev/curr)=" << prev_active_quads << "/"
                 << info.active_quads
-                << " | E(rebuilt)=" << std::scientific << std::setprecision(3)
-                << prev_E << " -> " << current_rebuilt_E
+                << " | E(curr)=" << std::scientific
+                << std::setprecision(log_value_precision) << prev_E
+                << " -> " << current_rebuilt_E
                 << " | min_g(prev/curr)=" << prev_min_g << "/"
                 << info.min_margin
                 << " | lr=" << lr
                 << " | ||g||=" << grad_norm
-                << " | step=" << accepted_step
+                << " | trialStep=" << attempted_step_for_log
+                << " | step=" << step_for_log
+                << " | lrDrop=" << (lr_reduced ? 1 : 0)
+                << " | lrNext=" << lr_after_sched
+                << " | propScale=" << proposal_scale
                 << " | stag=" << stagnation_streak
-                << " | iterT=" << std::fixed << std::setprecision(3)
+                << " | iterT=" << std::fixed << std::setprecision(log_time_precision)
                 << iter_time << "s"
                 << " | rebuildT=" << iter_rebuild_time << "s"
                 << " | rvdT=" << iter_rvd_time << "s"
+                << " | adamT=" << iter_adam_time << "s"
                 << " | outputT=" << iter_output_time << "s"
                 << std::endl;
     }
 
-    if (stagnation_streak >= stagnation_patience && grad_norm < 1e-10) {
-      break;
+    if (stagnation_streak >= stagnation_patience &&
+        (proposal_scale <= stagnation_prop_trigger ||
+         lr_after_sched <= stagnation_lr_trigger ||
+         stagnation_streak >= stagnation_hard_patience)) {
+      std::vector<char> perturb_mask = active_mask;
+      if (!has_any_active(perturb_mask)) perturb_mask = opt_mask;
+
+      const double perturb_scale =
+          std::min(perturb_scale_cap,
+                   std::max(1.0, 1.0 / std::max(proposal_scale, proposal_scale_min)));
+      const double perturb_sigma = std::max(
+          1e-6,
+          stagnation_perturb_ratio * perturb_scale *
+              std::max(current_state.avg_r, 1e-8));
+      std::vector<_Point3> perturbed_sites = perturb_sites_for_next_proposal(
+          current_state.sites,
+          current_state.surface_normals,
+          perturb_mask,
+          perturb_sigma,
+          _model,
+          perturb_rng);
+
+      current_state = rebuild_state(
+          perturbed_sites, true, _RVD, total_rebuild_non_rvd_time, total_rvd_time);
+      current_rebuilt_E = rebuilt_energy(current_state);
+      _sites = current_state.sites;
+      update_best_state(current_state, current_rebuilt_E);
+
+      {
+        torch::NoGradGuard no_grad;
+        site_param.copy_(sites_to_tensor(current_state.sites, optim_device));
+      }
+      optimizer.state().clear();
+      set_adam_lr(optimizer, stagnation_lr_trigger);
+      reset_recent_lr_scheduler(current_rebuilt_E);
+
+      proposal_scale = 1.0;
+      stagnation_streak = 0;
+
+      if (_para.is_show) {
+        std::cout << "[QuadCoverLike][Adam] perturb sigma="
+                  << std::scientific << std::setprecision(log_value_precision)
+                  << perturb_sigma
+                  << " | scale=" << perturb_scale
+                  << " | lrReset=" << get_adam_lr(optimizer)
+                  << " | E(after)=" << current_rebuilt_E
+                  << " | Act=" << current_state.eval.active_quads
+                  << " | min_g=" << current_state.eval.min_g
+                  << std::endl;
+      }
+      continue;
     }
   }
   _sites = best_sites;
@@ -1216,15 +1436,12 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
   if (_para.is_show) {
     const double total_time = wall_seconds_since(total_start);
     std::cout << "\n--- QuadCover Finished ---\n"
-              << "Total Wall Time: " << std::fixed << std::setprecision(3)
+              << "Total Wall Time: " << std::fixed << std::setprecision(log_time_precision)
               << total_time << " s\n"
               << "Rebuild Time (non-RVD): " << total_rebuild_non_rvd_time
               << " s\n"
               << "RVD Calculation Time: " << total_rvd_time << " s\n"
-              << "Sample Phase Time: " << total_sample_phase_time << " s\n"
-              << "Line Search Time: " << total_line_search_time << " s\n"
-              << "Recovery Phase Time: " << total_recovery_phase_time
-              << " s\n"
+              << "Adam Update Time: " << total_adam_time << " s\n"
               << "Output Time: " << total_output_time << " s\n"
               << std::endl;
   }
