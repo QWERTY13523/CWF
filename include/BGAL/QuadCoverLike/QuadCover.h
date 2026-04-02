@@ -24,6 +24,7 @@ public:
     int max_line_search = 10;
     double active_eps = 1e-8;
     double accept_eps = 1e-12;
+    double hinge_lambda = 1.0;
     double step_cap_scale = 0.02;
     double fallback_step_cap_scale = 1e-3;
     double min_step_scale = 1e-6;
