@@ -2,23 +2,19 @@
 #include <Eigen/Sparse>
 #include <time.h>
 
-#include <filesystem>
 #include <fstream>
 #include <iomanip>
-#include <set>
 #include <unordered_set>
-#include <vector>
 
 #include "BGAL/CVTLike/CVT.h"
 #include "BGAL/Algorithm/BOC/BOC.h"
 #include "BGAL/Integral/Integral.h"
 #include "BGAL/Optimization/LinearSystem/LinearSystem.h"
-#include "BGAL/Sphere/Sphere.h"
 
 
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/AABB_tree.h>
-#include <CGAL/AABB_traits.h>
+#include <CGAL/AABB_traits_3.h>
 #include <CGAL/Polyhedron_3.h>
 #include <CGAL/AABB_face_graph_triangle_primitive.h>
 #include <CGAL/IO/OBJ.h>
@@ -49,10 +45,10 @@ typedef K_T::Point_3 Point_T;
 typedef K_T::Segment_3 Segment;
 typedef CGAL::Polyhedron_3<K_T> Polyhedron;
 typedef CGAL::AABB_face_graph_triangle_primitive<Polyhedron> Primitive;
-typedef CGAL::AABB_traits<K_T, Primitive> Traits;
+typedef CGAL::AABB_traits_3<K_T, Primitive> Traits;
 typedef CGAL::AABB_tree<Traits> Tree;
 typedef Tree::Point_and_primitive_id Point_and_primitive_id;
-double kPointTol = 0.00000000000001;
+constexpr double kPointTolerance = 1e-14;
 struct MyPoint
 {
 	MyPoint(Eigen::Vector3d a)
@@ -75,7 +71,7 @@ struct MyPoint
 
 
 		double dis = (p - a.p).norm();
-		if (dis < kPointTol)
+		if (dis < kPointTolerance)
 		{
 			return false;
 		}
@@ -139,13 +135,20 @@ struct MyFace
 
 namespace
 {
+	struct OutputSphere
+	{
+		BGAL::_Point3 c;
+		double r = 0.0;
+		BGAL::_Point3 max_point;
+	};
+
 	static inline void build_spheres_from_rvd(
 		const std::vector<BGAL::_Point3>& sites,
 		const BGAL::_Restricted_Tessellation3D& rvd,
-		std::vector<Sphere::Sphere>& spheres)
+		std::vector<OutputSphere>& spheres)
 	{
 		const auto& edges = rvd.get_edges_();
-		spheres.assign(sites.size(), Sphere::Sphere());
+		spheres.assign(sites.size(), OutputSphere());
 		for (int i = 0; i < (int)sites.size(); ++i)
 		{
 			const BGAL::_Point3 site = sites[i];
@@ -181,77 +184,16 @@ namespace
 		}
 	}
 
-	static inline std::vector<Eigen::Vector3i> build_rdt_faces_from_edges(
-		int num_sites,
-		const std::vector<std::map<int, std::vector<std::pair<int, int>>>>& edges)
-	{
-		std::set<std::pair<int, int>> rdt_edges;
-		std::vector<std::set<int>> neighbors(num_sites);
-		for (int i = 0; i < (int)edges.size(); ++i)
-		{
-			for (const auto& ee : edges[i])
-			{
-				const int j = ee.first;
-				if (j < 0 || j >= num_sites || j == i) continue;
-				rdt_edges.insert(std::make_pair(std::min(i, j), std::max(i, j)));
-				neighbors[i].insert(j);
-				neighbors[j].insert(i);
-			}
-		}
-
-		std::set<MyFace> rdt_faces;
-		for (const auto& e : rdt_edges)
-		{
-			for (int pid : neighbors[e.first])
-			{
-				if (rdt_edges.find(std::make_pair(std::min(pid, e.first), std::max(pid, e.first))) == rdt_edges.end())
-				{
-					continue;
-				}
-				if (rdt_edges.find(std::make_pair(std::min(pid, e.second), std::max(pid, e.second))) == rdt_edges.end())
-				{
-					continue;
-				}
-
-				const int hi = std::max(pid, std::max(e.first, e.second));
-				const int lo = std::min(pid, std::min(e.first, e.second));
-				const int mid = pid + e.first + e.second - hi - lo;
-				rdt_faces.insert(MyFace(hi, mid, lo));
-			}
-		}
-
-		std::vector<Eigen::Vector3i> tris;
-		tris.reserve(rdt_faces.size());
-		for (const auto& f : rdt_faces)
-		{
-			tris.emplace_back(f.p.x(), f.p.y(), f.p.z());
-		}
-		return tris;
-	}
-
-	static inline std::string make_output_stem(const std::string& outpath,
-		int num,
-		const std::string& modelname,
-		int step)
-	{
-		namespace fs = std::filesystem;
-		fs::path base(outpath);
-		fs::create_directories(base);
-
-		std::string stem = "Ours_" + std::to_string(num) + "_" + modelname;
-		if (step > 2)
-		{
-			stem += "_Iter" + std::to_string(step - 3);
-		}
-		return (base / stem).string();
-	}
-
-	static inline void write_spheres_csv(const std::string& stem,
-		const std::vector<Sphere::Sphere>& spheres,
+	static inline void write_spheres_csv(
+		const std::string& filepath,
+		const std::vector<OutputSphere>& spheres,
 		const BGAL::_ManifoldModel& model)
 	{
-		std::ofstream out(stem + "_Spheres.csv", std::ios::out | std::ios::trunc);
-		if (!out) return;
+		std::ofstream out(filepath);
+		if (!out)
+		{
+			return;
+		}
 
 		out << std::setprecision(17);
 		for (size_t i = 0; i < spheres.size(); ++i)
@@ -261,13 +203,20 @@ namespace
 			BGAL::_Point3 normal(0.0, 0.0, 0.0);
 			if (face_id >= 0 && face_id < model.number_faces_())
 			{
-				normal = model.normal_face_(face_id);
+				const BGAL::_Point3& nearest_point = std::get<0>(nearest);
+				const auto& face = model.face_(face_id);
+				const double dis1 = (nearest_point - model.vertex_(face[0])).length_();
+				const double dis2 = (nearest_point - model.vertex_(face[1])).length_();
+				const double dis3 = (nearest_point - model.vertex_(face[2])).length_();
+				normal += model.normal_vertex_(face[0]) * (dis2 + dis3);
+				normal += model.normal_vertex_(face[1]) * (dis1 + dis3);
+				normal += model.normal_vertex_(face[2]) * (dis1 + dis2);
 				normal.normalized_();
 			}
 
 			out << spheres[i].c.x() << "," << spheres[i].c.y() << "," << spheres[i].c.z() << ","
 				<< spheres[i].r << "," << face_id << ","
-				<< normal.x() << "," << normal.y() << "," << normal.z() << "\n";
+				<< normal.x() << "," << normal.y() << "," << normal.z() << std::endl;
 		}
 	}
 }
@@ -290,60 +239,182 @@ namespace BGAL
 	{
 
 	}
-		void OutputMesh(const std::vector<_Point3>& sites,
-			const _Restricted_Tessellation3D& RVD,
-			int num,
-			const std::string& outpath,
-			const std::string& modelname,
-			int step,
-			const _ManifoldModel& model)
+	void OutputMesh(const std::vector<_Point3>& sites, const _Restricted_Tessellation3D& RVD, int num, std::string outpath, std::string modelname, int step, const _ManifoldModel& model)
+	{
+		const std::vector<std::vector<std::tuple<int, int, int>>>& cells = RVD.get_cells_();
+		std::string filepath = outpath + "Ours_" + std::to_string(num) + "_" + modelname + "_RVD.obj";
+		if (step == 2)
 		{
-			const std::vector<std::vector<std::tuple<int, int, int>>>& cells = RVD.get_cells_();
-			const std::string stem = make_output_stem(outpath, num, modelname, step);
+			filepath = outpath + "Ours_" + std::to_string(num) + "_" + modelname + "_RVD.obj";
+		}
 
-			std::ofstream out(stem + "_RVD.obj", std::ios::out | std::ios::trunc);
-			out << "g 3D_Object\nmtllib BKLineColorBar.mtl\nusemtl BKLineColorBar\n";
-			for (int i = 0; i < RVD.number_vertices_(); ++i)
+		if (step > 2)
+		{
+			filepath = outpath + "Ours_" + std::to_string(num) + "_" + modelname + "_Iter" + std::to_string(step - 3) + "_RVD.obj";
+		}
+		std::cout << "filepath = " << filepath << std::endl;
+		std::ofstream out(filepath);
+		out << "g 3D_Object\nmtllib BKLineColorBar.mtl\nusemtl BKLineColorBar" << std::endl;
+		for (int i = 0; i < RVD.number_vertices_(); ++i)
+		{
+			out << "v " << RVD.vertex_(i) << std::endl;
+		}
+		double totarea = 0, parea = 0;
+		for (int i = 0; i < cells.size(); ++i)
+		{
+			double area = 0;
+			for (int j = 0; j < cells[i].size(); ++j)
 			{
-				out << "v " << RVD.vertex_(i) << "\n";
+				BGAL::_Point3 p1 = RVD.vertex_(std::get<0>(cells[i][j]));
+				BGAL::_Point3 p2 = RVD.vertex_(std::get<1>(cells[i][j]));
+				BGAL::_Point3 p3 = RVD.vertex_(std::get<2>(cells[i][j]));
+				area += (p2 - p1).cross_(p3 - p1).length_() / 2;
+			}
+			totarea += area;
+
+			double color = (double)BGAL::_BOC::rand_();
+			if (i > cells.size() / 3)
+			{
+				if (step == 1)
+				{
+					color = 0;
+				}
+				//
+			}
+			else
+			{
+				parea += area;
 			}
 
-			for (int i = 0; i < (int)cells.size(); ++i)
+			out << "vt " << color << " 0" << std::endl;
+
+
+			for (int j = 0; j < cells[i].size(); ++j)
 			{
-				const double color = (double)BGAL::_BOC::rand_();
-				out << "vt " << color << " 0\n";
-				for (const auto& tri : cells[i])
+				out << "f " << std::get<0>(cells[i][j]) + 1 << "/" << i + 1
+					<< " " << std::get<1>(cells[i][j]) + 1 << "/" << i + 1
+					<< " " << std::get<2>(cells[i][j]) + 1 << "/" << i + 1 << std::endl;
+			}
+		}
+		out.close();
+
+
+		filepath = outpath + "Ours_" + std::to_string(num) + "_" + modelname + "_Points.xyz";
+		if (step == 2)
+		{
+			filepath = outpath + "Ours_" + std::to_string(num) + "_" + modelname + "_Points.xyz";
+		}
+
+		if (step > 2)
+		{
+			filepath = outpath + "Ours_" + std::to_string(num) + "_" + modelname + "_Iter" + std::to_string(step - 3) + "_Points.xyz";
+		}
+
+		std::ofstream outP(filepath);
+
+		int outnum = sites.size();
+		if (step == 1)
+			outnum = sites.size() / 3;
+
+		for (int i = 0; i < outnum; ++i)
+		{
+			outP << sites[i] << std::endl;
+		}
+		outP.close();
+
+		filepath = outpath + "Ours_" + std::to_string(num) + "_" + modelname + "_Spheres.csv";
+		if (step == 2)
+		{
+			filepath = outpath + "Ours_" + std::to_string(num) + "_" + modelname + "_Spheres.csv";
+		}
+
+		if (step > 2)
+		{
+			filepath = outpath + "Ours_" + std::to_string(num) + "_" + modelname + "_Iter" + std::to_string(step - 3) + "_Spheres.csv";
+		}
+		std::vector<OutputSphere> spheres;
+		build_spheres_from_rvd(sites, RVD, spheres);
+		write_spheres_csv(filepath, spheres, model);
+
+
+		if (step >= 2)
+		{
+			std::string filepath = outpath + "\\Ours_" + std::to_string(num) + "_" + modelname + "_Remesh.obj";
+
+
+			std::string	filepath1 = outpath + "Ours_" + std::to_string(num) + "_" + modelname + "Iter" + std::to_string(step - 3) + "_Remesh.obj";
+			std::ofstream outRDT(filepath);
+			std::ofstream outRDT1(filepath1);
+
+			const auto& Vs = sites;
+			auto Edges = RVD.get_edges_();
+			std::set<std::pair<int, int>> RDT_Edges;
+			std::vector<std::set<int>> neibors;
+			neibors.resize(Vs.size());
+			for (int i = 0; i < Edges.size(); i++)
+			{
+				for (auto ee : Edges[i])
 				{
-					out << "f " << std::get<0>(tri) + 1 << "/" << i + 1
-						<< " " << std::get<1>(tri) + 1 << "/" << i + 1
-						<< " " << std::get<2>(tri) + 1 << "/" << i + 1 << "\n";
+					RDT_Edges.insert(std::make_pair(std::min(i, ee.first), std::max(i, ee.first)));
+					neibors[i].insert(ee.first);
+					neibors[ee.first].insert(i);
+					//std::cout << ee.first << std::endl;
+
 				}
 			}
-			out.close();
 
-			std::ofstream out_points(stem + "_Points.xyz", std::ios::out | std::ios::trunc);
-			for (const auto& v : sites)
+			for (auto v : Vs)
 			{
-				out_points << v << "\n";
+				if (step >= 2)
+					outRDT << "v " << v << std::endl;
+				outRDT1 << "v " << v << std::endl;
 			}
-			out_points.close();
 
-			const auto rdt_faces = build_rdt_faces_from_edges((int)sites.size(), RVD.get_edges_());
-			std::ofstream out_remesh(stem + "_Remesh.obj", std::ios::out | std::ios::trunc);
-			for (const auto& v : sites)
-			{
-				out_remesh << "v " << v << "\n";
-			}
-			for (const auto& f : rdt_faces)
-			{
-				out_remesh << "f " << f.x() + 1 << " " << f.y() + 1 << " " << f.z() + 1 << "\n";
-			}
-			out_remesh.close();
+			std::set<MyFace> rdtFaces;
 
-			std::vector<Sphere::Sphere> spheres;
-			build_spheres_from_rvd(sites, RVD, spheres);
-			write_spheres_csv(stem, spheres, model);
+			for (auto e : RDT_Edges)
+			{
+				for (int pid : neibors[e.first])
+				{
+					if (RDT_Edges.find(std::make_pair(std::min(pid, e.first), std::max(pid, e.first))) != RDT_Edges.end())
+					{
+						if (RDT_Edges.find(std::make_pair(std::min(pid, e.second), std::max(pid, e.second))) != RDT_Edges.end())
+						{
+							int f1 = pid, f2 = e.first, f3 = e.second;
+
+							int mid;
+							if (f1 != std::max(f1, std::max(f2, f3)) && f1 != std::min(f1, min(f2, f3)))
+							{
+								mid = f1;
+							}
+							if (f2 != std::max(f1, std::max(f2, f3)) && f2 != std::min(f1, std::min(f2, f3)))
+							{
+								mid = f2;
+							}
+							if (f3 != std::max(f1, max(f2, f3)) && f3 != std::min(f1, min(f2, f3)))
+							{
+								mid = f3;
+							}
+							rdtFaces.insert(MyFace(std::max(f1, std::max(f2, f3)), mid, std::min(f1, std::min(f2, f3))));
+						}
+					}
+				}
+			}
+			for (auto f : rdtFaces)
+			{
+				if (step >= 2)
+					outRDT << "f " << f.p.x() + 1 << " " << f.p.y() + 1 << " " << f.p.z() + 1 << std::endl;
+				outRDT1 << "f " << f.p.x() + 1 << " " << f.p.y() + 1 << " " << f.p.z() + 1 << std::endl;
+			}
+
+			outRDT.close();
+			outRDT1.close();
+
 		}
+
+
+
+	}
 
 
 	void _CVT3D::calculate_(int num_sites, char* modelNamee, char* pointsName)
@@ -353,7 +424,7 @@ namespace BGAL
 		clock_t start, end;
 		clock_t startRVD, endRVD;
 
-		std::string filepath = "/home/yiming/research/CWF/data";
+		std::string filepath = "../../data/";
 		double PI = 3.14159265358;
 		std::string modelname = modelNamee;
 		Polyhedron polyhedron;
@@ -404,38 +475,25 @@ namespace BGAL
 
 
 		double Movement = 0.01;
-		namespace fs = std::filesystem;
-		const std::string model_stem = fs::path(modelname).stem().string().empty()
-			? modelname
-			: fs::path(modelname).stem().string();
-		fs::path inPointsPath;
-		if (pointsName == nullptr)
-		{
-			inPointsPath = fs::current_path() / "data" /
-				("n" + std::to_string(num_sites) + "_" + model_stem + "_inputPoints.xyz");
+		std::string inPointsName;
+		if(pointsName == nullptr){
+			inPointsName = std::string("..\\..\\data\\n") + std::to_string(num_sites)+"_" + modelname + "_inputPoints.xyz";
+		}else{
+			inPointsName = pointsName;
 		}
-		else
-		{
-			inPointsPath = fs::path(pointsName);
-		}
-		std::ifstream inPoints(inPointsPath);
-		if (!inPoints.is_open())
-		{
-			throw std::runtime_error("failed to open input points file: " + inPointsPath.string());
-		}
+		std::ifstream inPoints(inPointsName.c_str());
 
 		std::vector<Eigen::Vector3d> Pts,Nors;
 
 		int count = 0;
 		double x, y, z, nx, ny, nz; // if xyz file has normal
-		while (inPoints >>x >> y >> z >> nx >> ny >>nz)
+		while (inPoints >>x >> y >> z >>nx>>ny>>nz)
 		{
 			Pts.push_back(Eigen::Vector3d(x, y, z));
 			Nors.push_back(Eigen::Vector3d(nx,ny,nz)); // Nors here is useless, if do not have normal, just set it to (1,0,0)
 			++count;
 		}
 		inPoints.close();
-		std::cout << "Input points file: " << inPointsPath << std::endl;
 		std::cout<<"Pts.size(): "<<Pts.size()<< std::endl;
 
          if(pointsName != nullptr){
@@ -499,33 +557,28 @@ namespace BGAL
 					gi[i] = Eigen::Vector3d(0, 0, 0);
 				}
 
-				omp_set_num_threads(30);  // change to your CPU core numbers
-#pragma omp parallel for
+#pragma omp parallel for reduction(+ : lossCVT, loss)
 				for (int i = 0; i < num; ++i)
 				{
 
 					for (int j = 0; j < cells[i].size(); ++j)
 					{
-
+						BGAL::_Point3  NorTriM = (_RVD.vertex_(std::get<1>(cells[i][j])) - _RVD.vertex_(std::get<0>(cells[i][j]))).cross_(_RVD.vertex_(std::get<2>(cells[i][j])) - _RVD.vertex_(std::get<0>(cells[i][j])));
+						NorTriM.normalized_();
 
 						Eigen::VectorXd inte = BGAL::_Integral::integral_triangle3D(
-							[&](BGAL::_Point3 p)
+							[&, NorTriM](BGAL::_Point3 p)
 							{
 								Eigen::VectorXd r(5);
+								const double rho_p = _rho(p);
 
-								BGAL::_Point3  NorTriM = (_RVD.vertex_(std::get<1>(cells[i][j])) - _RVD.vertex_(std::get<0>(cells[i][j]))).cross_(_RVD.vertex_(std::get<2>(cells[i][j])) - _RVD.vertex_(std::get<0>(cells[i][j])));
-								NorTriM.normalized_();
+								r(0) = eplison * rho_p * ((_sites[i] - p).sqlength_()); //CVT
 
+								r(1) = lambda*(NorTriM.dot_(p - _sites[i]))* (NorTriM.dot_(p - _sites[i])) + eplison * rho_p * ((p - _sites[i]).sqlength_()); // qe+CVT
 
-								BGAL::_Point3 Nori(Nors[i].x(), Nors[i].y(), Nors[i].z());
-
-								r(0) = (eplison * _rho(p) * ((_sites[i] - p).sqlength_())); //CVT
-
-								r(1) = lambda*(NorTriM.dot_(p - _sites[i]))* (NorTriM.dot_(p - _sites[i])) + eplison* ((p - _sites[i]).sqlength_()); // qe+CVT
-
-								r(2) = lambda* -2 * NorTriM.x() * (NorTriM.dot_(p - _sites[i])) + eplison * -2 * (p - _sites[i]).x();  	 //g
-								r(3) = lambda* -2 * NorTriM.y() * (NorTriM.dot_(p - _sites[i])) + eplison * -2 * (p - _sites[i]).y();	 //g
-								r(4) = lambda* -2 * NorTriM.z() * (NorTriM.dot_(p - _sites[i])) + eplison * -2 * (p - _sites[i]).z();	 //g
+								r(2) = lambda* -2 * NorTriM.x() * (NorTriM.dot_(p - _sites[i])) + eplison * rho_p * -2 * (p - _sites[i]).x();  	 //g
+								r(3) = lambda* -2 * NorTriM.y() * (NorTriM.dot_(p - _sites[i])) + eplison * rho_p * -2 * (p - _sites[i]).y();	 //g
+								r(4) = lambda* -2 * NorTriM.z() * (NorTriM.dot_(p - _sites[i])) + eplison * rho_p * -2 * (p - _sites[i]).z();	 //g
 
 
 								return r;

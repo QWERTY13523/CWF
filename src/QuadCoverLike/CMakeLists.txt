@@ -50,6 +50,9 @@ target_link_libraries(QuadCoverLike
     ${TORCH_LIBRARIES}
     ${Boost_LIBRARIES}
 )
+if(OpenMP_CXX_FOUND)
+  target_link_libraries(QuadCoverLike OpenMP::OpenMP_CXX)
+endif()
 set_target_properties(QuadCoverLike PROPERTIES VERSION ${PROJECT_VERSION})
 set_target_properties(QuadCoverLike PROPERTIES CLEAN_DIRECT_OUTPUT 1)
 
@@ -57,6 +60,9 @@ if(TORCH_CXX_FLAGS)
   separate_arguments(TORCH_CXX_FLAGS_LIST NATIVE_COMMAND "${TORCH_CXX_FLAGS}")
   target_compile_options(QuadCoverLike PRIVATE ${TORCH_CXX_FLAGS_LIST})
 endif()
+target_compile_options(QuadCoverLike PRIVATE
+  $<$<AND:$<NOT:$<CXX_COMPILER_ID:MSVC>>,$<CONFIG:Release,RelWithDebInfo,MinSizeRel>>:-O3>
+  $<$<AND:$<CXX_COMPILER_ID:MSVC>,$<CONFIG:Release,RelWithDebInfo,MinSizeRel>>:/O2>)
 
 target_include_directories(QuadCoverLike PUBLIC
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>

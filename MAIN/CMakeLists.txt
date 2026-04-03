@@ -19,3 +19,9 @@ target_link_libraries(quadcover_main Algorithm BaseShape Draw Geodesic Integral 
 target_include_directories(quadcover_main PUBLIC
 	$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
 	$<INSTALL_INTERFACE:include>)
+if(OpenMP_CXX_FOUND)
+  target_link_libraries(quadcover_main OpenMP::OpenMP_CXX)
+endif()
+target_compile_options(quadcover_main PRIVATE
+  $<$<AND:$<NOT:$<CXX_COMPILER_ID:MSVC>>,$<CONFIG:Release,RelWithDebInfo,MinSizeRel>>:-O3>
+  $<$<AND:$<CXX_COMPILER_ID:MSVC>,$<CONFIG:Release,RelWithDebInfo,MinSizeRel>>:/O2>)

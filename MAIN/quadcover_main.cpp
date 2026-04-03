@@ -1,14 +1,20 @@
 #include <filesystem>
 #include <iostream>
 #include <string>
+#include <thread>
 #include <vector>
 
+#include <Eigen/Core>
 #include <igl/readOBJ.h>
 #include <igl/writeOBJ.h>
 #include <igl/writeOFF.h>
 
 #include <BGAL/Model/ManifoldModel.h>
 #include <BGAL/QuadCoverLike/QuadCover.h>
+
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 static std::filesystem::path guess_data_root(const std::filesystem::path &exe_path) {
   namespace fs = std::filesystem;
@@ -96,6 +102,15 @@ static bool parse_args(int argc, char **argv, CliOptions &opts) {
 
 int main(int argc, char **argv) {
   namespace fs = std::filesystem;
+
+#ifdef _OPENMP
+  omp_set_dynamic(0);
+  const unsigned int hw_threads = std::thread::hardware_concurrency();
+  const int max_threads = std::max<int>(1, hw_threads > 0 ? (int)hw_threads
+                                                          : omp_get_num_procs());
+  omp_set_num_threads(max_threads);
+  Eigen::setNbThreads(max_threads);
+#endif
 
   CliOptions options;
   if (!parse_args(argc, argv, options)) {
