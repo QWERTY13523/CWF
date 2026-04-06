@@ -41,6 +41,7 @@ target_include_directories(QuadCoverLike BEFORE PRIVATE
 target_link_libraries(QuadCoverLike
     Algorithm
     BaseShape
+    CVTLike
     Model
     Tessellation2D
     Tessellation3D

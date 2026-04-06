@@ -6568,3 +6568,49 @@ bunny 30000
 [QuadCoverLike][GS] iter=8 | Quads(prev/curr)=65774/65790 | Act(prev/curr)=48/44 | E(rebuilt)=1.090e-07 -> 9.498e-08 | min_g(prev/curr)=-1.486e-04/-1.379e-04 | samples=12 | sigma=4.162e-04 | ||g_GS||=2.118e-05 | ||d||=9.889e-03 | metric=LBFGS | mem=5 | step=9.338e-04 | alpha=2.500e-01 | sampleAccept=0 | stag=0 | stepR=1.098e-02 | ACCEPT
 [QuadCoverLike][GS] iter=9 | Quads(prev/curr)=65790/65797 | Act(prev/curr)=44/44 | E(rebuilt)=9.498e-08 -> 9.498e-08 | min_g(prev/curr)=-1.379e-04/-1.379e-04 | samples=12 | sigma=4.161e-04 | ||g_GS||=2.127e-05 | ||d||=2.129e-03 | metric=LBFGS | mem=5 | step=2.370e-07 | alpha=3.052e-05 | sampleAccept=0 | stag=1 | stepR=1.044e-02 | ACCEPT
 [QuadCoverLike][GS] iter=10 | Quads(prev/curr)=65797/65797 | Act(prev/curr)=44/44 | E(rebuilt)=9.498e-08 -> 9.498e-08 | min_g(prev/curr)=-1.379e-04/-1.379e-04 | samples=12 | sigma=4.786e-04 | ||g_GS||=1.751e-05 | ||d||=7.338e-02 | metric=LBFGS | mem=5 | step=0.000e+00 | alpha=0.000e+00 | sampleAccept=0 | stag=2 | stepR=5.218e-03 | REJECT
+Batch start: models=99 jobs=4 threads-per-job=32 sample-num=auto(max(8000, vertex_count/3))
+[failed] 01_tapered_square_frustum
+[failed] 02_a_profile_hook_bracket
+[failed] 01_cutout_letter_panel
+Traceback (most recent call last):
+  File "/home/yiming/research/CWF/scripts/quadcover_batch_test.py", line 417, in main
+    for future in concurrent.futures.as_completed(future_map):
+  File "/home/yiming/miniconda3/lib/python3.12/concurrent/futures/_base.py", line 243, in as_completed
+    waiter.event.wait(wait_timeout)
+  File "/home/yiming/miniconda3/lib/python3.12/threading.py", line 655, in wait
+    signaled = self._cond.wait(timeout)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/yiming/miniconda3/lib/python3.12/threading.py", line 355, in wait
+    waiter.acquire()
+KeyboardInterrupt
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/yiming/research/CWF/scripts/quadcover_batch_test.py", line 434, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/home/yiming/research/CWF/scripts/quadcover_batch_test.py", line 415, in main
+    with concurrent.futures.ThreadPoolExecutor(max_workers=options.jobs) as executor:
+  File "/home/yiming/miniconda3/lib/python3.12/concurrent/futures/_base.py", line 647, in __exit__
+    self.shutdown(wait=True)
+  File "/home/yiming/miniconda3/lib/python3.12/concurrent/futures/thread.py", line 238, in shutdown
+    t.join()
+  File "/home/yiming/miniconda3/lib/python3.12/threading.py", line 1147, in join
+    self._wait_for_tstate_lock()
+  File "/home/yiming/miniconda3/lib/python3.12/threading.py", line 1167, in _wait_for_tstate_lock
+    if lock.acquire(block, timeout):
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt
+Exception ignored in: <module 'threading' from '/home/yiming/miniconda3/lib/python3.12/threading.py'>
+Traceback (most recent call last):
+  File "/home/yiming/miniconda3/lib/python3.12/threading.py", line 1592, in _shutdown
+    atexit_call()
+  File "/home/yiming/miniconda3/lib/python3.12/concurrent/futures/thread.py", line 31, in _python_exit
+    t.join()
+  File "/home/yiming/miniconda3/lib/python3.12/threading.py", line 1147, in join
+    self._wait_for_tstate_lock()
+  File "/home/yiming/miniconda3/lib/python3.12/threading.py", line 1167, in _wait_for_tstate_lock
+    if lock.acquire(block, timeout):
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt: 

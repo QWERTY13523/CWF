@@ -4,107 +4,12 @@
 
 #include <fstream>
 #include <iomanip>
+#include <set>
 #include <unordered_set>
 
 #include "BGAL/CVTLike/CVT.h"
 #include "BGAL/Algorithm/BOC/BOC.h"
 #include "BGAL/Integral/Integral.h"
-#include "BGAL/Optimization/LinearSystem/LinearSystem.h"
-
-
-#include <CGAL/Simple_cartesian.h>
-#include <CGAL/AABB_tree.h>
-#include <CGAL/AABB_traits_3.h>
-#include <CGAL/Polyhedron_3.h>
-#include <CGAL/AABB_face_graph_triangle_primitive.h>
-#include <CGAL/IO/OBJ.h>
-
-#include <igl/gaussian_curvature.h>
-#include <igl/massmatrix.h>
-#include <igl/invert_diag.h>
-#include <igl/readOFF.h>
-#include <igl/writeOBJ.h>
-#include <igl/writeOFF.h>
-#include <igl/avg_edge_length.h>
-#include <igl/cotmatrix.h>
-#include <igl/invert_diag.h>
-#include <igl/massmatrix.h>
-#include <igl/parula.h>
-#include <igl/per_corner_normals.h>
-#include <igl/per_face_normals.h>
-#include <igl/per_vertex_normals.h>
-#include <igl/principal_curvature.h>
-#include <igl/read_triangle_mesh.h>
-
-
-
-typedef CGAL::Simple_cartesian<double> K_T;
-typedef K_T::FT FT;
-typedef K_T::Point_3 Point_T;
-
-typedef K_T::Segment_3 Segment;
-typedef CGAL::Polyhedron_3<K_T> Polyhedron;
-typedef CGAL::AABB_face_graph_triangle_primitive<Polyhedron> Primitive;
-typedef CGAL::AABB_traits_3<K_T, Primitive> Traits;
-typedef CGAL::AABB_tree<Traits> Tree;
-typedef Tree::Point_and_primitive_id Point_and_primitive_id;
-constexpr double kPointTolerance = 1e-14;
-struct MyPoint
-{
-	MyPoint(Eigen::Vector3d a)
-	{
-		p = a;
-
-	}
-
-	MyPoint(double a, double b, double c)
-	{
-		p.x() = a;
-		p.y() = b;
-		p.z() = c;
-	}
-	Eigen::Vector3d p;
-
-	bool operator<(const MyPoint& a) const
-	{
-
-
-
-		double dis = (p - a.p).norm();
-		if (dis < kPointTolerance)
-		{
-			return false;
-		}
-
-		if ((p.x() - a.p.x()) < 0.00000000001 && (p.x() - a.p.x()) > -0.00000000001)
-		{
-			if ((p.y() - a.p.y()) < 0.00000000001 && (p.y() - a.p.y()) > -0.00000000001)
-			{
-				return (p.z() < a.p.z());
-			}
-			return (p.y() < a.p.y());
-		}
-		return (p.x() < a.p.x());
-
-
-
-	}
-	bool operator==(const MyPoint& a) const
-	{
-		if ((p.x() - a.p.x()) < 0.00000000001 && (p.x() - a.p.x()) > -0.00000000001)
-		{
-			if ((p.y() - a.p.y()) < 0.00000000001 && (p.y() - a.p.y()) > -0.00000000001)
-			{
-				if ((p.z() - a.p.z()) < 0.00000000001 && (p.z() - a.p.z()) > -0.00000000001)
-				{
-					return 1;
-				}
-			}
-
-		}
-		return 0;
-	}
-};
 
 struct MyFace
 {
@@ -219,6 +124,70 @@ namespace
 				<< normal.x() << "," << normal.y() << "," << normal.z() << std::endl;
 		}
 	}
+
+	static inline Eigen::Vector3d to_eigen(const BGAL::_Point3& p)
+	{
+		return Eigen::Vector3d(p.x(), p.y(), p.z());
+	}
+
+	static inline Eigen::Vector3d surface_normal_at_point(
+		const BGAL::_ManifoldModel& model,
+		const BGAL::_Point3& nearest_point,
+		int face_id)
+	{
+		if (face_id >= 0 && face_id < model.number_faces_())
+		{
+			const auto& face = model.face_(face_id);
+			const double dis1 = (nearest_point - model.vertex_(face[0])).length_();
+			const double dis2 = (nearest_point - model.vertex_(face[1])).length_();
+			const double dis3 = (nearest_point - model.vertex_(face[2])).length_();
+			BGAL::_Point3 normal(0.0, 0.0, 0.0);
+			normal += model.normal_vertex_(face[0]) * (dis2 + dis3);
+			normal += model.normal_vertex_(face[1]) * (dis1 + dis3);
+			normal += model.normal_vertex_(face[2]) * (dis1 + dis2);
+			if (normal.sqlength_() > 1e-30)
+			{
+				normal.normalized_();
+				return to_eigen(normal);
+			}
+
+			normal = model.normal_face_(face_id);
+			if (normal.sqlength_() > 1e-30)
+			{
+				normal.normalized_();
+				return to_eigen(normal);
+			}
+		}
+		return Eigen::Vector3d(0.0, 0.0, 1.0);
+	}
+
+	static inline void load_points_from_xyz(
+		const std::string& filepath,
+		std::vector<BGAL::_Point3>& sites)
+	{
+		sites.clear();
+		std::ifstream in(filepath);
+		if (!in)
+		{
+			throw std::runtime_error("failed to open init points file: " + filepath);
+		}
+
+		std::string line;
+		while (std::getline(in, line))
+		{
+			if (line.empty())
+			{
+				continue;
+			}
+			std::istringstream iss(line);
+			double x = 0.0, y = 0.0, z = 0.0;
+			if (!(iss >> x >> y >> z))
+			{
+				continue;
+			}
+			sites.emplace_back(x, y, z);
+		}
+	}
 }
 
 
@@ -234,10 +203,11 @@ namespace BGAL
 		_para.is_show = true;
 		_para.epsilon = 1e-30;
 		_para.max_linearsearch = 20;
+		const_cast<_ManifoldModel&>(_model).initialization_PQP_();
 	}
 	_CVT3D::_CVT3D(const _ManifoldModel& model, std::function<double(_Point3& p)>& rho, _LBFGS::_Parameter para) : _model(model), _RVD(model), _RVD2(model), _rho(rho), _para(para)
 	{
-
+		const_cast<_ManifoldModel&>(_model).initialization_PQP_();
 	}
 	void OutputMesh(const std::vector<_Point3>& sites, const _Restricted_Tessellation3D& RVD, int num, std::string outpath, std::string modelname, int step, const _ManifoldModel& model)
 	{
@@ -419,90 +389,47 @@ namespace BGAL
 
 	void _CVT3D::calculate_(int num_sites, char* modelNamee, char* pointsName)
 	{
+		std::string modelname = modelNamee == nullptr ? std::string("model") : std::string(modelNamee);
+		std::string inPointsName;
+		if (pointsName == nullptr)
+		{
+			inPointsName = std::string("..\\..\\data\\n") + std::to_string(num_sites) + "_" + modelname + "_inputPoints.xyz";
+		}
+		else
+		{
+			inPointsName = pointsName;
+		}
+
+		std::vector<_Point3> init_sites;
+		load_points_from_xyz(inPointsName, init_sites);
+		if (pointsName != nullptr)
+		{
+			num_sites = static_cast<int>(init_sites.size());
+		}
+		calculate_(init_sites, modelname, true);
+	}
+
+	void _CVT3D::calculate_(const std::vector<_Point3>& init_sites,
+		const std::string& modelname,
+		bool export_process)
+	{
 
 		double allTime = 0, RVDtime = 0;
 		clock_t start, end;
 		clock_t startRVD, endRVD;
 
-		std::string filepath = "../../data/";
-		double PI = 3.14159265358;
-		std::string modelname = modelNamee;
-		Polyhedron polyhedron;
-		std::ifstream input("Temp.off");
-		input >> polyhedron;
-		Tree tree(faces(polyhedron).first, faces(polyhedron).second, polyhedron);
-
-
-
-		//if anisotropic
-		/*
-		Eigen::MatrixXd V;
-		Eigen::MatrixXi F;
-		igl::readOFF("Temp.off", V, F);
-		Eigen::VectorXd K;
-
-		Eigen::MatrixXd HN;
-		Eigen::SparseMatrix<double> L, M, Minv;
-		igl::cotmatrix(V, F, L);
-		igl::massmatrix(V, F, igl::MASSMATRIX_TYPE_VORONOI, M);
-		igl::invert_diag(M, Minv);
-		// Laplace-Beltrami of position
-		HN = -Minv * (L * V);
-		// Extract magnitude as mean curvature
-		Eigen::VectorXd H = HN.rowwise().norm();
-
-		// Compute curvature directions via quadric fitting
-		Eigen::MatrixXd PD1, PD2;
-		Eigen::VectorXd PV1, PV2;
-		igl::principal_curvature(V, F, PD1, PD2, PV1, PV2);
-		// mean curvature
-		H = 0.5 * (PV1 + PV2);
-		map<MyPoint, int> Point2ID;
-		for (int i = 0; i < V.rows(); ++i)
+		std::vector<Eigen::Vector3d> Pts, Nors;
+		Pts.reserve(init_sites.size());
+		Nors.reserve(init_sites.size());
+		for (const auto& p : init_sites)
 		{
-			MyPoint p(V(i, 0), V(i, 1), V(i, 2));
-			Point2ID[p] = i;
-			PD1.row(i) = PD1.row(i).normalized();
-			PD2.row(i) = PD2.row(i).normalized();
-			double ep = 1;
-			PV1(i) += ep;
-			PV2(i) += ep;
-			double bata = (PV1(i)* PV1(i))*(PV2(i)* PV2(i));
-			PV1(i) = sqrt((PV1(i) * PV1(i) ) / bata);
-			PV2(i) = sqrt((PV2(i) * PV2(i) ) / bata);
+			Pts.push_back(to_eigen(p));
+			Nors.push_back(Eigen::Vector3d(0.0, 0.0, 1.0));
 		}
-		*/
+		std::cout << "Pts.size(): " << Pts.size() << std::endl;
 
-
-		double Movement = 0.01;
-		std::string inPointsName;
-		if(pointsName == nullptr){
-			inPointsName = std::string("..\\..\\data\\n") + std::to_string(num_sites)+"_" + modelname + "_inputPoints.xyz";
-		}else{
-			inPointsName = pointsName;
-		}
-		std::ifstream inPoints(inPointsName.c_str());
-
-		std::vector<Eigen::Vector3d> Pts,Nors;
-
-		int count = 0;
-		double x, y, z, nx, ny, nz; // if xyz file has normal
-		while (inPoints >>x >> y >> z >>nx>>ny>>nz)
-		{
-			Pts.push_back(Eigen::Vector3d(x, y, z));
-			Nors.push_back(Eigen::Vector3d(nx,ny,nz)); // Nors here is useless, if do not have normal, just set it to (1,0,0)
-			++count;
-		}
-		inPoints.close();
-		std::cout<<"Pts.size(): "<<Pts.size()<< std::endl;
-
-         if(pointsName != nullptr){
-			num_sites = count;
-		 }
-		// begin step 1.
-		int num = Pts.size();
-
-		std::vector<Eigen::Vector3d> Pts3;
+		const int num_sites = static_cast<int>(Pts.size());
+		int num = static_cast<int>(Pts.size());
 		std::cout<< "\nBegin CWF.\n" << std::endl;
 
 
@@ -519,35 +446,21 @@ namespace BGAL
 				startRVD = clock();
 				for (int i = 0; i < num; ++i)
 				{
-					Point_T query(X(i * 3), X(i * 3 + 1), X(i * 3 + 2)); //project to base surface
-					Point_T closest = tree.closest_point(query);
-					auto tri = tree.closest_point_and_primitive(query);
-
-					Polyhedron::Face_handle f = tri.second;
-					auto p1 = f->halfedge()->vertex()->point();
-					auto p2 = f->halfedge()->next()->vertex()->point();
-					auto p3 = f->halfedge()->next()->next()->vertex()->point();
-					Eigen::Vector3d v1(p1.x(), p1.y(), p1.z());
-					Eigen::Vector3d v2(p2.x(), p2.y(), p2.z());
-					Eigen::Vector3d v3(p3.x(), p3.y(), p3.z());
-					Eigen::Vector3d N = (v2 - v1).cross(v3 - v1);
-					N.normalize();
-					Nors[i] = N;
-					BGAL::_Point3 p(closest.x(), closest.y(), closest.z());
-					_sites[i] = p;
+					const BGAL::_Point3 query(X(i * 3), X(i * 3 + 1), X(i * 3 + 2));
+					auto nearest = const_cast<_ManifoldModel&>(_model).nearest_point_(query);
+					_sites[i] = std::get<0>(nearest);
+					Nors[i] = surface_normal_at_point(_model, _sites[i], std::get<2>(nearest));
 				}
 				_RVD.calculate_(_sites);
 				Fnum++;
-				if (Fnum % 1 == 0)
+				if (export_process && Fnum % 1 == 0)
 				{
 					OutputMesh(_sites, _RVD, num_sites, outpath, modelname, Fnum, _model); //output process
 				}
 				endRVD = clock();
 				RVDtime += (double)(endRVD - startRVD) / CLOCKS_PER_SEC;
 
-
 				const std::vector<std::vector<std::tuple<int, int, int>>>& cells = _RVD.get_cells_();
-				const std::vector<std::map<int, std::vector<std::pair<int, int>>>>& edges = _RVD.get_edges_();
 				double energy = 0.0;
 				g.setZero();
 				std::vector<Eigen::Vector3d> gi;
@@ -583,9 +496,8 @@ namespace BGAL
 
 								return r;
 
-							}, _RVD.vertex_(std::get<0>(cells[i][j])), _RVD.vertex_(std::get<1>(cells[i][j])), _RVD.vertex_(std::get<2>(cells[i][j]))
-								);
-						//energy += alpha * inte(1);
+								}, _RVD.vertex_(std::get<0>(cells[i][j])), _RVD.vertex_(std::get<1>(cells[i][j])), _RVD.vertex_(std::get<2>(cells[i][j]))
+									);
 						lossCVT += alpha * inte(0);
 						loss += alpha * inte(1);
 						gi[i].x()+= alpha * inte(2);
@@ -593,19 +505,6 @@ namespace BGAL
 						gi[i].z()+= alpha * inte(4);
 					}
 
-
-					// if use exact gradient, then use this
-
-					//for (auto e : edges[i])
-					//{
-					//
-					//	auto p = (0.5 * (_sites[e.first] + _sites[i]));
-					//	auto nx = BGAL::_Point3((0.5 * (Nors[e.first] + Nors[i])).x(), (0.5 * (Nors[e.first] + Nors[i])).y(), (0.5 * (Nors[e.first] + Nors[i])).z());
-					//	auto addgi = (0.5 * (_sites[e.first] - _sites[i]) / (_sites[e.first] - _sites[i]).length_()) *(  pow((p - _sites[i]).dot_(nx),2) - pow((p - _sites[e.first]).dot_(nx), 2)) * (_sites[e.first] - _sites[i]).length_();
-					//	//cout << addgi.length_() << endl;
-					//	gi[i] += lambda*Eigen::Vector3d(addgi.x(), addgi.y(), addgi.z());
-					//}
-					//cout << gi[i].norm() << endl;
 
 				}
 
@@ -624,21 +523,17 @@ namespace BGAL
 			};
 
 
-			std::vector<Eigen::Vector3d> Pts2;
-
-		Pts2 = Pts;
-		num = Pts2.size();
-		std::cout << Pts2.size()<<"  "<<num << std::endl;
+		std::cout << Pts.size()<<"  "<<num << std::endl;
 		_sites.resize(num);
 		_para.max_linearsearch = 20;
 		BGAL::_LBFGS lbfgs2(_para);
 		Eigen::VectorXd iterX2(num * 3);
 		for (int i = 0; i < num; ++i)
 		{
-			iterX2(i * 3) =     Pts2[i].x();
-			iterX2(i * 3 + 1) = Pts2[i].y();
-			iterX2(i * 3 + 2) = Pts2[i].z();
-			_sites[i] = BGAL::_Point3(Pts2[i](0), Pts2[i](1), Pts2[i](2));
+			iterX2(i * 3) =     Pts[i].x();
+			iterX2(i * 3 + 1) = Pts[i].y();
+			iterX2(i * 3 + 2) = Pts[i].z();
+			_sites[i] = BGAL::_Point3(Pts[i](0), Pts[i](1), Pts[i](2));
 		}
 		_RVD.calculate_(_sites);
 		start = clock();
@@ -648,28 +543,18 @@ namespace BGAL
 		std::cout<<"allTime: "<<allTime<<" RVDtime: "<<RVDtime<< " L-BFGS time: "<< allTime - RVDtime << std::endl;
 		for (int i = 0; i < num; ++i)
 		{
-			//Point_T query(x0[i * 3], x0[i * 3+1], x0[i * 3+2]);
-			Point_T query(iterX2(i * 3), iterX2(i * 3+1), iterX2(i * 3+2));
-			Point_T closest = tree.closest_point(query);
-			auto tri = tree.closest_point_and_primitive(query);
-
-			Polyhedron::Face_handle f = tri.second;
-			auto p1 = f->halfedge()->vertex()->point();
-			auto p2 = f->halfedge()->next()->vertex()->point();
-			auto p3 = f->halfedge()->next()->next()->vertex()->point();
-			Eigen::Vector3d v1(p1.x(), p1.y(), p1.z());
-			Eigen::Vector3d v2(p2.x(), p2.y(), p2.z());
-			Eigen::Vector3d v3(p3.x(), p3.y(), p3.z());
-			Eigen::Vector3d N = (v2 - v1).cross(v3 - v1);
-			N.normalize();
-			Nors[i] = N;
-
-			_sites[i] = BGAL::_Point3(closest.x(), closest.y(), closest.z());
+			const BGAL::_Point3 query(iterX2(i * 3), iterX2(i * 3 + 1), iterX2(i * 3 + 2));
+			auto nearest = const_cast<_ManifoldModel&>(_model).nearest_point_(query);
+			_sites[i] = std::get<0>(nearest);
+			Nors[i] = surface_normal_at_point(_model, _sites[i], std::get<2>(nearest));
 
 		}
 		_RVD.calculate_(_sites);
 
-		OutputMesh(_sites, _RVD, num_sites, outpath, modelname, 2, _model);
+		if (export_process)
+		{
+			OutputMesh(_sites, _RVD, num_sites, outpath, modelname, 2, _model);
+		}
 
 
 	}

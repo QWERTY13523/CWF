@@ -1,5 +1,6 @@
 #include "BGAL/QuadCoverLike/QuadCover.h"
 #include "BGAL/Algorithm/BOC/BOC.h"
+#include "BGAL/CVTLike/CVT.h"
 #include "BGAL/Integral/Integral.h"
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/Search_traits_3.h>
@@ -1141,8 +1142,39 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
   }
 
   const int n = (int)_sites.size();
-  std::string outpath =
-      (std::filesystem::current_path() / "data" / "QuadCover").string();
+  const std::string output_dir = outpath.empty()
+                                     ? (std::filesystem::current_path() / "data" /
+                                        "QuadCover")
+                                           .string()
+                                     : outpath;
+
+  if (_para.use_cwf_warm_start && _para.cwf_max_iterations > 0) {
+    std::function<double(_Point3 &)> rho = [](_Point3 &p) {
+      (void)p;
+      return 1.0;
+    };
+    BGAL::_LBFGS::_Parameter cvt_para;
+    cvt_para.is_show = _para.show_cwf_progress;
+    cvt_para.epsilon = 1e-30;
+    cvt_para.max_linearsearch = 20;
+    cvt_para.max_iteration = _para.cwf_max_iterations;
+
+    if (_para.is_show) {
+      std::cout << "[QuadCoverLike] CWF warm start begin"
+                << " | iters=" << cvt_para.max_iteration
+                << " | sites=" << _sites.size() << std::endl;
+    }
+
+    BGAL::_CVT3D cvt(_model, rho, cvt_para);
+    cvt.set_outpath(output_dir + "/");
+    cvt.calculate_(_sites, model_name, false);
+    _sites = cvt.get_sites();
+
+    if (_para.is_show) {
+      std::cout << "[QuadCoverLike] CWF warm start end"
+                << " | sites=" << _sites.size() << std::endl;
+    }
+  }
 
   double total_rebuild_non_rvd_time = 0.0;
   double total_rvd_time = 0.0;
@@ -1354,10 +1386,13 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
   const int stagnation_hard_patience = 2 * stagnation_patience;
   const double perturb_hinge_rel_tol = 1e-3;
   const double perturb_hinge_abs_tol = 1e-12;
+  const int perturb_window_iters = 15;
+  const double perturb_window_progress_tol = 0.03;
+  const double perturb_single_step_progress_tol = 0.03;
 
   // perturb 鏇翠繚瀹堬細鍑忓皯 trial 鏁帮紝鍑忓皬灏哄害
   const double stagnation_perturb_ratio = 0.010;
-  const int perturb_num_trials = 16;
+  const int perturb_num_trials = 32;
   const double perturb_lr_max = 5e-5;
   const double stagnation_lr_trigger = 0.25 * adam_lr_init;
   const double stagnation_prop_trigger = 1.0;
@@ -1369,15 +1404,16 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
   const double perturb_accept_min_hinge_gain = 0.05;
 
   // perturb 鍚庡喎鍗?
-  const int post_perturb_cooldown_iters = 4;
-  const double post_perturb_prop_cap = 1;
-  const double post_perturb_lr_scale = 1.8;
-  const double post_perturb_lr_floor = 7.5e-5;
-  const double post_perturb_lr_cap = adam_lr_init;
+  const int post_perturb_cooldown_iters = 10;
+  const double post_perturb_prop_fixed = 1.0;
+  const double post_perturb_lr_scale = 1.2;
+  const double post_perturb_lr_floor = 2.5e-5;
+  const double post_perturb_lr_cap = 5.0e-5;
+  const double late_post_perturb_lr_cap = 4.0e-5;
+  const double very_late_post_perturb_lr_cap = 3.0e-5;
 
   // 鍚庢湡绛栫暐锛氶檺鍒舵闀裤€佸叧闂?late perturb銆佸姞蹇?hinge 涓诲
   const int late_no_perturb_active_thresh = 20;
-  const int perturb_active_upper_thresh = 200;
   const int late_aggressive_penalty_active_thresh = 50;
 
   // 瀵煎嚭棰戠巼锛氶檷浣?I/O 鍜岄澶栫殑 RVD rebuild
@@ -1400,8 +1436,16 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
           .eps(adam_eps));
 
   std::deque<double> recent_lr_metrics;
+  std::deque<double> recent_hinge_losses;
   int lr_bad_epochs = 0;
   int lr_cooldown_counter = 0;
+
+  auto push_recent_hinge_loss = [&](double hinge_loss) {
+    recent_hinge_losses.push_back(hinge_loss);
+    while ((int)recent_hinge_losses.size() > perturb_window_iters + 1) {
+      recent_hinge_losses.pop_front();
+    }
+  };
 
   auto reseed_recent_lr_scheduler = [&](double seed_metric) {
     recent_lr_metrics.clear();
@@ -1455,6 +1499,7 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
   };
 
   reset_recent_lr_scheduler(current_state.eval.hinge_loss);
+  push_recent_hinge_loss(current_state.eval.hinge_loss);
 
   double proposal_scale = 1.5;
   const double proposal_scale_min = 1.0;
@@ -1514,7 +1559,7 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
     double iter_perturb_rvd_task_time = 0.0;
 
     if (post_perturb_cooldown > 0) {
-      proposal_scale = std::min(proposal_scale, post_perturb_prop_cap);
+      proposal_scale = post_perturb_prop_fixed;
       --post_perturb_cooldown;
     }
 
@@ -1523,7 +1568,7 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
     for (const auto &q : current_state.search_quads) _quads.push_back({q});
 
     const bool do_export =
-        (outer == 0) ||
+        (_para.export_initial_state && outer == 0) ||
         (_para.export_each_iteration && (outer % export_interval == 0));
     if (do_export) {
       const double output_rvd_start = omp_get_wtime();
@@ -1534,8 +1579,8 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
         iter_rvd_time += elapsed;
       }
       const double output_start = omp_get_wtime();
-      output_mesh(_sites, _RVD, n, outpath, model_name, outer);
-      write_spheres_csv(outpath, n, model_name, outer, current_state.spheres,
+      output_mesh(_sites, _RVD, n, output_dir, model_name, outer);
+      write_spheres_csv(output_dir, n, model_name, outer, current_state.spheres,
                         _model);
       {
         const double elapsed = wall_seconds_since(output_start);
@@ -1645,6 +1690,22 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
       hinge_stagnation_streak = 0;
     } else {
       ++hinge_stagnation_streak;
+    }
+    push_recent_hinge_loss(current_state.eval.hinge_loss);
+
+    double single_step_hinge_progress = 1.0;
+    const double prev_hinge_safe = std::max(prev_hinge, 1e-18);
+    single_step_hinge_progress =
+        (prev_hinge - current_state.eval.hinge_loss) / prev_hinge_safe;
+
+    double window_hinge_progress = 1.0;
+    const bool hinge_window_ready =
+        (int)recent_hinge_losses.size() >= perturb_window_iters + 1;
+    if (hinge_window_ready) {
+      const double window_hinge_ref =
+          std::max(recent_hinge_losses.front(), 1e-18);
+      window_hinge_progress =
+          (window_hinge_ref - current_state.eval.hinge_loss) / window_hinge_ref;
     }
 
     _quads.clear();
@@ -1760,14 +1821,25 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
       }
     }
 
-      const bool allow_perturb =
-          (current_state.eval.active_quads < perturb_active_upper_thresh) &&
-          (post_perturb_cooldown == 0) &&
+      const bool allow_perturb_by_local_stagnation =
           (lr_after_sched <= perturb_lr_max) &&
           (hinge_stagnation_streak >= stagnation_patience) &&
           (proposal_scale <= stagnation_prop_trigger ||
            lr_after_sched <= stagnation_lr_trigger ||
            hinge_stagnation_streak >= stagnation_hard_patience);
+      const bool allow_perturb_by_window_stagnation =
+          hinge_window_ready &&
+          (window_hinge_progress <= perturb_window_progress_tol) &&
+          (single_step_hinge_progress < perturb_single_step_progress_tol);
+      const bool allow_perturb =
+          (post_perturb_cooldown == 0) &&
+          (allow_perturb_by_local_stagnation ||
+           allow_perturb_by_window_stagnation);
+      const char *perturb_trigger =
+          allow_perturb_by_window_stagnation
+              ? (allow_perturb_by_local_stagnation ? "local+window15"
+                                                   : "window15")
+              : "local";
 
     if (allow_perturb) {
       const double perturb_wall_start = omp_get_wtime();
@@ -1826,7 +1898,7 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
             current_state.surface_normals,
             perturb_mask,
             perturb_guide,
-            sigma_mult[trial] * perturb_sigma,
+            sigma_mult[trial % sigma_mult.size()] * perturb_sigma,
             trial % 8,
             _model,
             trial_rng);
@@ -1877,14 +1949,23 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
         }
         optimizer.state().clear();
 
+        const double post_perturb_lr_cap_now =
+            (current_state.eval.active_quads <= late_no_perturb_active_thresh)
+                ? very_late_post_perturb_lr_cap
+                : (current_state.eval.active_quads <=
+                           late_aggressive_penalty_active_thresh
+                       ? late_post_perturb_lr_cap
+                       : post_perturb_lr_cap);
         const double perturb_lr_reset =
-            std::min(post_perturb_lr_cap,
+            std::min(post_perturb_lr_cap_now,
                      std::max(post_perturb_lr_floor,
                               post_perturb_lr_scale * lr_after_sched));
         set_adam_lr(optimizer, perturb_lr_reset);
         reset_recent_lr_scheduler(current_state.eval.hinge_loss);
+        recent_hinge_losses.clear();
+        push_recent_hinge_loss(current_state.eval.hinge_loss);
 
-        proposal_scale = std::min(0.25, post_perturb_prop_cap);
+        proposal_scale = post_perturb_prop_fixed;
         hinge_stagnation_streak = 0;
         hinge_feasible_streak = 0;
         last_penalty_update_hinge = current_state.eval.hinge_loss;
@@ -1893,9 +1974,12 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
 
         if (_para.is_show) {
           std::cout << "[QuadCoverLike][Adam] perturb ACCEPT"
+                    << " | trigger=" << perturb_trigger
                     << " | sigma=" << std::scientific
                     << std::setprecision(log_value_precision)
                     << perturb_sigma
+                    << " | window15Progress=" << window_hinge_progress
+                    << " | stepProgress=" << single_step_hinge_progress
                     << " | trials=" << perturb_num_trials
                     << " | bestTrial=" << best_perturb_trial
                     << " | lrReset=" << get_adam_lr(optimizer)
@@ -1928,9 +2012,12 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
 
         if (_para.is_show) {
           std::cout << "[QuadCoverLike][Adam] perturb REJECT"
+                    << " | trigger=" << perturb_trigger
                     << " | sigma=" << std::scientific
                     << std::setprecision(log_value_precision)
                     << perturb_sigma
+                    << " | window15Progress=" << window_hinge_progress
+                    << " | stepProgress=" << single_step_hinge_progress
                     << " | trials=" << perturb_num_trials
                     << " | bestTrial=" << best_perturb_trial
                     << " | E(curr/bestPert)=" << pre_perturb_E << "/"
@@ -2008,9 +2095,9 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
   compute_cell_geom_and_spheres(_sites, _RVD, final_cells, _spheres);
   total_rebuild_non_rvd_time += wall_seconds_since(final_rebuild_start);
   const double final_output_start = omp_get_wtime();
-  output_mesh(_sites, _RVD, n, outpath, model_name,
+  output_mesh(_sites, _RVD, n, output_dir, model_name,
               (int)_history.size() + 1);
-  write_spheres_csv(outpath, n, model_name, (int)_history.size() + 1,
+  write_spheres_csv(output_dir, n, model_name, (int)_history.size() + 1,
                     _spheres, _model);
   total_output_time += wall_seconds_since(final_output_start);
 

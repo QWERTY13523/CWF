@@ -25,3 +25,11 @@ endif()
 target_compile_options(quadcover_main PRIVATE
   $<$<AND:$<NOT:$<CXX_COMPILER_ID:MSVC>>,$<CONFIG:Release,RelWithDebInfo,MinSizeRel>>:-O3>
   $<$<AND:$<CXX_COMPILER_ID:MSVC>,$<CONFIG:Release,RelWithDebInfo,MinSizeRel>>:/O2>)
+
+add_executable(quadcover_batch quadcover_batch.cpp)
+target_include_directories(quadcover_batch PUBLIC
+	$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+	$<INSTALL_INTERFACE:include>)
+target_compile_options(quadcover_batch PRIVATE
+  $<$<AND:$<NOT:$<CXX_COMPILER_ID:MSVC>>,$<CONFIG:Release,RelWithDebInfo,MinSizeRel>>:-O3>
+  $<$<AND:$<CXX_COMPILER_ID:MSVC>,$<CONFIG:Release,RelWithDebInfo,MinSizeRel>>:/O2>)

@@ -26,6 +26,9 @@ namespace BGAL
 		_CVT3D(const _ManifoldModel& model);
 		_CVT3D(const _ManifoldModel& model, std::function<double(_Point3& p)>& rho, _LBFGS::_Parameter para);
 		void calculate_(int site_num, char* modelNamee, char* pointsName = nullptr);
+		void calculate_(const std::vector<_Point3>& init_sites,
+			const std::string& model_name = "model",
+			bool export_process = false);
 
 		void set_outpath(const std::string& path)
 		{

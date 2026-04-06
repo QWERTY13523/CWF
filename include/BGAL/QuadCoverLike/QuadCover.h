@@ -19,7 +19,11 @@ class _QuadCover3D {
 public:
   struct _Parameter {
     bool is_show = true;
+    bool export_initial_state = true;
     bool export_each_iteration = false;
+    bool use_cwf_warm_start = true;
+    bool show_cwf_progress = true;
+    int cwf_max_iterations = 50;
     int max_outer_iterations = 30;
     int max_line_search = 10;
     double active_eps = 1e-8;
@@ -60,7 +64,7 @@ public:
   const std::vector<_IterationInfo> &get_history() const { return _history; }
 
 private:
-  std::string outpath = "../../data/LBFGSOUT/";
+  std::string outpath{};
 
 private:
   const _ManifoldModel &_model;
