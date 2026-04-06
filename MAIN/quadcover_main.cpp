@@ -52,14 +52,14 @@ static void print_usage(const char *exe_name) {
       << "  --workdir DIR   Change working directory before resolving paths.\n"
       << "  --model NAME    Use data/NAME.obj as the target surface. Default: block\n"
       << "  --surface FILE  Use FILE as the target surface mesh.\n"
-      << "  --input FILE    Use FILE as the initialization OBJ.\n"
+      << "  --input FILE    Use FILE as the initialization sites (.xyz/.txt/.pts/.obj/.off).\n"
       << "  --output DIR    Directory for QuadCover result files.\n"
       << "  --name NAME     Output basename. Defaults to the surface stem.\n"
       << "  --threads N     Number of threads used inside one run.\n"
       << "  --final-only    Export only the final QuadCover result.\n"
       << "  -h, --help      Show this help message.\n\n"
       << "Legacy positional form is still supported:\n"
-      << "  " << exe_name << " [workdir] [model] [input_obj]\n";
+      << "  " << exe_name << " [workdir] [model] [input_sites]\n";
 }
 
 static bool parse_args(int argc, char **argv, CliOptions &opts) {
@@ -331,7 +331,7 @@ int main(int argc, char **argv) {
     init_obj_path = fs::current_path() / init_obj_path;
   }
   if (!fs::exists(init_obj_path)) {
-    std::cerr << "IOError: init obj " << init_obj_path << " does not exist.\n";
+    std::cerr << "IOError: init input " << init_obj_path << " does not exist.\n";
     return 1;
   }
 
@@ -376,6 +376,11 @@ int main(int argc, char **argv) {
   para.is_show = true;
   para.export_initial_state = !options.final_only;
   para.export_each_iteration = !options.final_only;
+  para.use_cwf_warm_start = 0;
+  if (!para.use_cwf_warm_start) {
+    para.show_cwf_progress = false;
+    para.cwf_max_iterations = 0;
+  }
   para.max_outer_iterations = 800;
   para.max_line_search = 10;
   para.active_eps = 1e-8;

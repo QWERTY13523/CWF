@@ -642,30 +642,74 @@ static inline Eigen::VectorXd convex_combine_gradients(
   return g;
 }
 
+static inline std::vector<double> compute_local_site_scales(
+    const std::vector<_Point3> &sites,
+    const std::vector<Eigen::Vector3i> &rdt_faces,
+    double fallback_scale) {
+  const int n = (int)sites.size();
+  std::vector<std::vector<int>> neighbors(n);
+  for (const auto &f : rdt_faces) {
+    const int a = f.x();
+    const int b = f.y();
+    const int c = f.z();
+    if (a < 0 || a >= n || b < 0 || b >= n || c < 0 || c >= n) continue;
+    neighbors[a].push_back(b);
+    neighbors[a].push_back(c);
+    neighbors[b].push_back(a);
+    neighbors[b].push_back(c);
+    neighbors[c].push_back(a);
+    neighbors[c].push_back(b);
+  }
+
+  std::vector<double> scales(n, fallback_scale);
+  #pragma omp parallel for
+  for (int i = 0; i < n; ++i) {
+    auto &nbrs = neighbors[i];
+    if (nbrs.empty()) continue;
+    std::sort(nbrs.begin(), nbrs.end());
+    nbrs.erase(std::unique(nbrs.begin(), nbrs.end()), nbrs.end());
+
+    double sum_dist = 0.0;
+    int cnt = 0;
+    const Vec3 pi = to_eigen(sites[i]);
+    for (int j : nbrs) {
+      if (j < 0 || j >= n || j == i) continue;
+      sum_dist += (pi - to_eigen(sites[j])).norm();
+      ++cnt;
+    }
+    if (cnt > 0) {
+      scales[i] = sum_dist / double(cnt);
+    }
+  }
+  return scales;
+}
+
 static inline std::vector<_Point3> perturb_sites_structured(
     const std::vector<_Point3> &base_sites,
     const std::vector<Vec3> &surface_normals,
     const std::vector<char> &perturb_mask,
-    const Eigen::MatrixXd &hinge_grads,
-    double sigma,
-    int mode,
+    const std::vector<Eigen::Vector3i> &rdt_faces,
+    double alpha,
+    double fallback_scale,
     const BGAL::_ManifoldModel &model,
     std::mt19937 &rng) {
   std::vector<_Point3> perturbed = base_sites;
-  if (!(sigma > 0.0) || !std::isfinite(sigma)) return perturbed;
+  if (!(alpha > 0.0) || !std::isfinite(alpha)) return perturbed;
 
   std::normal_distribution<double> normal01(0.0, 1.0);
   std::vector<char> use_site_flags(base_sites.size(), 0);
-  std::vector<double> rand_a(base_sites.size(), 0.0);
-  std::vector<double> rand_b(base_sites.size(), 0.0);
+  std::vector<double> xi1(base_sites.size(), 0.0);
+  std::vector<double> xi2(base_sites.size(), 0.0);
+  const std::vector<double> local_scales =
+      compute_local_site_scales(base_sites, rdt_faces, fallback_scale);
 
   for (int i = 0; i < (int)base_sites.size(); ++i) {
     const bool use_site =
         (i < (int)perturb_mask.size() && perturb_mask[i] != 0);
     use_site_flags[i] = use_site ? 1 : 0;
     if (!use_site) continue;
-    rand_a[i] = normal01(rng);
-    rand_b[i] = normal01(rng);
+    xi1[i] = normal01(rng);
+    xi2[i] = normal01(rng);
   }
 
   #pragma omp parallel for
@@ -684,51 +728,15 @@ static inline std::vector<_Point3> perturb_sites_structured(
     if (t2_norm < 1e-12) t2 = orthogonal_unit(t1);
     else t2 /= t2_norm;
 
-    Vec3 guide = Vec3::Zero();
-    if (hinge_grads.rows() == (int)base_sites.size()) {
-      guide = -hinge_grads.row(i).transpose();
-    }
-    guide -= guide.dot(n) * n;
-    if (guide.squaredNorm() < 1e-20) {
-      guide = t1;
-    } else {
-      guide.normalize();
-    }
+    const double hi =
+        (i < (int)local_scales.size() && std::isfinite(local_scales[i]) &&
+         local_scales[i] > 0.0)
+            ? local_scales[i]
+            : fallback_scale;
+    const double sigma_i = alpha * hi;
+    if (!(sigma_i > 0.0) || !std::isfinite(sigma_i)) continue;
 
-    Vec3 ortho = n.cross(guide);
-    const double ortho_norm = ortho.norm();
-    if (ortho_norm < 1e-12) ortho = t2;
-    else ortho /= ortho_norm;
-
-    Vec3 rand_tan = rand_a[i] * t1 + rand_b[i] * t2;
-    const double rand_norm = rand_tan.norm();
-    if (rand_norm > 1e-12) rand_tan /= rand_norm;
-    else rand_tan = t1;
-
-    double guide_scale = 1.0;
-    double ortho_scale = 0.0;
-    double rand_scale = 0.0;
-
-    switch (mode) {
-      case 0: guide_scale = 1.80; ortho_scale = 0.00; rand_scale = 0.30; break;
-      case 1: guide_scale = 1.40; ortho_scale = 0.60; rand_scale = 0.35; break;
-      case 2: guide_scale = 1.40; ortho_scale = -0.60; rand_scale = 0.35; break;
-      case 3: guide_scale = 1.10; ortho_scale = 0.00; rand_scale = 0.70; break;
-      case 4: guide_scale = 0.90; ortho_scale = 0.90; rand_scale = 0.60; break;
-      case 5: guide_scale = 0.90; ortho_scale = -0.90; rand_scale = 0.60; break;
-      case 6: guide_scale = 0.55; ortho_scale = 0.00; rand_scale = 1.10; break;
-      default: guide_scale = 0.35; ortho_scale = 1.20; rand_scale = 0.95; break;
-    }
-
-    Vec3 tangent_step =
-        sigma * (guide_scale * guide +
-                 ortho_scale * ortho +
-                 rand_scale * rand_tan);
-
-    const double max_len = 4.0 * sigma;
-    const double len = tangent_step.norm();
-    if (len > max_len && len > 1e-16) tangent_step *= (max_len / len);
-
+    const Vec3 tangent_step = sigma_i * (xi1[i] * t1 + xi2[i] * t2);
     const Vec3 p = to_eigen(base_sites[i]) + tangent_step;
     perturbed[i] = project_to_surface(model, to_point(p));
   }
@@ -1370,12 +1378,12 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
   const int adam_lr_recent_best_window = 5;
 
   //
-  const int penalty_k_update_interval = 6;
+  const int penalty_k_update_interval = 5;
   const double penalty_k_min = hinge_lambda_floor;
   const double penalty_k_max = 1e4;
   const double penalty_k_grow_fast = 3.0;
   const double penalty_k_grow_slow = 1.5;
-  const double penalty_k_shrink_factor = 1.0;
+  const double penalty_k_shrink_factor = 1.1;
   const double hinge_progress_fast_tol = 0.20;
   const double hinge_progress_slow_tol = 0.05;
   const double qem_weight_decay = 0.95;
@@ -1392,7 +1400,7 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
 
   // perturb 鏇翠繚瀹堬細鍑忓皯 trial 鏁帮紝鍑忓皬灏哄害
   const double stagnation_perturb_ratio = 0.010;
-  const int perturb_num_trials = 32;
+  const int perturb_num_trials = 64;
   const double perturb_lr_max = 5e-5;
   const double stagnation_lr_trigger = 0.25 * adam_lr_init;
   const double stagnation_prop_trigger = 1.0;
@@ -1406,11 +1414,10 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
   // perturb 鍚庡喎鍗?
   const int post_perturb_cooldown_iters = 10;
   const double post_perturb_prop_fixed = 1.0;
-  const double post_perturb_lr_scale = 1.2;
-  const double post_perturb_lr_floor = 2.5e-5;
-  const double post_perturb_lr_cap = 5.0e-5;
-  const double late_post_perturb_lr_cap = 4.0e-5;
-  const double very_late_post_perturb_lr_cap = 3.0e-5;
+  const double post_perturb_lr_scale = 1.0;
+  const double post_perturb_lr_cap = 2.5e-5;
+  const double late_post_perturb_lr_cap = 1.8e-5;
+  const double very_late_post_perturb_lr_cap = 1.2e-5;
 
   // 鍚庢湡绛栫暐锛氶檺鍒舵闀裤€佸叧闂?late perturb銆佸姞蹇?hinge 涓诲
   const int late_no_perturb_active_thresh = 20;
@@ -1500,6 +1507,9 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
 
   reset_recent_lr_scheduler(current_state.eval.hinge_loss);
   push_recent_hinge_loss(current_state.eval.hinge_loss);
+  double last_single_step_hinge_progress = 1.0;
+  double last_window_hinge_progress = 1.0;
+  bool last_hinge_window_ready = false;
 
   double proposal_scale = 1.5;
   const double proposal_scale_min = 1.0;
@@ -1586,6 +1596,231 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
         const double elapsed = wall_seconds_since(output_start);
         total_output_time += elapsed;
         iter_output_time += elapsed;
+      }
+    }
+
+    const double lr_before_step = get_adam_lr(optimizer);
+    const bool allow_perturb_by_local_stagnation =
+        (lr_before_step <= perturb_lr_max) &&
+        (hinge_stagnation_streak >= stagnation_patience) &&
+        (proposal_scale <= stagnation_prop_trigger ||
+         lr_before_step <= stagnation_lr_trigger ||
+         hinge_stagnation_streak >= stagnation_hard_patience);
+    const bool allow_perturb_by_window_stagnation =
+        last_hinge_window_ready &&
+        (last_window_hinge_progress <= perturb_window_progress_tol) &&
+        (last_single_step_hinge_progress < perturb_single_step_progress_tol);
+    const bool allow_perturb =
+        (post_perturb_cooldown == 0) &&
+        (allow_perturb_by_local_stagnation ||
+         allow_perturb_by_window_stagnation);
+    const double perturb_window_progress_for_log = last_window_hinge_progress;
+    const double perturb_step_progress_for_log = last_single_step_hinge_progress;
+    const char *perturb_trigger =
+        allow_perturb_by_window_stagnation
+            ? (allow_perturb_by_local_stagnation ? "local+window15"
+                                                 : "window15")
+            : "local";
+
+    if (allow_perturb) {
+      const double perturb_wall_start = omp_get_wtime();
+      const RebuiltState pre_perturb_state = current_state;
+      const double pre_perturb_E = current_rebuilt_E;
+
+      std::vector<char> perturb_mask = build_active_site_mask(
+          current_state.sites, current_state.frozen_poles,
+          current_state.search_quads, current_state.eps);
+      std::vector<char> perturb_opt_mask = expand_active_mask_one_ring(
+          perturb_mask, current_state.rdt_faces, n, 1);
+      if (!has_any_active(perturb_mask)) perturb_mask = perturb_opt_mask;
+      if (!has_any_active(perturb_mask)) perturb_mask = make_all_active_mask(n);
+
+      const double perturb_alpha = stagnation_perturb_ratio;
+      const double perturb_fallback_scale = std::max(current_state.avg_r, 1e-8);
+
+      struct PerturbEval {
+        RebuiltState state;
+        double energy = std::numeric_limits<double>::infinity();
+        double rebuild_non_rvd_time = 0.0;
+        double rvd_time = 0.0;
+        bool valid = false;
+
+        explicit PerturbEval(int n_sites = 0) : state(n_sites) {}
+      };
+
+      auto evaluate_perturb_sites =
+          [&](const std::vector<_Point3> &sites_in) -> PerturbEval {
+        PerturbEval eval_result;
+        _Restricted_Tessellation3D local_rvd(_model);
+        eval_result.state =
+            rebuild_state(sites_in, true, local_rvd,
+                          eval_result.rebuild_non_rvd_time,
+                          eval_result.rvd_time);
+        eval_result.energy = rebuilt_energy(eval_result.state);
+        eval_result.valid = true;
+        return eval_result;
+      };
+
+      static const std::array<double, 64> sigma_mult = []() {
+        std::array<double, 64> ret{};
+        for (int i = 0; i < (int)ret.size(); ++i) {
+          ret[i] = 0.60 + 2.00 * double(i) / double(ret.size() - 1);
+        }
+        return ret;
+      }();
+
+      std::vector<unsigned int> trial_seeds(perturb_num_trials);
+      for (int trial = 0; trial < perturb_num_trials; ++trial) {
+        trial_seeds[trial] = perturb_rng();
+      }
+
+      std::vector<PerturbEval> trial_results(perturb_num_trials);
+      #pragma omp parallel for schedule(dynamic)
+      for (int trial = 0; trial < perturb_num_trials; ++trial) {
+        std::mt19937 trial_rng(trial_seeds[trial]);
+        std::vector<_Point3> perturbed_sites = perturb_sites_structured(
+            current_state.sites,
+            current_state.surface_normals,
+            perturb_mask,
+            current_state.rdt_faces,
+            perturb_alpha * sigma_mult[trial % sigma_mult.size()],
+            perturb_fallback_scale,
+            _model,
+            trial_rng);
+        trial_results[trial] = evaluate_perturb_sites(perturbed_sites);
+      }
+
+      double perturb_rebuild_non_rvd_task_time = 0.0;
+      double perturb_rvd_task_time = 0.0;
+      RebuiltState best_perturb_state;
+      double best_perturb_E = std::numeric_limits<double>::infinity();
+      int best_perturb_trial = -1;
+      for (int trial = 0; trial < perturb_num_trials; ++trial) {
+        if (!trial_results[trial].valid) continue;
+        perturb_rebuild_non_rvd_task_time +=
+            trial_results[trial].rebuild_non_rvd_time;
+        perturb_rvd_task_time += trial_results[trial].rvd_time;
+        if (best_perturb_trial < 0 ||
+            is_better_perturb_candidate(trial_results[trial].state,
+                                        best_perturb_state,
+                                        trial_results[trial].energy,
+                                        best_perturb_E)) {
+          best_perturb_state = std::move(trial_results[trial].state);
+          best_perturb_E = trial_results[trial].energy;
+          best_perturb_trial = trial;
+        }
+      }
+
+      const double perturb_wall_elapsed = wall_seconds_since(perturb_wall_start);
+      total_perturb_wall_time += perturb_wall_elapsed;
+      iter_perturb_wall_time += perturb_wall_elapsed;
+      total_perturb_rebuild_task_time += perturb_rebuild_non_rvd_task_time;
+      total_perturb_rvd_task_time += perturb_rvd_task_time;
+      iter_perturb_rebuild_task_time += perturb_rebuild_non_rvd_task_time;
+      iter_perturb_rvd_task_time += perturb_rvd_task_time;
+
+      bool perturb_accepted = false;
+      if (best_perturb_trial >= 0 &&
+          accept_perturb_candidate(best_perturb_state, best_perturb_E,
+                                   pre_perturb_state, pre_perturb_E)) {
+        current_state = std::move(best_perturb_state);
+        current_rebuilt_E = best_perturb_E;
+        _sites = current_state.sites;
+        update_best_state(current_state, current_rebuilt_E);
+
+        {
+          torch::NoGradGuard no_grad;
+          site_param.copy_(sites_to_tensor(current_state.sites, optim_device));
+        }
+        optimizer.state().clear();
+
+        const double post_perturb_lr_cap_now = std::max(
+            lr_before_step,
+            (current_state.eval.active_quads <= late_no_perturb_active_thresh)
+                ? very_late_post_perturb_lr_cap
+                : (current_state.eval.active_quads <=
+                           late_aggressive_penalty_active_thresh
+                       ? late_post_perturb_lr_cap
+                       : post_perturb_lr_cap));
+        const double perturb_lr_reset =
+            std::min(post_perturb_lr_cap_now,
+                     std::max(lr_before_step,
+                              post_perturb_lr_scale * lr_before_step));
+        set_adam_lr(optimizer, perturb_lr_reset);
+        reset_recent_lr_scheduler(current_state.eval.hinge_loss);
+        recent_hinge_losses.clear();
+        push_recent_hinge_loss(current_state.eval.hinge_loss);
+        last_single_step_hinge_progress = 1.0;
+        last_window_hinge_progress = 1.0;
+        last_hinge_window_ready = false;
+
+        proposal_scale = post_perturb_prop_fixed;
+        hinge_stagnation_streak = 0;
+        hinge_feasible_streak = 0;
+        last_penalty_update_hinge = current_state.eval.hinge_loss;
+        post_perturb_cooldown = post_perturb_cooldown_iters;
+        perturb_accepted = true;
+
+        if (_para.is_show) {
+          std::cout << "[QuadCoverLike][Adam] perturb ACCEPT"
+                    << " | trigger=" << perturb_trigger
+                    << " | alpha=" << std::scientific
+                    << std::setprecision(log_value_precision)
+                    << perturb_alpha
+                    << " | window15Progress=" << perturb_window_progress_for_log
+                    << " | stepProgress=" << perturb_step_progress_for_log
+                    << " | trials=" << perturb_num_trials
+                    << " | bestTrial=" << best_perturb_trial
+                    << " | lrReset=" << get_adam_lr(optimizer)
+                    << " | E(before/after)=" << pre_perturb_E << "/"
+                    << current_rebuilt_E
+                    << " | hinge(before/after)="
+                    << pre_perturb_state.eval.hinge_loss << "/"
+                    << current_state.eval.hinge_loss
+                    << " | Act(before/after)="
+                    << pre_perturb_state.eval.active_quads << "/"
+                    << current_state.eval.active_quads
+                    << " | min_g(before/after)="
+                    << pre_perturb_state.eval.min_g << "/"
+                    << current_state.eval.min_g
+                    << std::endl;
+        }
+      }
+
+      if (!perturb_accepted) {
+        {
+          torch::NoGradGuard no_grad;
+          site_param.copy_(sites_to_tensor(current_state.sites, optim_device));
+        }
+        optimizer.state().clear();
+        set_adam_lr(optimizer, std::max(adam_lr_min, 0.8 * lr_before_step));
+        reset_recent_lr_scheduler(current_state.eval.hinge_loss);
+
+        proposal_scale = std::max(proposal_scale_min, 0.5 * proposal_scale);
+        hinge_stagnation_streak = std::max(0, hinge_stagnation_streak - 1);
+
+        if (_para.is_show) {
+          std::cout << "[QuadCoverLike][Adam] perturb REJECT"
+                    << " | trigger=" << perturb_trigger
+                    << " | alpha=" << std::scientific
+                    << std::setprecision(log_value_precision)
+                    << perturb_alpha
+                    << " | window15Progress=" << perturb_window_progress_for_log
+                    << " | stepProgress=" << perturb_step_progress_for_log
+                    << " | trials=" << perturb_num_trials
+                    << " | bestTrial=" << best_perturb_trial
+                    << " | E(curr/bestPert)=" << pre_perturb_E << "/"
+                    << best_perturb_E
+                    << " | hinge(curr/bestPert)="
+                    << pre_perturb_state.eval.hinge_loss << "/"
+                    << (best_perturb_trial >= 0 ? best_perturb_state.eval.hinge_loss
+                                                : pre_perturb_state.eval.hinge_loss)
+                    << " | Act(curr/bestPert)="
+                    << pre_perturb_state.eval.active_quads << "/"
+                    << (best_perturb_trial >= 0 ? best_perturb_state.eval.active_quads
+                                                : pre_perturb_state.eval.active_quads)
+                    << std::endl;
+        }
       }
     }
 
@@ -1707,6 +1942,9 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
       window_hinge_progress =
           (window_hinge_ref - current_state.eval.hinge_loss) / window_hinge_ref;
     }
+    last_single_step_hinge_progress = single_step_hinge_progress;
+    last_window_hinge_progress = window_hinge_progress;
+    last_hinge_window_ready = hinge_window_ready;
 
     _quads.clear();
     for (const auto &q : current_state.search_quads) _quads.push_back({q});
@@ -1818,220 +2056,6 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
                     << std::endl;
         }
         break;
-      }
-    }
-
-      const bool allow_perturb_by_local_stagnation =
-          (lr_after_sched <= perturb_lr_max) &&
-          (hinge_stagnation_streak >= stagnation_patience) &&
-          (proposal_scale <= stagnation_prop_trigger ||
-           lr_after_sched <= stagnation_lr_trigger ||
-           hinge_stagnation_streak >= stagnation_hard_patience);
-      const bool allow_perturb_by_window_stagnation =
-          hinge_window_ready &&
-          (window_hinge_progress <= perturb_window_progress_tol) &&
-          (single_step_hinge_progress < perturb_single_step_progress_tol);
-      const bool allow_perturb =
-          (post_perturb_cooldown == 0) &&
-          (allow_perturb_by_local_stagnation ||
-           allow_perturb_by_window_stagnation);
-      const char *perturb_trigger =
-          allow_perturb_by_window_stagnation
-              ? (allow_perturb_by_local_stagnation ? "local+window15"
-                                                   : "window15")
-              : "local";
-
-    if (allow_perturb) {
-      const double perturb_wall_start = omp_get_wtime();
-      const RebuiltState pre_perturb_state = current_state;
-      const double pre_perturb_E = current_rebuilt_E;
-
-      std::vector<char> perturb_mask = active_mask;
-      if (!has_any_active(perturb_mask)) perturb_mask = opt_mask;
-      if (!has_any_active(perturb_mask)) perturb_mask = make_all_active_mask(n);
-
-      Eigen::MatrixXd perturb_guide = current_state.eval.hinge_grads;
-      zero_out_inactive_rows(perturb_guide, perturb_mask);
-
-      const double perturb_sigma = std::max(
-          1e-6,
-          stagnation_perturb_ratio * std::max(current_state.avg_r, 1e-8));
-
-      struct PerturbEval {
-        RebuiltState state;
-        double energy = std::numeric_limits<double>::infinity();
-        double rebuild_non_rvd_time = 0.0;
-        double rvd_time = 0.0;
-        bool valid = false;
-
-        explicit PerturbEval(int n_sites = 0) : state(n_sites) {}
-      };
-
-      auto evaluate_perturb_sites =
-          [&](const std::vector<_Point3> &sites_in) -> PerturbEval {
-        PerturbEval eval_result;
-        _Restricted_Tessellation3D local_rvd(_model);
-        eval_result.state =
-            rebuild_state(sites_in, true, local_rvd,
-                          eval_result.rebuild_non_rvd_time,
-                          eval_result.rvd_time);
-        eval_result.energy = rebuilt_energy(eval_result.state);
-        eval_result.valid = true;
-        return eval_result;
-      };
-
-      static const std::array<double, 16> sigma_mult = {
-          0.60, 0.72, 0.84, 0.96, 1.08, 1.20, 1.32, 1.44,
-          1.56, 1.68, 1.82, 1.96, 2.12, 2.28, 2.44, 2.60};
-
-      std::vector<unsigned int> trial_seeds(perturb_num_trials);
-      for (int trial = 0; trial < perturb_num_trials; ++trial) {
-        trial_seeds[trial] = perturb_rng();
-      }
-
-      std::vector<PerturbEval> trial_results(perturb_num_trials);
-      #pragma omp parallel for schedule(dynamic)
-      for (int trial = 0; trial < perturb_num_trials; ++trial) {
-        std::mt19937 trial_rng(trial_seeds[trial]);
-        std::vector<_Point3> perturbed_sites = perturb_sites_structured(
-            current_state.sites,
-            current_state.surface_normals,
-            perturb_mask,
-            perturb_guide,
-            sigma_mult[trial % sigma_mult.size()] * perturb_sigma,
-            trial % 8,
-            _model,
-            trial_rng);
-        trial_results[trial] = evaluate_perturb_sites(perturbed_sites);
-      }
-
-      double perturb_rebuild_non_rvd_task_time = 0.0;
-      double perturb_rvd_task_time = 0.0;
-      RebuiltState best_perturb_state;
-      double best_perturb_E = std::numeric_limits<double>::infinity();
-      int best_perturb_trial = -1;
-      for (int trial = 0; trial < perturb_num_trials; ++trial) {
-        if (!trial_results[trial].valid) continue;
-        perturb_rebuild_non_rvd_task_time +=
-            trial_results[trial].rebuild_non_rvd_time;
-        perturb_rvd_task_time += trial_results[trial].rvd_time;
-        if (best_perturb_trial < 0 ||
-            is_better_perturb_candidate(trial_results[trial].state,
-                                        best_perturb_state,
-                                        trial_results[trial].energy,
-                                        best_perturb_E)) {
-          best_perturb_state = std::move(trial_results[trial].state);
-          best_perturb_E = trial_results[trial].energy;
-          best_perturb_trial = trial;
-        }
-      }
-
-      const double perturb_wall_elapsed = wall_seconds_since(perturb_wall_start);
-      total_perturb_wall_time += perturb_wall_elapsed;
-      iter_perturb_wall_time += perturb_wall_elapsed;
-      total_perturb_rebuild_task_time += perturb_rebuild_non_rvd_task_time;
-      total_perturb_rvd_task_time += perturb_rvd_task_time;
-      iter_perturb_rebuild_task_time += perturb_rebuild_non_rvd_task_time;
-      iter_perturb_rvd_task_time += perturb_rvd_task_time;
-
-      bool perturb_accepted = false;
-      if (best_perturb_trial >= 0 &&
-          accept_perturb_candidate(best_perturb_state, best_perturb_E,
-                                   pre_perturb_state, pre_perturb_E)) {
-        current_state = std::move(best_perturb_state);
-        current_rebuilt_E = best_perturb_E;
-        _sites = current_state.sites;
-        update_best_state(current_state, current_rebuilt_E);
-
-        {
-          torch::NoGradGuard no_grad;
-          site_param.copy_(sites_to_tensor(current_state.sites, optim_device));
-        }
-        optimizer.state().clear();
-
-        const double post_perturb_lr_cap_now =
-            (current_state.eval.active_quads <= late_no_perturb_active_thresh)
-                ? very_late_post_perturb_lr_cap
-                : (current_state.eval.active_quads <=
-                           late_aggressive_penalty_active_thresh
-                       ? late_post_perturb_lr_cap
-                       : post_perturb_lr_cap);
-        const double perturb_lr_reset =
-            std::min(post_perturb_lr_cap_now,
-                     std::max(post_perturb_lr_floor,
-                              post_perturb_lr_scale * lr_after_sched));
-        set_adam_lr(optimizer, perturb_lr_reset);
-        reset_recent_lr_scheduler(current_state.eval.hinge_loss);
-        recent_hinge_losses.clear();
-        push_recent_hinge_loss(current_state.eval.hinge_loss);
-
-        proposal_scale = post_perturb_prop_fixed;
-        hinge_stagnation_streak = 0;
-        hinge_feasible_streak = 0;
-        last_penalty_update_hinge = current_state.eval.hinge_loss;
-        post_perturb_cooldown = post_perturb_cooldown_iters;
-        perturb_accepted = true;
-
-        if (_para.is_show) {
-          std::cout << "[QuadCoverLike][Adam] perturb ACCEPT"
-                    << " | trigger=" << perturb_trigger
-                    << " | sigma=" << std::scientific
-                    << std::setprecision(log_value_precision)
-                    << perturb_sigma
-                    << " | window15Progress=" << window_hinge_progress
-                    << " | stepProgress=" << single_step_hinge_progress
-                    << " | trials=" << perturb_num_trials
-                    << " | bestTrial=" << best_perturb_trial
-                    << " | lrReset=" << get_adam_lr(optimizer)
-                    << " | E(before/after)=" << pre_perturb_E << "/"
-                    << current_rebuilt_E
-                    << " | hinge(before/after)="
-                    << pre_perturb_state.eval.hinge_loss << "/"
-                    << current_state.eval.hinge_loss
-                    << " | Act(before/after)="
-                    << pre_perturb_state.eval.active_quads << "/"
-                    << current_state.eval.active_quads
-                    << " | min_g(before/after)="
-                    << pre_perturb_state.eval.min_g << "/"
-                    << current_state.eval.min_g
-                    << std::endl;
-        }
-      }
-
-      if (!perturb_accepted) {
-        {
-          torch::NoGradGuard no_grad;
-          site_param.copy_(sites_to_tensor(current_state.sites, optim_device));
-        }
-        optimizer.state().clear();
-        set_adam_lr(optimizer, std::max(adam_lr_min, 0.8 * lr_after_sched));
-        reset_recent_lr_scheduler(current_state.eval.hinge_loss);
-
-        proposal_scale = std::max(proposal_scale_min, 0.5 * proposal_scale);
-        hinge_stagnation_streak = std::max(0, hinge_stagnation_streak - 1);
-
-        if (_para.is_show) {
-          std::cout << "[QuadCoverLike][Adam] perturb REJECT"
-                    << " | trigger=" << perturb_trigger
-                    << " | sigma=" << std::scientific
-                    << std::setprecision(log_value_precision)
-                    << perturb_sigma
-                    << " | window15Progress=" << window_hinge_progress
-                    << " | stepProgress=" << single_step_hinge_progress
-                    << " | trials=" << perturb_num_trials
-                    << " | bestTrial=" << best_perturb_trial
-                    << " | E(curr/bestPert)=" << pre_perturb_E << "/"
-                    << best_perturb_E
-                    << " | hinge(curr/bestPert)="
-                    << pre_perturb_state.eval.hinge_loss << "/"
-                    << (best_perturb_trial >= 0 ? best_perturb_state.eval.hinge_loss
-                                                : pre_perturb_state.eval.hinge_loss)
-                    << " | Act(curr/bestPert)="
-                    << pre_perturb_state.eval.active_quads << "/"
-                    << (best_perturb_trial >= 0 ? best_perturb_state.eval.active_quads
-                                                : pre_perturb_state.eval.active_quads)
-                    << std::endl;
-        }
       }
     }
 
