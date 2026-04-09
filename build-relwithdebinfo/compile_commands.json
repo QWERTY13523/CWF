@@ -253,7 +253,7 @@
 },
 {
   "directory": "/home/yiming/research/CWF/build-relwithdebinfo/src/QuadCoverLike",
-  "command": "/usr/bin/c++ -DCGAL_USE_GMPXX=1 -I/home/yiming/research/CWF/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/eigen3 -O2 -g -DNDEBUG -std=c++17 -fPIC -frounding-math -o CMakeFiles/QuadCoverLike.dir/QuadCover.cpp.o -c /home/yiming/research/CWF/src/QuadCoverLike/QuadCover.cpp",
+  "command": "/usr/bin/c++ -DCGAL_USE_GMPXX=1 -DGLOG_USE_GFLAGS -DGLOG_USE_GLOG_EXPORT -DUSE_C10D_GLOO -DUSE_DISTRIBUTED -DUSE_RPC -DUSE_TENSORPIPE -I/home/yiming/research/CWF/include -isystem /home/yiming/libtorch/include -isystem /home/yiming/libtorch/include/torch/csrc/api/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/eigen3 -O2 -g -DNDEBUG -std=c++17 -fPIC -D_GLIBCXX_USE_CXX11_ABI=1 -O3 -frounding-math -fopenmp -o CMakeFiles/QuadCoverLike.dir/QuadCover.cpp.o -c /home/yiming/research/CWF/src/QuadCoverLike/QuadCover.cpp",
   "file": "/home/yiming/research/CWF/src/QuadCoverLike/QuadCover.cpp",
   "output": "src/QuadCoverLike/CMakeFiles/QuadCoverLike.dir/QuadCover.cpp.o"
 },
@@ -283,8 +283,14 @@
 },
 {
   "directory": "/home/yiming/research/CWF/build-relwithdebinfo/MAIN",
-  "command": "/usr/bin/c++ -DCGAL_USE_GMPXX=1 -I/home/yiming/research/CWF/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/eigen3 -O2 -g -DNDEBUG -std=c++17 -fPIE -frounding-math -fopenmp -o CMakeFiles/quadcover_main.dir/quadcover_main.cpp.o -c /home/yiming/research/CWF/MAIN/quadcover_main.cpp",
+  "command": "/usr/bin/c++ -DCGAL_USE_GMPXX=1 -DUSE_C10D_GLOO -DUSE_DISTRIBUTED -DUSE_RPC -DUSE_TENSORPIPE -I/home/yiming/research/CWF/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include -isystem /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/eigen3 -isystem /home/yiming/libtorch/include -isystem /home/yiming/libtorch/include/torch/csrc/api/include -O2 -g -DNDEBUG -std=c++17 -fPIE -O3 -frounding-math -fopenmp -D_GLIBCXX_USE_CXX11_ABI=1 -o CMakeFiles/quadcover_main.dir/quadcover_main.cpp.o -c /home/yiming/research/CWF/MAIN/quadcover_main.cpp",
   "file": "/home/yiming/research/CWF/MAIN/quadcover_main.cpp",
   "output": "MAIN/CMakeFiles/quadcover_main.dir/quadcover_main.cpp.o"
+},
+{
+  "directory": "/home/yiming/research/CWF/build-relwithdebinfo/MAIN",
+  "command": "/usr/bin/c++  -I/home/yiming/research/CWF/include -I/home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include -O2 -g -DNDEBUG -std=c++17 -fPIE -O3 -o CMakeFiles/quadcover_batch.dir/quadcover_batch.cpp.o -c /home/yiming/research/CWF/MAIN/quadcover_batch.cpp",
+  "file": "/home/yiming/research/CWF/MAIN/quadcover_batch.cpp",
+  "output": "MAIN/CMakeFiles/quadcover_batch.dir/quadcover_batch.cpp.o"
 }
 ]

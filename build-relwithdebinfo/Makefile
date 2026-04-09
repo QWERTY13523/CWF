@@ -421,6 +421,19 @@ quadcover_main/fast:
 	$(MAKE) $(MAKESILENT) -f MAIN/CMakeFiles/quadcover_main.dir/build.make MAIN/CMakeFiles/quadcover_main.dir/build
 .PHONY : quadcover_main/fast
 
+#=============================================================================
+# Target rules for targets named quadcover_batch
+
+# Build rule for target.
+quadcover_batch: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 quadcover_batch
+.PHONY : quadcover_batch
+
+# fast build rule for target.
+quadcover_batch/fast:
+	$(MAKE) $(MAKESILENT) -f MAIN/CMakeFiles/quadcover_batch.dir/build.make MAIN/CMakeFiles/quadcover_batch.dir/build
+.PHONY : quadcover_batch/fast
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -452,6 +465,7 @@ help:
 	@echo "... Tessellation3D"
 	@echo "... bgal_deps"
 	@echo "... cwf"
+	@echo "... quadcover_batch"
 	@echo "... quadcover_main"
 .PHONY : help
 

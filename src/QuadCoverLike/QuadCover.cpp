@@ -49,6 +49,15 @@ static inline _Point3 to_point(const Vec3 &v) {
   return _Point3(v.x(), v.y(), v.z());
 }
 
+static inline bool point_is_finite(const _Point3 &p) {
+  return std::isfinite(p.x()) && std::isfinite(p.y()) && std::isfinite(p.z());
+}
+
+static inline bool sites_are_finite(const std::vector<_Point3> &sites) {
+  return std::all_of(sites.begin(), sites.end(),
+                     [](const _Point3 &p) { return point_is_finite(p); });
+}
+
 static inline _Point3 project_to_surface(const BGAL::_ManifoldModel &model,
                                          const _Point3 &p) {
   auto ret = const_cast<BGAL::_ManifoldModel &>(model).nearest_point_(p);
@@ -79,6 +88,16 @@ struct DynamicRadiusEval {
       : qem_grads(need_grad ? Eigen::MatrixXd::Zero(n, 3) : Eigen::MatrixXd()),
         hinge_grads(need_grad ? Eigen::MatrixXd::Zero(n, 3) : Eigen::MatrixXd()),
         grads(need_grad ? Eigen::MatrixXd::Zero(n, 3) : Eigen::MatrixXd()) {}
+};
+
+struct HingeStats {
+  double hinge_loss = 0.0;
+  int active_quads = 0;
+  double min_g = std::numeric_limits<double>::infinity();
+  Eigen::MatrixXd grads;
+
+  explicit HingeStats(int n = 0, bool need_grad = false)
+      : grads(need_grad ? Eigen::MatrixXd::Zero(n, 3) : Eigen::MatrixXd()) {}
 };
 
 static inline void apply_eval_weights(DynamicRadiusEval &eval,
@@ -214,6 +233,48 @@ static inline double max_row_norm(const Eigen::MatrixXd &M) {
   return ret;
 }
 
+static inline HingeStats recompute_hinge_stats_serial(
+    const std::vector<_Point3> &sites,
+    const std::vector<Vec3> &frozen_poles,
+    const std::vector<std::array<int, 4>> &quads,
+    double eps,
+    bool need_grad) {
+  const int n_sites = (int)sites.size();
+  HingeStats stats(n_sites, need_grad);
+  const double eps_safe = (std::isfinite(eps) && eps >= 0.0) ? eps : 0.0;
+
+  for (const auto &q : quads) {
+    Vec3 P_bar = Vec3::Zero();
+    for (int k = 0; k < 4; ++k) P_bar += to_eigen(sites[q[k]]);
+    P_bar /= 4.0;
+
+    double g_val = 0.0;
+    for (int k = 0; k < 4; ++k) {
+      const int sid = q[k];
+      const Vec3 Pi = to_eigen(sites[sid]);
+      const double ri2 = (Pi - frozen_poles[sid]).squaredNorm();
+      g_val += (P_bar - Pi).squaredNorm() - ri2;
+    }
+
+    stats.min_g = std::min(stats.min_g, g_val);
+    const double violation = -(g_val + eps_safe);
+    if (violation > 0.0) {
+      stats.hinge_loss += violation * violation;
+      ++stats.active_quads;
+      if (need_grad) {
+        for (int k = 0; k < 4; ++k) {
+          const int sid = q[k];
+          const Vec3 &Vi = frozen_poles[sid];
+          stats.grads.row(sid) += (-4.0 * violation * (Vi - P_bar)).transpose();
+        }
+      }
+    }
+  }
+
+  if (!std::isfinite(stats.min_g)) stats.min_g = 0.0;
+  return stats;
+}
+
 static inline DynamicRadiusEval evaluate_qem_hinge_objective(
     const std::vector<_Point3> &sites,
     const _Restricted_Tessellation3D &rvd,
@@ -325,6 +386,26 @@ static inline DynamicRadiusEval evaluate_qem_hinge_objective(
 
   if (need_grad) {
     eval.hinge_grads = hinge_grads;
+  }
+
+  const double eps_safe = (std::isfinite(eps) && eps >= 0.0) ? eps : 0.0;
+  const bool hinge_inconsistent =
+      (num_quads > 0) &&
+      (eval.active_quads == 0) &&
+      (eval.hinge_loss <= 0.0) &&
+      std::isfinite(eval.min_g) &&
+      (eval.min_g < -eps_safe - 1e-15);
+  const bool need_hinge_recount =
+      (!std::isfinite(eps) || eps < 0.0) || hinge_inconsistent;
+  if (need_hinge_recount) {
+    const HingeStats recounted =
+        recompute_hinge_stats_serial(sites, frozen_poles, quads, eps_safe, need_grad);
+    eval.hinge_loss = recounted.hinge_loss;
+    eval.active_quads = recounted.active_quads;
+    eval.min_g = recounted.min_g;
+    if (need_grad) {
+      eval.hinge_grads = recounted.grads;
+    }
   }
 
   // 骞惰鍒囬潰鎶曞奖锛氬垎鍒姇褰?QEM / hinge 涓ら儴鍒嗘搴︼紝渚夸簬鍚庣画鏃犻噸寤鸿皟鏉?
@@ -1145,6 +1226,9 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
   const double total_start = omp_get_wtime();
   _history.clear();
   _sites = init_sites;
+  const std::vector<_Point3> original_init_sites = init_sites;
+  bool warm_start_used = false;
+  bool warm_start_fell_back = false;
   if (_sites.empty()) {
     throw std::runtime_error("[QuadCoverLike] empty init_sites.");
   }
@@ -1176,7 +1260,18 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
     BGAL::_CVT3D cvt(_model, rho, cvt_para);
     cvt.set_outpath(output_dir + "/");
     cvt.calculate_(_sites, model_name, false);
-    _sites = cvt.get_sites();
+    warm_start_used = true;
+    const std::vector<_Point3> &warm_sites = cvt.get_sites();
+    if (warm_sites.size() == _sites.size() && sites_are_finite(warm_sites)) {
+      _sites = warm_sites;
+    } else {
+      warm_start_fell_back = true;
+      _sites = original_init_sites;
+      if (_para.is_show) {
+        std::cout << "[QuadCoverLike] CWF warm start fallback"
+                  << " | reason=nonfinite_sites" << std::endl;
+      }
+    }
 
     if (_para.is_show) {
       std::cout << "[QuadCoverLike] CWF warm start end"
@@ -1238,7 +1333,13 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
     }
 
     state.avg_r = sum_r / std::max(1, n);
+    if (!std::isfinite(state.avg_r) || state.avg_r < 0.0) {
+      state.avg_r = 0.0;
+    }
     state.eps = 1e-4 * state.avg_r * state.avg_r;
+    if (!std::isfinite(state.eps) || state.eps < 0.0) {
+      state.eps = 0.0;
+    }
 
     if (need_grad) {
       update_surface_normals(_model, state.sites, state.surface_normals);
@@ -1327,6 +1428,22 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
   update_fixed_hinge_lambda();
   RebuiltState current_state = rebuild_state(
       _sites, true, _RVD, total_rebuild_non_rvd_time, total_rvd_time);
+  if (warm_start_used && !warm_start_fell_back &&
+      (current_state.search_quads.empty() ||
+       !std::isfinite(current_state.eval.total_loss) ||
+       !std::isfinite(current_state.eval.qem_loss) ||
+       !sites_are_finite(current_state.sites))) {
+    if (_para.is_show) {
+      std::cout << "[QuadCoverLike] CWF warm start fallback"
+                << " | reason=invalid_rebuild_state"
+                << " | quads=" << current_state.search_quads.size()
+                << std::endl;
+    }
+    _sites = original_init_sites;
+    current_state = rebuild_state(
+        _sites, true, _RVD, total_rebuild_non_rvd_time, total_rvd_time);
+    warm_start_fell_back = true;
+  }
   qem_weight = penalty_k * current_state.eval.hinge_loss /
                (current_state.eval.qem_loss + 1e-12);
   if (!std::isfinite(qem_weight)) qem_weight = 1.0;
@@ -1374,7 +1491,7 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
   const double adam_lr_reduce_factor = 0.6;
   const int adam_lr_plateau_patience = 2;
   const int adam_lr_plateau_cooldown = 1;
-  const double adam_lr_plateau_rel_tol = 1e-2;
+  const double adam_lr_plateau_abs_tol = 1e-18;
   const int adam_lr_recent_best_window = 5;
 
   //
@@ -1389,7 +1506,6 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
   const double qem_weight_decay = 0.95;
 
   const double hinge_stop_tol = std::max(_para.accept_eps, 1e-12);
-  const int hinge_feasible_patience = 3;
   const int stagnation_patience = 4;
   const int stagnation_hard_patience = 2 * stagnation_patience;
   const double perturb_hinge_rel_tol = 1e-3;
@@ -1412,19 +1528,15 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
   const double perturb_accept_min_hinge_gain = 0.05;
 
   // perturb 鍚庡喎鍗?
-  const int post_perturb_cooldown_iters = 10;
+  const int post_perturb_fixed_prop_iters = 10;
   const double post_perturb_prop_fixed = 1.0;
-  const double post_perturb_lr_scale = 1.0;
-  const double post_perturb_lr_cap = 2.5e-5;
-  const double late_post_perturb_lr_cap = 1.8e-5;
-  const double very_late_post_perturb_lr_cap = 1.2e-5;
+  const double post_perturb_lr_scale = 2.0;
 
   // 鍚庢湡绛栫暐锛氶檺鍒舵闀裤€佸叧闂?late perturb銆佸姞蹇?hinge 涓诲
-  const int late_no_perturb_active_thresh = 20;
   const int late_aggressive_penalty_active_thresh = 50;
 
   // 瀵煎嚭棰戠巼锛氶檷浣?I/O 鍜岄澶栫殑 RVD rebuild
-  const int export_interval = 50;
+  const int export_interval = std::max(1, _para.export_interval);
 
   const int log_value_precision = 6;
   const int log_time_precision = 3;
@@ -1470,8 +1582,7 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
     if (!recent_lr_metrics.empty()) {
       const double recent_best =
           *std::min_element(recent_lr_metrics.begin(), recent_lr_metrics.end());
-      improved_for_scheduler =
-          metric < recent_best * (1.0 - adam_lr_plateau_rel_tol);
+      improved_for_scheduler = metric < recent_best - adam_lr_plateau_abs_tol;
     }
 
     if (lr_cooldown_counter > 0) {
@@ -1512,13 +1623,12 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
   bool last_hinge_window_ready = false;
 
   double proposal_scale = 1.5;
-  const double proposal_scale_min = 1.0;
+  const double proposal_scale_min = 0.25;
   const double proposal_scale_max = 4.0;
   const double proposal_grow = 1.10;
 
   int hinge_stagnation_streak = 0;
-  int hinge_feasible_streak = 0;
-  int post_perturb_cooldown = 0;
+  int post_perturb_lock_iters_remaining = 0;
 
   auto accept_perturb_candidate = [&](const RebuiltState &cand,
                                       double cand_E,
@@ -1568,9 +1678,8 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
     double iter_perturb_rebuild_task_time = 0.0;
     double iter_perturb_rvd_task_time = 0.0;
 
-    if (post_perturb_cooldown > 0) {
+    if (post_perturb_lock_iters_remaining > 0) {
       proposal_scale = post_perturb_prop_fixed;
-      --post_perturb_cooldown;
     }
 
     _sites = current_state.sites;
@@ -1611,7 +1720,7 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
         (last_window_hinge_progress <= perturb_window_progress_tol) &&
         (last_single_step_hinge_progress < perturb_single_step_progress_tol);
     const bool allow_perturb =
-        (post_perturb_cooldown == 0) &&
+        (post_perturb_lock_iters_remaining == 0) &&
         (allow_perturb_by_local_stagnation ||
          allow_perturb_by_window_stagnation);
     const double perturb_window_progress_for_log = last_window_hinge_progress;
@@ -1734,18 +1843,8 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
         }
         optimizer.state().clear();
 
-        const double post_perturb_lr_cap_now = std::max(
-            lr_before_step,
-            (current_state.eval.active_quads <= late_no_perturb_active_thresh)
-                ? very_late_post_perturb_lr_cap
-                : (current_state.eval.active_quads <=
-                           late_aggressive_penalty_active_thresh
-                       ? late_post_perturb_lr_cap
-                       : post_perturb_lr_cap));
         const double perturb_lr_reset =
-            std::min(post_perturb_lr_cap_now,
-                     std::max(lr_before_step,
-                              post_perturb_lr_scale * lr_before_step));
+            std::max(adam_lr_min, post_perturb_lr_scale * lr_before_step);
         set_adam_lr(optimizer, perturb_lr_reset);
         reset_recent_lr_scheduler(current_state.eval.hinge_loss);
         recent_hinge_losses.clear();
@@ -1756,9 +1855,8 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
 
         proposal_scale = post_perturb_prop_fixed;
         hinge_stagnation_streak = 0;
-        hinge_feasible_streak = 0;
         last_penalty_update_hinge = current_state.eval.hinge_loss;
-        post_perturb_cooldown = post_perturb_cooldown_iters;
+        post_perturb_lock_iters_remaining = post_perturb_fixed_prop_iters;
         perturb_accepted = true;
 
         if (_para.is_show) {
@@ -1911,7 +2009,10 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
         current_state.eval.hinge_loss >
         prev_hinge * (1.0 + perturb_hinge_rel_tol) + perturb_hinge_abs_tol;
 
-    if (hinge_worsened) {
+    if (post_perturb_lock_iters_remaining > 0) {
+      proposal_scale = post_perturb_prop_fixed;
+      --post_perturb_lock_iters_remaining;
+    } else if (hinge_worsened) {
       proposal_scale = std::max(proposal_scale_min, 0.95 * proposal_scale);
     } else {
       proposal_scale = std::min(proposal_scale_max,
@@ -2021,7 +2122,7 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
           stop_mask, current_state.rdt_faces, n, 1);
       if (!has_any_active(stop_mask)) stop_mask = make_all_active_mask(n);
 
-      const bool hinge_exact_zero = current_state.eval.hinge_loss <= 0.0;
+      const bool hinge_exact_zero = current_state.eval.hinge_loss == 0.0;
       if (hinge_exact_zero) {
         if (_para.is_show) {
           std::cout << "[QuadCoverLike][Adam] STOP (hinge zero)"
@@ -2029,30 +2130,10 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
                     << " | hingeRaw=" << current_state.eval.hinge_loss
                     << " | hingePen=" << current_state.eval.weighted_hinge_loss
                     << " | lambda=" << current_state.eval.hinge_lambda
+                    << " | num_quads=" << current_state.search_quads.size()
+                    << " | active_quads=" << current_state.eval.active_quads
+                    << " | min_g=" << current_state.eval.min_g
                     << " | step=" << step_for_log
-                    << std::endl;
-        }
-        break;
-      }
-
-      const bool hinge_feasible =
-          (current_state.eval.active_quads == 0) ||
-          (current_state.eval.hinge_loss <= hinge_stop_tol);
-      if (hinge_feasible) {
-        ++hinge_feasible_streak;
-      } else {
-        hinge_feasible_streak = 0;
-      }
-
-      if (hinge_feasible && hinge_feasible_streak >= hinge_feasible_patience) {
-        if (_para.is_show) {
-          std::cout << "[QuadCoverLike][Adam] STOP (hinge feasible)"
-                    << std::scientific << std::setprecision(log_value_precision)
-                    << " | hingeRaw=" << current_state.eval.hinge_loss
-                    << " | hingePen=" << current_state.eval.weighted_hinge_loss
-                    << " | lambda=" << current_state.eval.hinge_lambda
-                    << " | step=" << step_for_log
-                    << " | streak=" << hinge_feasible_streak
                     << std::endl;
         }
         break;

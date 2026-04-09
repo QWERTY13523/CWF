@@ -2,22 +2,27 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <array>
 #include <optional>
 #include <sstream>
 #include <stdexcept>
 #include <string>
 #include <thread>
+#include <unordered_map>
 #include <vector>
 
 #include <Eigen/Core>
 #include <igl/read_triangle_mesh.h>
 
 #include <BGAL/Model/ManifoldModel.h>
+#include <BGAL/Model/NonManifoldSurface.h>
 #include <BGAL/QuadCoverLike/QuadCover.h>
 
 #ifdef _OPENMP
 #include <omp.h>
 #endif
+
+using BGAL::NonManifoldSurface::PreparedTriangleMesh;
 
 static std::filesystem::path guess_data_root(const std::filesystem::path &exe_path) {
   namespace fs = std::filesystem;
@@ -39,6 +44,7 @@ struct CliOptions {
   std::string model_name_override;
   int threads = 0;
   bool final_only = false;
+  bool debug = false;
   bool show_help = false;
 };
 
@@ -47,7 +53,7 @@ static void print_usage(const char *exe_name) {
       << "Usage:\n"
       << "  " << exe_name
       << " [--workdir DIR] [--model NAME] [--surface FILE] [--input FILE]\n"
-      << "                 [--output DIR] [--name NAME] [--threads N] [--final-only]\n\n"
+      << "                 [--output DIR] [--name NAME] [--threads N] [--final-only] [--debug]\n\n"
       << "Options:\n"
       << "  --workdir DIR   Change working directory before resolving paths.\n"
       << "  --model NAME    Use data/NAME.obj as the target surface. Default: block\n"
@@ -57,6 +63,7 @@ static void print_usage(const char *exe_name) {
       << "  --name NAME     Output basename. Defaults to the surface stem.\n"
       << "  --threads N     Number of threads used inside one run.\n"
       << "  --final-only    Export only the final QuadCover result.\n"
+      << "  --debug         Export every iteration to data/NAME/ (NAME = model stem).\n"
       << "  -h, --help      Show this help message.\n\n"
       << "Legacy positional form is still supported:\n"
       << "  " << exe_name << " [workdir] [model] [input_sites]\n";
@@ -123,6 +130,10 @@ static bool parse_args(int argc, char **argv, CliOptions &opts) {
     }
     if (arg == "--final-only") {
       opts.final_only = true;
+      continue;
+    }
+    if (arg == "--debug") {
+      opts.debug = true;
       continue;
     }
     if (!arg.empty() && arg[0] == '-') {
@@ -247,25 +258,6 @@ static bool load_init_sites_file(const std::filesystem::path &path,
   return !sites.empty();
 }
 
-static BGAL::_ManifoldModel build_manifold_model(const Eigen::MatrixXd &V,
-                                                 const Eigen::MatrixXi &F) {
-  std::vector<BGAL::_Point3> vertices;
-  vertices.reserve(V.rows());
-  for (int i = 0; i < V.rows(); ++i) {
-    vertices.emplace_back(V(i, 0), V(i, 1), V(i, 2));
-  }
-
-  std::vector<BGAL::_Model::_MFace> faces;
-  faces.reserve(F.rows());
-  for (int i = 0; i < F.rows(); ++i) {
-    if (F.cols() != 3) {
-      throw std::runtime_error("surface mesh is not triangulated.");
-    }
-    faces.emplace_back(F(i, 0), F(i, 1), F(i, 2));
-  }
-  return BGAL::_ManifoldModel(vertices, faces);
-}
-
 int main(int argc, char **argv) {
   namespace fs = std::filesystem;
 
@@ -321,6 +313,12 @@ int main(int argc, char **argv) {
     }
   }
 
+  if (options.debug) {
+    output_dir = (project_root.has_value() ? (*project_root / "data")
+                                           : (fs::current_path() / "data")) /
+                 model;
+  }
+
   if (!fs::exists(surface_path)) {
     std::cerr << "IOError: surface mesh " << surface_path << " does not exist.\n";
     return 1;
@@ -343,22 +341,6 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  std::vector<BGAL::_Point3> init_sites;
-  if (input_obj_override.empty()) {
-    init_sites.reserve(V.rows());
-    for (int i = 0; i < V.rows(); ++i) {
-      init_sites.emplace_back(V(i, 0), V(i, 1), V(i, 2));
-    }
-  } else if (!load_init_sites_file(init_obj_path, init_sites)) {
-    std::cerr << "IOError: " << init_obj_path
-              << " could not be parsed as init sites (.xyz/.obj/.off supported).\n";
-    return 1;
-  }
-  if (init_sites.empty()) {
-    std::cerr << "IOError: " << init_obj_path << " has no valid init sites.\n";
-    return 1;
-  }
-
 #ifdef _OPENMP
   omp_set_dynamic(0);
   const unsigned int hw_threads = std::thread::hardware_concurrency();
@@ -371,17 +353,47 @@ int main(int argc, char **argv) {
   Eigen::setNbThreads(max_threads);
 #endif
 
-  BGAL::_ManifoldModel model_mesh = build_manifold_model(V, F);
+  std::optional<PreparedTriangleMesh> prepared_surface;
+  BGAL::_ManifoldModel model_mesh;
+  bool used_cgal_fallback = false;
+  PreparedTriangleMesh prepared_surface_buffer;
+  model_mesh = BGAL::NonManifoldSurface::build_manifold_model_allow_non_manifold(
+      V, F, &prepared_surface_buffer, &used_cgal_fallback);
+  if (used_cgal_fallback) {
+    prepared_surface = prepared_surface_buffer;
+    std::cout << BGAL::NonManifoldSurface::format_preprocess_summary(
+                     *prepared_surface, "[quadcover_main]")
+              << "\n";
+  }
+
+  std::vector<BGAL::_Point3> init_sites;
+  if (input_obj_override.empty()) {
+    const Eigen::MatrixXd& init_V =
+        used_cgal_fallback ? prepared_surface->V : V;
+    init_sites.reserve(init_V.rows());
+    for (int i = 0; i < init_V.rows(); ++i) {
+      init_sites.emplace_back(init_V(i, 0), init_V(i, 1), init_V(i, 2));
+    }
+  } else if (!load_init_sites_file(init_obj_path, init_sites)) {
+    std::cerr << "IOError: " << init_obj_path
+              << " could not be parsed as init sites (.xyz/.obj/.off supported).\n";
+    return 1;
+  }
+  if (init_sites.empty()) {
+    std::cerr << "IOError: " << init_obj_path << " has no valid init sites.\n";
+    return 1;
+  }
   BGAL::_QuadCover3D::_Parameter para;
   para.is_show = true;
-  para.export_initial_state = !options.final_only;
-  para.export_each_iteration = !options.final_only;
-  para.use_cwf_warm_start = 0;
+  para.export_initial_state = options.debug || !options.final_only;
+  para.export_each_iteration = options.debug || !options.final_only;
+  para.export_interval = options.debug ? 1 : 50;
+  para.use_cwf_warm_start = 1;
   if (!para.use_cwf_warm_start) {
     para.show_cwf_progress = false;
     para.cwf_max_iterations = 0;
   }
-  para.max_outer_iterations = 800;
+  para.max_outer_iterations = 1000;
   para.max_line_search = 10;
   para.active_eps = 1e-8;
   para.step_cap_scale = 0.02;

@@ -138,6 +138,7 @@
 /home/yiming/research/CWF/build-relwithdebinfo/MAIN/CMakeFiles/MAIN.dir
 /home/yiming/research/CWF/build-relwithdebinfo/MAIN/CMakeFiles/cwf.dir
 /home/yiming/research/CWF/build-relwithdebinfo/MAIN/CMakeFiles/quadcover_main.dir
+/home/yiming/research/CWF/build-relwithdebinfo/MAIN/CMakeFiles/quadcover_batch.dir
 /home/yiming/research/CWF/build-relwithdebinfo/MAIN/CMakeFiles/edit_cache.dir
 /home/yiming/research/CWF/build-relwithdebinfo/MAIN/CMakeFiles/rebuild_cache.dir
 /home/yiming/research/CWF/build-relwithdebinfo/MAIN/CMakeFiles/list_install_components.dir

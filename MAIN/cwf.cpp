@@ -2,10 +2,9 @@
 #include <fstream>
 
 #include <igl/readOBJ.h>
-#include <igl/writeOBJ.h>
-#include <igl/writeOFF.h>
 
 #include <BGAL/CVTLike/CVT.h>
+#include <BGAL/Model/NonManifoldSurface.h>
 
 
 void CWF3D(std::string file, std::string pointsFile, int max_iteration)
@@ -18,10 +17,18 @@ void CWF3D(std::string file, std::string pointsFile, int max_iteration)
 	Eigen::MatrixXi F;
 	igl::readOBJ(modelname, V, F);
 
-	igl::writeOFF("Temp.off", V, F);
-	igl::writeOBJ("Temp.obj", V, F);
-
-	BGAL::_ManifoldModel model("Temp.obj");
+	BGAL::NonManifoldSurface::PreparedTriangleMesh prepared_surface;
+	bool used_cgal_fallback = false;
+	BGAL::_ManifoldModel model =
+		BGAL::NonManifoldSurface::build_manifold_model_allow_non_manifold(
+			V, F, &prepared_surface, &used_cgal_fallback);
+	if (used_cgal_fallback)
+	{
+		std::cout
+			<< BGAL::NonManifoldSurface::format_preprocess_summary(
+				   prepared_surface, "[cwf]")
+			<< std::endl;
+	}
 
 	std::function<double(BGAL::_Point3& p)> rho = [](BGAL::_Point3& p)
 		{

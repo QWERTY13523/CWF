@@ -21,6 +21,7 @@ set(BGAL_HEADERS
         MinEnclosingBall/MinEnclosingBall.h
         # BK_Model
         Model/ManifoldModel.h
+        Model/NonManifoldSurface.h
         Model/Model.h
         Model/Model_Iterator.h
         # Optimization

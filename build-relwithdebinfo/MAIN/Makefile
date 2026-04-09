@@ -203,6 +203,20 @@ quadcover_main/fast:
 	cd /home/yiming/research/CWF/build-relwithdebinfo && $(MAKE) $(MAKESILENT) -f MAIN/CMakeFiles/quadcover_main.dir/build.make MAIN/CMakeFiles/quadcover_main.dir/build
 .PHONY : quadcover_main/fast
 
+# Convenience name for target.
+MAIN/CMakeFiles/quadcover_batch.dir/rule:
+	cd /home/yiming/research/CWF/build-relwithdebinfo && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 MAIN/CMakeFiles/quadcover_batch.dir/rule
+.PHONY : MAIN/CMakeFiles/quadcover_batch.dir/rule
+
+# Convenience name for target.
+quadcover_batch: MAIN/CMakeFiles/quadcover_batch.dir/rule
+.PHONY : quadcover_batch
+
+# fast build rule for target.
+quadcover_batch/fast:
+	cd /home/yiming/research/CWF/build-relwithdebinfo && $(MAKE) $(MAKESILENT) -f MAIN/CMakeFiles/quadcover_batch.dir/build.make MAIN/CMakeFiles/quadcover_batch.dir/build
+.PHONY : quadcover_batch/fast
+
 cwf.o: cwf.cpp.o
 .PHONY : cwf.o
 
@@ -251,6 +265,30 @@ main.cpp.s:
 	cd /home/yiming/research/CWF/build-relwithdebinfo && $(MAKE) $(MAKESILENT) -f MAIN/CMakeFiles/MAIN.dir/build.make MAIN/CMakeFiles/MAIN.dir/main.cpp.s
 .PHONY : main.cpp.s
 
+quadcover_batch.o: quadcover_batch.cpp.o
+.PHONY : quadcover_batch.o
+
+# target to build an object file
+quadcover_batch.cpp.o:
+	cd /home/yiming/research/CWF/build-relwithdebinfo && $(MAKE) $(MAKESILENT) -f MAIN/CMakeFiles/quadcover_batch.dir/build.make MAIN/CMakeFiles/quadcover_batch.dir/quadcover_batch.cpp.o
+.PHONY : quadcover_batch.cpp.o
+
+quadcover_batch.i: quadcover_batch.cpp.i
+.PHONY : quadcover_batch.i
+
+# target to preprocess a source file
+quadcover_batch.cpp.i:
+	cd /home/yiming/research/CWF/build-relwithdebinfo && $(MAKE) $(MAKESILENT) -f MAIN/CMakeFiles/quadcover_batch.dir/build.make MAIN/CMakeFiles/quadcover_batch.dir/quadcover_batch.cpp.i
+.PHONY : quadcover_batch.cpp.i
+
+quadcover_batch.s: quadcover_batch.cpp.s
+.PHONY : quadcover_batch.s
+
+# target to generate assembly for a file
+quadcover_batch.cpp.s:
+	cd /home/yiming/research/CWF/build-relwithdebinfo && $(MAKE) $(MAKESILENT) -f MAIN/CMakeFiles/quadcover_batch.dir/build.make MAIN/CMakeFiles/quadcover_batch.dir/quadcover_batch.cpp.s
+.PHONY : quadcover_batch.cpp.s
+
 quadcover_main.o: quadcover_main.cpp.o
 .PHONY : quadcover_main.o
 
@@ -289,6 +327,7 @@ help:
 	@echo "... rebuild_cache"
 	@echo "... MAIN"
 	@echo "... cwf"
+	@echo "... quadcover_batch"
 	@echo "... quadcover_main"
 	@echo "... cwf.o"
 	@echo "... cwf.i"
@@ -296,6 +335,9 @@ help:
 	@echo "... main.o"
 	@echo "... main.i"
 	@echo "... main.s"
+	@echo "... quadcover_batch.o"
+	@echo "... quadcover_batch.i"
+	@echo "... quadcover_batch.s"
 	@echo "... quadcover_main.o"
 	@echo "... quadcover_main.i"
 	@echo "... quadcover_main.s"

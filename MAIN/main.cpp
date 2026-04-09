@@ -4,12 +4,11 @@
 
 #include <Eigen/Dense>
 #include <igl/readOBJ.h>
-#include <igl/writeOBJ.h>
-#include <igl/writeOFF.h>
 
 #include <BGAL/CVTLike/CVT.h>
 #include <BGAL/Integral/Integral.h>
 #include <BGAL/Model/ManifoldModel.h>
+#include <BGAL/Model/NonManifoldSurface.h>
 #include <BGAL/Model/Model_Iterator.h>
 #include <BGAL/Optimization/LBFGS/LBFGS.h>
 #include <BGAL/Tessellation3D/Tessellation3D.h>
@@ -68,11 +67,18 @@ void CWF3DTest(const std::filesystem::path &exe_path, int Nums = 30000,
     return;
   }
 
-  igl::writeOFF("Temp.off", V, F);
-  igl::writeOBJ("Temp.obj", V, F);
-
   // 5) 模型与 CVT
-  BGAL::_ManifoldModel model("Temp.obj");
+  BGAL::NonManifoldSurface::PreparedTriangleMesh prepared_surface;
+  bool used_cgal_fallback = false;
+  BGAL::_ManifoldModel model =
+      BGAL::NonManifoldSurface::build_manifold_model_allow_non_manifold(
+          V, F, &prepared_surface, &used_cgal_fallback);
+  if (used_cgal_fallback) {
+    std::cout
+        << BGAL::NonManifoldSurface::format_preprocess_summary(
+               prepared_surface, "[MAIN]")
+        << "\n";
+  }
 
   int num = Nums;
   std::function<double(BGAL::_Point3& p)> rho = [](BGAL::_Point3& p)

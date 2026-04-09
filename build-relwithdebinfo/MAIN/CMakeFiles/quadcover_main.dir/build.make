@@ -107,19 +107,24 @@ quadcover_main_EXTERNAL_OBJECTS =
 /home/yiming/research/CWF/bin/quadcover_main: /home/yiming/research/CWF/lib/libCVTLike.a
 /home/yiming/research/CWF/bin/quadcover_main: /home/yiming/research/CWF/lib/libQuadCoverLike.a
 /home/yiming/research/CWF/bin/quadcover_main: /home/yiming/research/CWF/lib/libSphere.a
-/home/yiming/research/CWF/bin/quadcover_main: /home/yiming/research/CWF/lib/libMinEnclosingBall.a
-/home/yiming/research/CWF/bin/quadcover_main: /usr/lib/gcc/x86_64-linux-gnu/13/libgomp.so
-/home/yiming/research/CWF/bin/quadcover_main: /usr/lib/x86_64-linux-gnu/libpthread.a
+/home/yiming/research/CWF/bin/quadcover_main: /home/yiming/research/CWF/lib/libCVTLike.a
 /home/yiming/research/CWF/bin/quadcover_main: /home/yiming/research/CWF/lib/libOptimization.a
 /home/yiming/research/CWF/bin/quadcover_main: /home/yiming/research/CWF/lib/libTessellation2D.a
 /home/yiming/research/CWF/bin/quadcover_main: /home/yiming/research/CWF/lib/libTessellation3D.a
+/home/yiming/research/CWF/bin/quadcover_main: /home/yiming/research/CWF/lib/libMinEnclosingBall.a
 /home/yiming/research/CWF/bin/quadcover_main: /home/yiming/research/CWF/lib/libModel.a
 /home/yiming/research/CWF/bin/quadcover_main: /home/yiming/research/CWF/lib/libBaseShape.a
 /home/yiming/research/CWF/bin/quadcover_main: /home/yiming/research/CWF/lib/libAlgorithm.a
 /home/yiming/research/CWF/bin/quadcover_main: /home/yiming/research/CWF/lib/libPQP.a
+/home/yiming/research/CWF/bin/quadcover_main: /usr/lib/gcc/x86_64-linux-gnu/13/libgomp.so
+/home/yiming/research/CWF/bin/quadcover_main: /usr/lib/x86_64-linux-gnu/libpthread.a
 /home/yiming/research/CWF/bin/quadcover_main: /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/lib/libgmpxx.a
 /home/yiming/research/CWF/bin/quadcover_main: /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/lib/libmpfr.a
 /home/yiming/research/CWF/bin/quadcover_main: /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/lib/libgmp.a
+/home/yiming/research/CWF/bin/quadcover_main: /home/yiming/libtorch/lib/libtorch.so
+/home/yiming/research/CWF/bin/quadcover_main: /home/yiming/libtorch/lib/libc10.so
+/home/yiming/research/CWF/bin/quadcover_main: /home/yiming/libtorch/lib/libc10.so
+/home/yiming/research/CWF/bin/quadcover_main: /home/yiming/libtorch/lib/libkineto.a
 /home/yiming/research/CWF/bin/quadcover_main: MAIN/CMakeFiles/quadcover_main.dir/link.txt
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/yiming/research/CWF/build-relwithdebinfo/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Linking CXX executable /home/yiming/research/CWF/bin/quadcover_main"
 	cd /home/yiming/research/CWF/build-relwithdebinfo/MAIN && $(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/quadcover_main.dir/link.txt --verbose=$(VERBOSE)

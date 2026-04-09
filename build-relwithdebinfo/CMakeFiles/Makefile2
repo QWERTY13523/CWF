@@ -89,6 +89,7 @@ clean: MAIN/clean
 MAIN/all: MAIN/CMakeFiles/MAIN.dir/all
 MAIN/all: MAIN/CMakeFiles/cwf.dir/all
 MAIN/all: MAIN/CMakeFiles/quadcover_main.dir/all
+MAIN/all: MAIN/CMakeFiles/quadcover_batch.dir/all
 .PHONY : MAIN/all
 
 # Recursive "preinstall" directory target.
@@ -99,6 +100,7 @@ MAIN/preinstall:
 MAIN/clean: MAIN/CMakeFiles/MAIN.dir/clean
 MAIN/clean: MAIN/CMakeFiles/cwf.dir/clean
 MAIN/clean: MAIN/CMakeFiles/quadcover_main.dir/clean
+MAIN/clean: MAIN/CMakeFiles/quadcover_batch.dir/clean
 .PHONY : MAIN/clean
 
 #=============================================================================
@@ -828,7 +830,9 @@ src/QuadCoverLike/CMakeFiles/QuadCoverLike.dir/all: src/BaseShape/CMakeFiles/Bas
 src/QuadCoverLike/CMakeFiles/QuadCoverLike.dir/all: src/Tessellation2D/CMakeFiles/Tessellation2D.dir/all
 src/QuadCoverLike/CMakeFiles/QuadCoverLike.dir/all: src/Model/CMakeFiles/Model.dir/all
 src/QuadCoverLike/CMakeFiles/QuadCoverLike.dir/all: src/Tessellation3D/CMakeFiles/Tessellation3D.dir/all
+src/QuadCoverLike/CMakeFiles/QuadCoverLike.dir/all: src/CVTLike/CMakeFiles/CVTLike.dir/all
 src/QuadCoverLike/CMakeFiles/QuadCoverLike.dir/all: src/Sphere/CMakeFiles/Sphere.dir/all
+src/QuadCoverLike/CMakeFiles/QuadCoverLike.dir/all: src/MinEnclosingBall/CMakeFiles/MinEnclosingBall.dir/all
 	$(MAKE) $(MAKESILENT) -f src/QuadCoverLike/CMakeFiles/QuadCoverLike.dir/build.make src/QuadCoverLike/CMakeFiles/QuadCoverLike.dir/depend
 	$(MAKE) $(MAKESILENT) -f src/QuadCoverLike/CMakeFiles/QuadCoverLike.dir/build.make src/QuadCoverLike/CMakeFiles/QuadCoverLike.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/yiming/research/CWF/build-relwithdebinfo/CMakeFiles --progress-num=52,53 "Built target QuadCoverLike"
@@ -836,7 +840,7 @@ src/QuadCoverLike/CMakeFiles/QuadCoverLike.dir/all: src/Sphere/CMakeFiles/Sphere
 
 # Build rule for subdir invocation for target.
 src/QuadCoverLike/CMakeFiles/QuadCoverLike.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/yiming/research/CWF/build-relwithdebinfo/CMakeFiles 44
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/yiming/research/CWF/build-relwithdebinfo/CMakeFiles 49
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 src/QuadCoverLike/CMakeFiles/QuadCoverLike.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/yiming/research/CWF/build-relwithdebinfo/CMakeFiles 0
 .PHONY : src/QuadCoverLike/CMakeFiles/QuadCoverLike.dir/rule
@@ -1008,7 +1012,7 @@ MAIN/CMakeFiles/quadcover_main.dir/all: src/Sphere/CMakeFiles/Sphere.dir/all
 MAIN/CMakeFiles/quadcover_main.dir/all: src/MinEnclosingBall/CMakeFiles/MinEnclosingBall.dir/all
 	$(MAKE) $(MAKESILENT) -f MAIN/CMakeFiles/quadcover_main.dir/build.make MAIN/CMakeFiles/quadcover_main.dir/depend
 	$(MAKE) $(MAKESILENT) -f MAIN/CMakeFiles/quadcover_main.dir/build.make MAIN/CMakeFiles/quadcover_main.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/yiming/research/CWF/build-relwithdebinfo/CMakeFiles --progress-num=66,67 "Built target quadcover_main"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/yiming/research/CWF/build-relwithdebinfo/CMakeFiles --progress-num=68,69 "Built target quadcover_main"
 .PHONY : MAIN/CMakeFiles/quadcover_main.dir/all
 
 # Build rule for subdir invocation for target.
@@ -1026,6 +1030,32 @@ quadcover_main: MAIN/CMakeFiles/quadcover_main.dir/rule
 MAIN/CMakeFiles/quadcover_main.dir/clean:
 	$(MAKE) $(MAKESILENT) -f MAIN/CMakeFiles/quadcover_main.dir/build.make MAIN/CMakeFiles/quadcover_main.dir/clean
 .PHONY : MAIN/CMakeFiles/quadcover_main.dir/clean
+
+#=============================================================================
+# Target rules for target MAIN/CMakeFiles/quadcover_batch.dir
+
+# All Build rule for target.
+MAIN/CMakeFiles/quadcover_batch.dir/all:
+	$(MAKE) $(MAKESILENT) -f MAIN/CMakeFiles/quadcover_batch.dir/build.make MAIN/CMakeFiles/quadcover_batch.dir/depend
+	$(MAKE) $(MAKESILENT) -f MAIN/CMakeFiles/quadcover_batch.dir/build.make MAIN/CMakeFiles/quadcover_batch.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/yiming/research/CWF/build-relwithdebinfo/CMakeFiles --progress-num=66,67 "Built target quadcover_batch"
+.PHONY : MAIN/CMakeFiles/quadcover_batch.dir/all
+
+# Build rule for subdir invocation for target.
+MAIN/CMakeFiles/quadcover_batch.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/yiming/research/CWF/build-relwithdebinfo/CMakeFiles 2
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 MAIN/CMakeFiles/quadcover_batch.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/yiming/research/CWF/build-relwithdebinfo/CMakeFiles 0
+.PHONY : MAIN/CMakeFiles/quadcover_batch.dir/rule
+
+# Convenience name for target.
+quadcover_batch: MAIN/CMakeFiles/quadcover_batch.dir/rule
+.PHONY : quadcover_batch
+
+# clean rule for target.
+MAIN/CMakeFiles/quadcover_batch.dir/clean:
+	$(MAKE) $(MAKESILENT) -f MAIN/CMakeFiles/quadcover_batch.dir/build.make MAIN/CMakeFiles/quadcover_batch.dir/clean
+.PHONY : MAIN/CMakeFiles/quadcover_batch.dir/clean
 
 #=============================================================================
 # Special targets to cleanup operation of make.

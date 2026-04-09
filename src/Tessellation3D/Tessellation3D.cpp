@@ -2,6 +2,35 @@
 #include "BGAL/Tessellation3D/Tessellation3D.h"
 namespace BGAL
 {
+  namespace
+  {
+    inline _Point3 face_plane_normal_from_vertices(const _ManifoldModel& model,
+                                                   const int v0_id,
+                                                   const int v1_id,
+                                                   const int v2_id,
+                                                   const int fallback_face_id = -1)
+    {
+      const _Point3& p0 = model.vertex_(v0_id);
+      const _Point3& p1 = model.vertex_(v1_id);
+      const _Point3& p2 = model.vertex_(v2_id);
+      _Point3 n = (p1 - p0).cross_(p2 - p0);
+      if (n.length_() > 1e-20)
+      {
+        n.normalized_();
+        return n;
+      }
+
+      if (fallback_face_id >= 0 && fallback_face_id < model.number_faces_())
+      {
+        _Point3 fallback = model.normal_face_(fallback_face_id);
+        fallback.normalized_();
+        return fallback;
+      }
+
+      throw std::runtime_error("degenerate face plane in _Restricted_Tessellation3D");
+    }
+  }
+
   _Tessellation3D_Skeleton::_Tessellation3D_Skeleton()
   {
     _neights.resize(0);
@@ -709,8 +738,12 @@ namespace BGAL
             double d1 = _weights[p12[0]] - _weights[i] - 0.5 * v1.dot_(_sites[p12[0]] + _sites[i]);
             _Point3 v2 = (_sites[p12[1]] - _sites[i]) * 2;
             double d2 = _weights[p12[1]] - _weights[i] - 0.5 * v2.dot_(_sites[p12[1]] + _sites[i]);
-            _Point3 v0 = _model.normal_face_(q);
-            v0.normalized_();
+            _Point3 v0 = face_plane_normal_from_vertices(
+                _model,
+                cliped_faces[it->second][0].p[0],
+                cliped_faces[it->second][0].p[1],
+                cliped_faces[it->second][0].p[2],
+                q);
             double d0 = -v0.dot_(_model.vertex_(cliped_faces[it->second][0].p[0]));
             _Point3 cp3 = _Point3::intersection_three_plane(v0, d0, v1, d1, v2, d2);
             from_Sym_to_vertex[psym] = _vertices.size();
@@ -798,8 +831,12 @@ namespace BGAL
             double d1 = _weights[p12[0]] - _weights[i] - 0.5 * v1.dot_(_sites[p12[0]] + _sites[i]);
             _Point3 v2 = (_sites[p12[1]] - _sites[i]) * 2;
             double d2 = _weights[p12[1]] - _weights[i] - 0.5 * v2.dot_(_sites[p12[1]] + _sites[i]);
-            _Point3 v0 = _model.normal_face_(q);
-            v0.normalized_();
+            _Point3 v0 = face_plane_normal_from_vertices(
+                _model,
+                cliped_faces[it->second][1].p[0],
+                cliped_faces[it->second][1].p[1],
+                cliped_faces[it->second][1].p[2],
+                q);
             double d0 = -v0.dot_(_model.vertex_(cliped_faces[it->second][1].p[0]));
             _Point3 cp3 = _Point3::intersection_three_plane(v0, d0, v1, d1, v2, d2);
             from_Sym_to_vertex[psym] = _vertices.size();
@@ -914,8 +951,12 @@ namespace BGAL
               double d1 = _weights[p12[0]] - _weights[i] - 0.5 * v1.dot_(_sites[p12[0]] + _sites[i]);
               _Point3 v2 = (_sites[p12[1]] - _sites[i]) * 2;
               double d2 = _weights[p12[1]] - _weights[i] - 0.5 * v2.dot_(_sites[p12[1]] + _sites[i]);
-              _Point3 v0 = _model.normal_face_(q);
-              v0.normalized_();
+              _Point3 v0 = face_plane_normal_from_vertices(
+                  _model,
+                  cliped_faces[it->second][j].p[0],
+                  cliped_faces[it->second][j].p[1],
+                  cliped_faces[it->second][j].p[2],
+                  q);
               double d0 = -v0.dot_(_model.vertex_(cliped_faces[it->second][j].p[0]));
               _Point3 cp3 = _Point3::intersection_three_plane(v0, d0, v1, d1, v2, d2);
               from_Sym_to_vertex[psym] = _vertices.size();

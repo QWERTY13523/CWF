@@ -23,6 +23,9 @@ BGAL_IS_TOP_LEVEL:STATIC=ON
 //Value Computed by CMake
 BGAL_SOURCE_DIR:STATIC=/home/yiming/research/CWF
 
+//Path to standalone libtorch
+BGAL_TORCH_ROOT:PATH=/home/yiming/libtorch
+
 //Activate the debug messages of the script FindBoost
 Boost_DEBUG:BOOL=OFF
 
@@ -301,6 +304,9 @@ CMAKE_TOOLCHAIN_FILE:FILEPATH=/home/yiming/.vcpkg-clion/vcpkg/scripts/buildsyste
 // Studio IDE projects all commands are done without /nologo.
 CMAKE_VERBOSE_MAKEFILE:BOOL=FALSE
 
+//Caffe2Config directory
+Caffe2_DIR:PATH=/home/yiming/libtorch/share/cmake/Caffe2
+
 //The directory containing a CMake configuration file for Eigen3.
 Eigen3_DIR:PATH=/home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/share/eigen3
 
@@ -322,6 +328,27 @@ GMP_LIBRARY_DEBUG:FILEPATH=/home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/l
 //Path to the Release GMP library
 GMP_LIBRARY_RELEASE:FILEPATH=/home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/lib/libgmp.a
 
+//The directory containing a CMake configuration file for MKLDNN.
+MKLDNN_DIR:PATH=MKLDNN_DIR-NOTFOUND
+
+//Compilation options to use MKL
+MKL_DEFINITIONS:STRING=
+
+//Directories containing the MKL header files
+MKL_INCLUDE_DIR:PATH=/home/yiming/libtorch/include
+
+//MKL libraries name
+MKL_LIBRARIES:FILEPATH=FALSE
+
+//Fallback MKL root for standalone libtorch
+MKL_ROOT:PATH=/home/yiming/libtorch
+
+//Path to a library.
+MKL_mkl_solver_LIBRARY:FILEPATH=MKL_mkl_solver_LIBRARY-NOTFOUND
+
+//Path to a library.
+MKL_mkl_solver_lp64_LIBRARY:FILEPATH=MKL_mkl_solver_lp64_LIBRARY-NOTFOUND
+
 //The directory containing the MPFR header files
 MPFR_INCLUDE_DIR:PATH=/home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include
 
@@ -341,6 +368,12 @@ OpenMP_gomp_LIBRARY:FILEPATH=/usr/lib/gcc/x86_64-linux-gnu/13/libgomp.so
 
 //Path to the pthread library for OpenMP
 OpenMP_pthread_LIBRARY:FILEPATH=/usr/lib/x86_64-linux-gnu/libpthread.a
+
+//Torch shared library
+TORCH_LIBRARY:FILEPATH=/home/yiming/libtorch/lib/libtorch.so
+
+//TorchConfig directory
+Torch_DIR:PATH=/home/yiming/libtorch/share/cmake/Torch
 
 //Automatically copy dependencies into the output directory for
 // executables.
@@ -390,6 +423,12 @@ _VCPKG_INSTALLED_DIR:PATH=/home/yiming/.vcpkg-clion/vcpkg/installed
 
 //The directory containing a CMake configuration file for boost_headers.
 boost_headers_DIR:PATH=/home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/share/boost_headers
+
+//c10 shared library
+c10_LIBRARY:FILEPATH=/home/yiming/libtorch/lib/libc10.so
+
+//Path to a library.
+kineto_LIBRARY:FILEPATH=/home/yiming/libtorch/lib/libkineto.a
 
 //The directory containing a CMake configuration file for libigl.
 libigl_DIR:PATH=/home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/share/libigl
@@ -584,6 +623,12 @@ FIND_PACKAGE_MESSAGE_DETAILS_OpenMP:INTERNAL=[TRUE][c ][v4.5()]
 FIND_PACKAGE_MESSAGE_DETAILS_OpenMP_CXX:INTERNAL=[-fopenmp][/usr/lib/gcc/x86_64-linux-gnu/13/libgomp.so][/usr/lib/x86_64-linux-gnu/libpthread.a][/usr/lib/gcc/x86_64-linux-gnu/13/libgomp.so][/usr/lib/x86_64-linux-gnu/libpthread.a][v4.5()]
 //Details about finding Threads
 FIND_PACKAGE_MESSAGE_DETAILS_Threads:INTERNAL=[TRUE][v()]
+//Details about finding Torch
+FIND_PACKAGE_MESSAGE_DETAILS_Torch:INTERNAL=[/home/yiming/libtorch/lib/libtorch.so][/home/yiming/libtorch/include;/home/yiming/libtorch/include/torch/csrc/api/include][v()]
+//ADVANCED property for variable: MKL_mkl_solver_LIBRARY
+MKL_mkl_solver_LIBRARY-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: MKL_mkl_solver_lp64_LIBRARY
+MKL_mkl_solver_lp64_LIBRARY-ADVANCED:INTERNAL=1
 //Result of TRY_COMPILE
 OpenMP_COMPILE_RESULT_CXX_fopenmp:INTERNAL=TRUE
 //ADVANCED property for variable: OpenMP_CXX_FLAGS

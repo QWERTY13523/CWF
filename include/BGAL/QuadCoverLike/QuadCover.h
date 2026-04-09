@@ -21,6 +21,7 @@ public:
     bool is_show = true;
     bool export_initial_state = true;
     bool export_each_iteration = false;
+    int export_interval = 50;
     bool use_cwf_warm_start = true;
     bool show_cwf_progress = true;
     int cwf_max_iterations = 50;

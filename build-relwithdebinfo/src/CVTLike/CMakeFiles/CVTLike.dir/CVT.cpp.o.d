@@ -416,38 +416,112 @@ src/CVTLike/CMakeFiles/CVTLike.dir/CVT.cpp.o: \
  /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/Eigenvalues/GeneralizedEigenSolver.h \
  /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/Eigenvalues/RealQZ.h \
  /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/Eigenvalues/MatrixBaseEigenvalues.h \
- /usr/include/c++/13/ctime /usr/include/c++/13/filesystem \
- /usr/include/c++/13/bits/fs_fwd.h /usr/include/c++/13/bits/chrono.h \
- /usr/include/c++/13/ratio /usr/include/c++/13/bits/parse_numbers.h \
- /usr/include/c++/13/bits/fs_path.h /usr/include/c++/13/locale \
- /usr/include/c++/13/bits/locale_facets_nonio.h \
- /usr/include/x86_64-linux-gnu/c++/13/bits/time_members.h \
- /usr/include/x86_64-linux-gnu/c++/13/bits/messages_members.h \
- /usr/include/libintl.h /usr/include/c++/13/bits/codecvt.h \
- /usr/include/c++/13/bits/locale_facets_nonio.tcc \
- /usr/include/c++/13/bits/locale_conv.h /usr/include/c++/13/iomanip \
- /usr/include/c++/13/bits/quoted_string.h /usr/include/c++/13/codecvt \
- /usr/include/c++/13/ext/concurrence.h \
- /usr/include/c++/13/bits/shared_ptr.h \
- /usr/include/c++/13/bits/shared_ptr_base.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/Sparse \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/SparseCore \
+ /usr/include/c++/13/map /usr/include/c++/13/bits/stl_tree.h \
+ /usr/include/c++/13/bits/stl_map.h \
+ /usr/include/c++/13/bits/stl_multimap.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/SparseUtil.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/SparseMatrixBase.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/plugins/CommonCwiseUnaryOps.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/plugins/CommonCwiseBinaryOps.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/plugins/MatrixCwiseUnaryOps.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/plugins/MatrixCwiseBinaryOps.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/plugins/BlockMethods.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/SparseAssign.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/CompressedStorage.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/AmbiVector.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/SparseCompressedBase.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/SparseMatrix.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/SparseMap.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/MappedSparseMatrix.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/SparseVector.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/SparseRef.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/SparseCwiseUnaryOp.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/SparseCwiseBinaryOp.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/SparseTranspose.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/SparseBlock.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/SparseDot.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/SparseRedux.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/SparseView.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/SparseDiagonalProduct.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/ConservativeSparseSparseProduct.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/SparseSparseProductWithPruning.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/SparseProduct.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/SparseDenseProduct.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/SparseSelfAdjointView.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/SparseTriangularView.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/TriangularSolver.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/SparsePermutation.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/SparseFuzzy.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/SparseSolverBase.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/OrderingMethods \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/OrderingMethods/Amd.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/OrderingMethods/Ordering.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/OrderingMethods/Eigen_Colamd.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/SparseCholesky \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCholesky/SimplicialCholesky.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCholesky/SimplicialCholesky_impl.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/SparseLU \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseLU/SparseLU_Structs.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseLU/SparseLU_SupernodalMatrix.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseLU/SparseLUImpl.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/SparseColEtree.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseLU/SparseLU_Memory.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseLU/SparseLU_heap_relax_snode.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseLU/SparseLU_relax_snode.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseLU/SparseLU_pivotL.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseLU/SparseLU_panel_dfs.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseLU/SparseLU_kernel_bmod.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseLU/SparseLU_panel_bmod.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseLU/SparseLU_column_dfs.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseLU/SparseLU_column_bmod.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseLU/SparseLU_copy_to_ucol.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseLU/SparseLU_pruneL.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseLU/SparseLU_Utils.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseLU/SparseLU.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/SparseQR \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseQR/SparseQR.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/IterativeLinearSolvers \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/IterativeLinearSolvers/SolveWithGuess.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/IterativeLinearSolvers/IterativeSolverBase.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/IterativeLinearSolvers/BasicPreconditioners.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/IterativeLinearSolvers/ConjugateGradient.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/IterativeLinearSolvers/LeastSquareConjugateGradient.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/IterativeLinearSolvers/BiCGSTAB.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/IterativeLinearSolvers/IncompleteLUT.h \
+ /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/IterativeLinearSolvers/IncompleteCholesky.h \
+ /usr/include/c++/13/list /usr/include/c++/13/bits/stl_list.h \
  /usr/include/c++/13/bits/allocated_ptr.h \
- /usr/include/c++/13/bits/unique_ptr.h /usr/include/c++/13/bits/fs_dir.h \
- /usr/include/c++/13/bits/fs_ops.h /usr/include/c++/13/iostream \
- /usr/include/c++/13/fstream \
+ /usr/include/c++/13/bits/list.tcc /usr/include/c++/13/fstream \
+ /usr/include/c++/13/bits/codecvt.h \
  /usr/include/x86_64-linux-gnu/c++/13/bits/basic_file.h \
  /usr/include/x86_64-linux-gnu/c++/13/bits/c++io.h \
- /usr/include/c++/13/bits/fstream.tcc /usr/include/c++/13/map \
- /usr/include/c++/13/bits/stl_tree.h /usr/include/c++/13/bits/stl_map.h \
- /usr/include/c++/13/bits/stl_multimap.h /usr/include/c++/13/set \
+ /usr/include/c++/13/bits/fstream.tcc /usr/include/c++/13/iomanip \
+ /usr/include/c++/13/locale \
+ /usr/include/c++/13/bits/locale_facets_nonio.h /usr/include/c++/13/ctime \
+ /usr/include/x86_64-linux-gnu/c++/13/bits/time_members.h \
+ /usr/include/x86_64-linux-gnu/c++/13/bits/messages_members.h \
+ /usr/include/libintl.h /usr/include/c++/13/bits/locale_facets_nonio.tcc \
+ /usr/include/c++/13/bits/locale_conv.h \
+ /usr/include/c++/13/bits/quoted_string.h /usr/include/c++/13/set \
  /usr/include/c++/13/bits/stl_set.h \
  /usr/include/c++/13/bits/stl_multiset.h \
  /usr/include/c++/13/unordered_set \
- /usr/include/c++/13/bits/unordered_set.h /usr/include/c++/13/numeric \
- /usr/include/c++/13/bits/stl_numeric.h \
- /usr/include/c++/13/pstl/glue_numeric_defs.h \
- /home/yiming/research/CWF/include/BGAL/Algorithm/BOC/BOC.h \
+ /usr/include/c++/13/bits/unordered_set.h \
  /home/yiming/research/CWF/include/BGAL/CVTLike/CVT.h \
  /home/yiming/research/CWF/include/BGAL/BaseShape/Point.h \
+ /usr/include/c++/13/iostream \
+ /home/yiming/research/CWF/include/BGAL/Algorithm/BOC/BOC.h \
+ /usr/include/c++/13/filesystem /usr/include/c++/13/bits/fs_fwd.h \
+ /usr/include/c++/13/bits/chrono.h /usr/include/c++/13/ratio \
+ /usr/include/c++/13/bits/parse_numbers.h \
+ /usr/include/c++/13/bits/fs_path.h /usr/include/c++/13/codecvt \
+ /usr/include/c++/13/ext/concurrence.h \
+ /usr/include/c++/13/bits/shared_ptr.h \
+ /usr/include/c++/13/bits/shared_ptr_base.h \
+ /usr/include/c++/13/bits/unique_ptr.h /usr/include/c++/13/bits/fs_dir.h \
+ /usr/include/c++/13/bits/fs_ops.h \
  /home/yiming/research/CWF/include/BGAL/BaseShape/Polygon.h \
  /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/Exact_predicates_inexact_constructions_kernel.h \
  /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/Simple_cartesian.h \
@@ -818,6 +892,8 @@ src/CVTLike/CMakeFiles/CVTLike.dir/CVT.cpp.o: \
  /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/gmp.h \
  /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/Scalar_factor_traits.h \
  /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/Algebraic_extension_traits.h \
+ /usr/include/c++/13/numeric /usr/include/c++/13/bits/stl_numeric.h \
+ /usr/include/c++/13/pstl/glue_numeric_defs.h \
  /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/Needs_parens_as_product.h \
  /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/IO/io.h \
  /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/IO/Color.h \
@@ -1480,8 +1556,6 @@ src/CVTLike/CMakeFiles/CVTLike.dir/CVT.cpp.o: \
  /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/Intersections_2/Segment_2_Segment_2.h \
  /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/predicates_on_points_2.h \
  /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/Intersections_2/Line_2_Line_2.h \
- /usr/include/c++/13/list /usr/include/c++/13/bits/stl_list.h \
- /usr/include/c++/13/bits/list.tcc \
  /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/Intersections_2/Line_2_Point_2.h \
  /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/Intersections_2/Line_2_Ray_2.h \
  /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/Intersections_2/Line_2_Segment_2.h \
@@ -2672,418 +2746,4 @@ src/CVTLike/CMakeFiles/CVTLike.dir/CVT.cpp.o: \
  /home/yiming/research/CWF/include/BGAL/Optimization/LBFGS/LBFGS.h \
  /home/yiming/research/CWF/include/BGAL/MinEnclosingBall/MinEnclosingBall.h \
  /home/yiming/research/CWF/include/BGAL/Integral/Integral.h \
- /home/yiming/research/CWF/include/BGAL/Integral/Tetrahedron_arbq_rule.h \
- /home/yiming/research/CWF/include/BGAL/Sphere/Sphere.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/AABB_face_graph_triangle_primitive.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/license/AABB_tree.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/AABB_primitive.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/AABB_tree/internal/Has_nested_type_Shared_data.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/boost/graph/property_maps.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/boost/graph/properties.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/Dynamic_property_map.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/graph/graph_traits.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/pending/property.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/pending/detail/property.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/graph/properties.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/graph/property_maps/constant_property_map.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/graph/property_maps/null_property_map.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/AABB_traits_3.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/AABB_tree/internal/AABB_traits_base.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/AABB_tree/internal/Is_ray_intersection_geomtraits.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/AABB_tree/internal/Primitive_helper.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/AABB_tree/internal/Remove_optional.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/Search_traits_3.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/license/Spatial_searching.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/AABB_tree.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/AABB_tree/internal/AABB_traversal_traits.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/AABB_tree/internal/AABB_node.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/AABB_tree/internal/AABB_search_tree.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/Orthogonal_k_neighbor_search.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/Spatial_searching/internal/K_neighbor_search.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/Kd_tree_node.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/Splitters.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/Point_container.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/Kd_tree_rectangle.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/Spatial_searching/internal/Get_dimension_tag.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/Plane_separator.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/Spatial_searching/internal/Search_helpers.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/Kd_tree.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/container/deque.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/mutex.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/Euclidean_distance.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/Spatial_searching/internal/bounded_priority_queue.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/Search_traits_adapter.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/AABB_tree/internal/AABB_ray_intersection.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/heap/priority_queue.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/heap/detail/heap_comparison.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/heap/heap_concepts.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/heap/detail/stable_heap.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/heap/heap_merge.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/heap/policies.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/parameter/aux_/void.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/parameter/binding.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/parameter/config.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/parameter/aux_/is_placeholder.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/parameter/aux_/result_of0.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/parameter/aux_/use_default_tag.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/parameter/name.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/parameter/aux_/name.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/parameter/value_type.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/parameter/aux_/lambda_tag.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/parameter/keyword.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/parameter/aux_/tag.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/parameter/aux_/unwrap_cv_reference.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/parameter/aux_/yesno.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/parameter/aux_/preprocessor/nullptr.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/parameter/aux_/tagged_argument.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/parameter/keyword_fwd.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/parameter/aux_/tagged_argument_fwd.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/parameter/aux_/is_tagged_argument.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/parameter/aux_/default.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/parameter/aux_/arg_list.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/parameter/aux_/is_maybe.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/parameter/aux_/parameter_requirements.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/parameter/aux_/pack/parameter_requirements.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/parameter/aux_/augment_predicate.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/parameter/aux_/has_nested_template_fn.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/mpl/count_fwd.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/mpl/key_type_fwd.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/mpl/value_type_fwd.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/mpl/order_fwd.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/mpl/find.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/mpl/find_if.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/mpl/aux_/find_if_pred.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/mpl/aux_/iter_apply.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/mpl/iter_fold_if.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/mpl/always.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/mpl/aux_/iter_fold_if_impl.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/mpl/aux_/preprocessed/gcc/iter_fold_if_impl.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/parameter/aux_/preprocessor/qualifier.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/preprocessor/facilities/is_empty.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/preprocessor/facilities/is_empty_variadic.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/preprocessor/punctuation/is_begin_parens.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/preprocessor/punctuation/detail/is_begin_parens.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/preprocessor/facilities/detail/is_empty.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/parameter/aux_/preprocessor/is_binary.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/parameter/template_keyword.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/parameter/aux_/template_keyword.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/parameter/parameters.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/parameter/aux_/pack/make_arg_list.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/parameter/aux_/pack/unmatched_argument.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/parameter/aux_/pack/tag_type.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/parameter/deduced.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/parameter/aux_/use_default.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/parameter/required.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/parameter/optional.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/parameter/aux_/pack/is_named_argument.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/parameter/aux_/pack/insert_tagged.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/parameter/aux_/set.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/parameter/aux_/pack/deduce_tag.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/parameter/aux_/pack/tag_deduced.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/parameter/aux_/pack/make_parameter_spec_items.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/parameter/aux_/pack/make_deduced_items.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/parameter/aux_/pack/deduced_item.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/parameter/aux_/pack/satisfies.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/parameter/aux_/pack/as_parameter_requirements.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/parameter/aux_/pack/predicate.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/parameter/aux_/always_true_predicate.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/parameter/aux_/pack/make_items.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/parameter/aux_/pack/item.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/parameter/aux_/pack/tag_keyword_arg.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/parameter/aux_/pack/tag_template_keyword_arg.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/IO/OBJ.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/IO/OBJ/File_writer_wavefront.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/IO/Generic_writer.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/Named_function_parameters.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/STL_Extension/internal/mesh_option_classes.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/STL_Extension/internal/Has_features.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/STL_Extension/internal/tuple_like_helpers.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/STL_Extension/internal/parameters_interface.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/STL_Extension/internal/mesh_parameters_interface.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/boost/graph/named_params_helper.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/boost/graph/internal/initialized_index_maps_helpers.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/IO/helpers.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/range/has_range_iterator.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/range/value_type.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/Polyhedron_3.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/license/Polyhedron.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/Polyhedron_3_fwd.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/HalfedgeDS_iterator.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/N_step_adaptor_derived.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/Polyhedron_items_3.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/HalfedgeDS_vertex_base.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/HalfedgeDS_halfedge_base.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/HalfedgeDS_face_base.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/HalfedgeDS_default.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/HalfedgeDS_items_2.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/HalfedgeDS_list.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/In_place_list.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/HalfedgeDS_items_decorator.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/boost/graph/graph_traits_HalfedgeDS_default.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/boost/graph/graph_traits_HalfedgeDS.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/boost/graph/iterator.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/boost/graph/internal/helpers.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/boost/graph/halfedge_graph_traits.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/HalfedgeDS_decorator.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/HalfedgeDS_const_decorator.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/IO/Verbose_ostream.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/boost/graph/properties_HalfedgeDS_default.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/boost/graph/properties_HalfedgeDS_base.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/boost/graph/internal/Has_member_id.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/Modifier_base.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/Polyhedron_traits_3.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/boost/graph/graph_traits_Polyhedron_3.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/boost/graph/backward_compatibility_functions.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/boost/graph/properties_Polyhedron_3.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/boost/graph/properties_Polyhedron_3_time_stamp.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/boost/graph/properties_Polyhedron_3_features.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/IO/Polyhedron_iostream.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/IO/Polyhedron_OFF_iostream.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/IO/print_OFF.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/IO/OFF.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/IO/OFF/Scanner_OFF.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/IO/OFF/File_scanner_OFF.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/IO/binary_file_io.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/IO/OFF/File_header_OFF.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/IO/OFF/File_header_extended_OFF.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/IO/OFF/File_header_extended_OFF_impl.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/IO/OFF/File_header_OFF_impl.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/IO/OFF/File_writer_OFF.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/IO/OFF/generic_copy_OFF.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/boost/graph/IO/Generic_facegraph_printer.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/container/flat_map.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/container/detail/pair.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/IO/scan_OFF.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/IO/Polyhedron_scan_OFF.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/Polyhedron_incremental_builder_3.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/Random_access_adaptor.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/boost/graph/IO/OFF.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/boost/graph/IO/Generic_facegraph_builder.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/boost/graph/Euler_operations.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/boost/graph/helpers.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/boost/graph/internal/Has_member_clear.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/range/empty.hpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/Has_conversion.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/IO/Polyhedron_VRML_1_ostream.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/IO/Polyhedron_inventor_ostream.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/IO/OI.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/IO/OI/File_writer_inventor.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/IO/OI/Inventor_ostream.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/IO/Polyhedron_VRML_2_ostream.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/IO/VRML.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/IO/VRML/File_writer_VRML_2.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/IO/VRML/VRML_2_ostream.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/IO/VRML/VRML_1_ostream.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/Sparse \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/SparseCore \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/SparseUtil.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/SparseMatrixBase.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/plugins/CommonCwiseUnaryOps.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/plugins/CommonCwiseBinaryOps.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/plugins/MatrixCwiseUnaryOps.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/plugins/MatrixCwiseBinaryOps.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/plugins/BlockMethods.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/SparseAssign.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/CompressedStorage.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/AmbiVector.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/SparseCompressedBase.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/SparseMatrix.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/SparseMap.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/MappedSparseMatrix.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/SparseVector.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/SparseRef.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/SparseCwiseUnaryOp.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/SparseCwiseBinaryOp.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/SparseTranspose.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/SparseBlock.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/SparseDot.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/SparseRedux.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/SparseView.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/SparseDiagonalProduct.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/ConservativeSparseSparseProduct.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/SparseSparseProductWithPruning.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/SparseProduct.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/SparseDenseProduct.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/SparseSelfAdjointView.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/SparseTriangularView.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/TriangularSolver.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/SparsePermutation.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/SparseFuzzy.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/SparseSolverBase.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/OrderingMethods \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/OrderingMethods/Amd.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/OrderingMethods/Ordering.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/OrderingMethods/Eigen_Colamd.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/SparseCholesky \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCholesky/SimplicialCholesky.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCholesky/SimplicialCholesky_impl.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/SparseLU \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseLU/SparseLU_Structs.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseLU/SparseLU_SupernodalMatrix.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseLU/SparseLUImpl.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseCore/SparseColEtree.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseLU/SparseLU_Memory.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseLU/SparseLU_heap_relax_snode.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseLU/SparseLU_relax_snode.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseLU/SparseLU_pivotL.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseLU/SparseLU_panel_dfs.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseLU/SparseLU_kernel_bmod.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseLU/SparseLU_panel_bmod.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseLU/SparseLU_column_dfs.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseLU/SparseLU_column_bmod.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseLU/SparseLU_copy_to_ucol.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseLU/SparseLU_pruneL.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseLU/SparseLU_Utils.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseLU/SparseLU.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/SparseQR \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/SparseQR/SparseQR.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/IterativeLinearSolvers \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/IterativeLinearSolvers/SolveWithGuess.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/IterativeLinearSolvers/IterativeSolverBase.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/IterativeLinearSolvers/BasicPreconditioners.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/IterativeLinearSolvers/ConjugateGradient.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/IterativeLinearSolvers/LeastSquareConjugateGradient.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/IterativeLinearSolvers/BiCGSTAB.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/IterativeLinearSolvers/IncompleteLUT.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/src/IterativeLinearSolvers/IncompleteCholesky.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/SVD \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/gaussian_curvature.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/igl_inline.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/gaussian_curvature.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/gaussian_curvature.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/internal_angles.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/internal_angles.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/squared_edge_lengths.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/squared_edge_lengths.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/parallel_for.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/default_num_threads.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/default_num_threads.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/get_seconds.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/get_seconds.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/PI.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/read_triangle_mesh.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/read_triangle_mesh.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/read_triangle_mesh.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/list_to_matrix.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/list_to_matrix.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/max_size.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/max_size.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/min_size.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/min_size.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/readMSH.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/readMSH.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/MshLoader.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/MshLoader.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/readMESH.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/readMESH.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/readOBJ.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/readOBJ.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/polygon_corners.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/polygon_corners.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/polygons_to_triangles.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/polygons_to_triangles.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/readOFF.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/readOFF.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/readSTL.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/readSTL.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/IGL_ASSERT.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/string_utils.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/string_utils.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/read_file_binary.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/read_file_binary.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/FileMemoryStream.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/readPLY.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/tinyply.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/tinyply.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/readPLY.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/readWRL.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/readWRL.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/pathinfo.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/pathinfo.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/dirname.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/dirname.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/verbose.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/basename.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/basename.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/boundary_facets.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/boundary_facets.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/face_occurrences.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/face_occurrences.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/matrix_to_list.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/matrix_to_list.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/sort.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/sort.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/SortableRow.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/slice.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/placeholders.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/slice.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/colon.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/colon.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/LinSpaced.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/IndexComparison.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/unique_rows.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/unique_rows.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/sortrows.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/sortrows.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/accumarray.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/accumarray.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/principal_curvature.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/Geometry \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/principal_curvature.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/principal_curvature.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/SparseCholesky \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/adjacency_list.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/adjacency_list.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/per_face_normals.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/per_face_normals.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/cotmatrix.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/cotmatrix.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/cotmatrix_entries.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/cotmatrix_entries.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/doublearea.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/doublearea.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/edge_lengths.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/edge_lengths.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/face_areas.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/face_areas.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/volume.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/volume.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/cross.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/cross.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/dihedral_angles.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/dihedral_angles.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/dihedral_angles_intrinsic.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/dihedral_angles_intrinsic.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/massmatrix.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/massmatrix.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/massmatrix_intrinsic.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/massmatrix_intrinsic.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/sparse.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/sparse.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/repmat.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/repmat.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/voronoi_mass.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/igl_inline.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/voronoi_mass.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/circumradius.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/circumradius.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/Eigen/QR \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/centroid.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/centroid.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/unique_simplices.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/unique_simplices.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/per_vertex_normals.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/per_vertex_normals.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/avg_edge_length.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/avg_edge_length.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/edges.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/edges.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/adjacency_matrix.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/adjacency_matrix.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/vertex_triangle_adjacency.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/vertex_triangle_adjacency.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/cumsum.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/cumsum.cpp \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/adjacency_list.h \
- /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/igl/avg_edge_length.h \
- /home/yiming/research/CWF/include/BGAL/BaseShape/KDTree.h
+ /home/yiming/research/CWF/include/BGAL/Integral/Tetrahedron_arbq_rule.h
