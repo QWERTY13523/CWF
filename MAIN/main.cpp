@@ -1,115 +1,124 @@
-#include <filesystem>
-#include <functional>
-#include <iostream>
+// #include <filesystem>
+// #include <functional>
+// #include <iostream>
 
-#include <Eigen/Dense>
-#include <igl/readOBJ.h>
+// #include <Eigen/Dense>
+// #include <igl/readOBJ.h>
 
-#include <BGAL/CVTLike/CVT.h>
-#include <BGAL/Integral/Integral.h>
-#include <BGAL/Model/ManifoldModel.h>
-#include <BGAL/Model/NonManifoldSurface.h>
-#include <BGAL/Model/Model_Iterator.h>
-#include <BGAL/Optimization/LBFGS/LBFGS.h>
-#include <BGAL/Tessellation3D/Tessellation3D.h>
+// #include <BGAL/CVTLike/CVT.h>
+// #include <BGAL/Integral/Integral.h>
+// #include <BGAL/Model/ManifoldModel.h>
+// #include <BGAL/Model/NonManifoldSurface.h>
+// #include <BGAL/Model/Model_Iterator.h>
+// #include <BGAL/Optimization/LBFGS/LBFGS.h>
+// #include <BGAL/Tessellation3D/Tessellation3D.h>
 
-// ---- 小工具：找 data 目录，并生成 Temp 路径 ----
-static std::filesystem::path
-guess_data_root(const std::filesystem::path &exe_path) {
-  namespace fs = std::filesystem;
-  const fs::path cwd = fs::current_path();
-  const fs::path exe_dir = fs::canonical(exe_path).parent_path();
+// // ---- 小工具：找 data 目录，并生成 Temp 路径 ----
+// static std::filesystem::path
+// guess_data_root(const std::filesystem::path &exe_path) {
+//   namespace fs = std::filesystem;
+//   const fs::path cwd = fs::current_path();
+//   const fs::path exe_dir = fs::canonical(exe_path).parent_path();
 
-  // 1) CWD/data
-  if (fs::exists(cwd / "data"))
-    return fs::canonical(cwd / "data");
-  // 2) <exe_dir>/../data  （通常 bin/MAIN 的上一级是工程根）
-  if (fs::exists(exe_dir.parent_path() / "data"))
-    return fs::canonical(exe_dir.parent_path() / "data");
-  // 3) <exe_dir>/data
-  if (fs::exists(exe_dir / "data"))
-    return fs::canonical(exe_dir / "data");
+//   // 1) CWD/data
+//   if (fs::exists(cwd / "data"))
+//     return fs::canonical(cwd / "data");
+//   // 2) <exe_dir>/../data  （通常 bin/MAIN 的上一级是工程根）
+//   if (fs::exists(exe_dir.parent_path() / "data"))
+//     return fs::canonical(exe_dir.parent_path() / "data");
+//   // 3) <exe_dir>/data
+//   if (fs::exists(exe_dir / "data"))
+//     return fs::canonical(exe_dir / "data");
 
-  return {}; // not found
-}
+//   return {}; // not found
+// }
 
-void CWF3DTest(const std::filesystem::path &exe_path, int Nums = 30000,
-               std::string file = "bunny") {
-  namespace fs = std::filesystem;
+// void CWF3DTest(const std::filesystem::path &exe_path, int Nums = 30000,
+//                std::string file = "bunny") {
+//   namespace fs = std::filesystem;
 
-  std::cout << "CWD: " << fs::current_path() << "\n";
-  std::cout << "====================CWF3DTest\n";
-  std::cout << "Now file: " << file << "\n";
-  std::cout << Nums << "   " << file << "   \n";
+//   std::cout << "CWD: " << fs::current_path() << "\n";
+//   std::cout << "====================CWF3DTest\n";
+//   std::cout << "Now file: " << file << "\n";
+//   std::cout << Nums << "   " << file << "   \n";
 
-  // 1) 找 data 目录
-  fs::path data_root = guess_data_root(exe_path);
-  if (data_root.empty()) {
-    std::cerr
-        << "IOError: cannot locate 'data/' directory near CWD or executable.\n";
-    return;
-  }
+//   // 1) 找 data 目录
+//   fs::path data_root = guess_data_root(exe_path);
+//   if (data_root.empty()) {
+//     std::cerr
+//         << "IOError: cannot locate 'data/' directory near CWD or executable.\n";
+//     return;
+//   }
 
-  // 2) 组成 OBJ 路径并校验
-  fs::path obj_path = data_root / (file + ".obj");
-  if (!fs::exists(obj_path)) {
-    std::cerr << "IOError: " << obj_path << " does not exist.\n";
-    return;
-  }
-  std::cout << "OBJ: " << obj_path << "\n";
+//   // 2) 组成 OBJ 路径并校验
+//   fs::path obj_path = data_root / (file + ".obj");
+//   if (!fs::exists(obj_path)) {
+//     std::cerr << "IOError: " << obj_path << " does not exist.\n";
+//     return;
+//   }
+//   std::cout << "OBJ: " << obj_path << "\n";
 
-  // 3) 读取 OBJ
-  Eigen::MatrixXd V;
-  Eigen::MatrixXi F;
-  if (!igl::readOBJ(obj_path.string(), V, F)) {
-    std::cerr << "IOError: " << obj_path
-              << " could not be opened (igl::readOBJ failed).\n";
-    return;
-  }
+//   // 3) 读取 OBJ
+//   Eigen::MatrixXd V;
+//   Eigen::MatrixXi F;
+//   if (!igl::readOBJ(obj_path.string(), V, F)) {
+//     std::cerr << "IOError: " << obj_path
+//               << " could not be opened (igl::readOBJ failed).\n";
+//     return;
+//   }
 
-  // 5) 模型与 CVT
-  BGAL::NonManifoldSurface::PreparedTriangleMesh prepared_surface;
-  bool used_cgal_fallback = false;
-  BGAL::_ManifoldModel model =
-      BGAL::NonManifoldSurface::build_manifold_model_allow_non_manifold(
-          V, F, &prepared_surface, &used_cgal_fallback);
-  if (used_cgal_fallback) {
-    std::cout
-        << BGAL::NonManifoldSurface::format_preprocess_summary(
-               prepared_surface, "[MAIN]")
-        << "\n";
-  }
+//   // 5) 模型与 CVT
+//   BGAL::NonManifoldSurface::PreparedTriangleMesh prepared_surface;
+//   bool used_cgal_fallback = false;
+//   BGAL::_ManifoldModel model =
+//       BGAL::NonManifoldSurface::build_manifold_model_allow_non_manifold(
+//           V, F, &prepared_surface, &used_cgal_fallback);
+//   if (used_cgal_fallback) {
+//     std::cout
+//         << BGAL::NonManifoldSurface::format_preprocess_summary(
+//                prepared_surface, "[MAIN]")
+//         << "\n";
+//   }
 
-  int num = Nums;
-  std::function<double(BGAL::_Point3& p)> rho = [](BGAL::_Point3& p)
-		{
-			return 1;
-		};
+//   int num = Nums;
+//   std::function<double(BGAL::_Point3& p)> rho = [](BGAL::_Point3& p)
+// 		{
+// 			return 1;
+// 		};
 
-  BGAL::_LBFGS::_Parameter para;
-  para.is_show = true;
-  para.epsilon = 1e-30;
-  para.max_iteration = 65;
-  para.max_linearsearch = 20;
-  BGAL::_CVT3D cvt(model, rho, para);
+//   BGAL::_LBFGS::_Parameter para;
+//   para.is_show = true;
+//   para.epsilon = 1e-30;
+//   para.max_iteration = 65;
+//   para.max_linearsearch = 20;
+//   BGAL::_CVT3D cvt(model, rho, para);
 
-  cvt.calculate_(num, (char *)file.c_str());
-}
+//   cvt.calculate_(num, (char *)file.c_str());
+// }
 
-int main(int argc, char **argv) {
-  // 允许从命令行指定：  MAIN [data_root] [model_name] [num_sites]
-  std::string model = (argc >= 3) ? argv[2] : "bunny";
-  int N = (argc >= 4) ? std::max(1, std::atoi(argv[3])) :30000;
+// int main(int argc, char **argv) {
+//   // 允许从命令行指定：  MAIN [data_root] [model_name] [num_sites]
+//   std::string model = (argc >= 3) ? argv[2] : "bunny";
+//   int N = (argc >= 4) ? std::max(1, std::atoi(argv[3])) :30000;
 
-  // 如果用户显式传 data_root，就先把 CWD 切过去（这样 Temp/输出更直观）
-  if (argc >= 2) {
-    std::error_code ec;
-    std::filesystem::current_path(std::filesystem::path(argv[1]), ec);
-    if (ec) {
-      std::cerr << "Warning: failed to chdir to " << argv[1] << " ("
-                << ec.message() << ")\n";
-    }
-  }
-  CWF3DTest((argc > 0) ? std::filesystem::path(argv[0]) : "", N, model);
-  return 0;
+//   // 如果用户显式传 data_root，就先把 CWD 切过去（这样 Temp/输出更直观）
+//   if (argc >= 2) {
+//     std::error_code ec;
+//     std::filesystem::current_path(std::filesystem::path(argv[1]), ec);
+//     if (ec) {
+//       std::cerr << "Warning: failed to chdir to " << argv[1] << " ("
+//                 << ec.message() << ")\n";
+//     }
+//   }
+//   CWF3DTest((argc > 0) ? std::filesystem::path(argv[0]) : "", N, model);
+//   return 0;
+// }
+#include "BGAL/Model/ManifoldModel.h"
+
+int main() {
+    BGAL::_ManifoldModel::export_processed_obj_(
+        "data/nonmanifold.obj",
+        "data/nonmanifold_processed.obj"
+    );
+    return 0;
 }

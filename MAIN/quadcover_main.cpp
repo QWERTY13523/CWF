@@ -43,6 +43,7 @@ struct CliOptions {
   std::filesystem::path output_dir;
   std::string model_name_override;
   int threads = 0;
+  int cwf_iters = 50;
   bool final_only = false;
   bool debug = false;
   bool show_help = false;
@@ -53,7 +54,8 @@ static void print_usage(const char *exe_name) {
       << "Usage:\n"
       << "  " << exe_name
       << " [--workdir DIR] [--model NAME] [--surface FILE] [--input FILE]\n"
-      << "                 [--output DIR] [--name NAME] [--threads N] [--final-only] [--debug]\n\n"
+      << "                 [--output DIR] [--name NAME] [--threads N] [--cwf-iters N]\n"
+      << "                 [--final-only] [--debug]\n\n"
       << "Options:\n"
       << "  --workdir DIR   Change working directory before resolving paths.\n"
       << "  --model NAME    Use data/NAME.obj as the target surface. Default: block\n"
@@ -62,6 +64,7 @@ static void print_usage(const char *exe_name) {
       << "  --output DIR    Directory for QuadCover result files.\n"
       << "  --name NAME     Output basename. Defaults to the surface stem.\n"
       << "  --threads N     Number of threads used inside one run.\n"
+      << "  --cwf-iters N   Number of CWF warm-start iterations. Use 0 to disable. Default: 50\n"
       << "  --final-only    Export only the final QuadCover result.\n"
       << "  --debug         Export every iteration to data/NAME/ (NAME = model stem).\n"
       << "  -h, --help      Show this help message.\n\n"
@@ -126,6 +129,12 @@ static bool parse_args(int argc, char **argv, CliOptions &opts) {
       const char *value = need_value("--threads");
       if (!value) return false;
       opts.threads = std::max(0, std::stoi(value));
+      continue;
+    }
+    if (arg == "--cwf-iters") {
+      const char *value = need_value("--cwf-iters");
+      if (!value) return false;
+      opts.cwf_iters = std::max(0, std::stoi(value));
       continue;
     }
     if (arg == "--final-only") {
@@ -364,6 +373,10 @@ int main(int argc, char **argv) {
     std::cout << BGAL::NonManifoldSurface::format_preprocess_summary(
                      *prepared_surface, "[quadcover_main]")
               << "\n";
+  } else if (model_mesh.has_nonmanifold_topology_()) {
+    std::cout << "[quadcover_main] native non-manifold topology enabled"
+              << " | V: " << model_mesh.number_vertices_()
+              << " | F: " << model_mesh.number_faces_() << "\n";
   }
 
   std::vector<BGAL::_Point3> init_sites;
@@ -388,7 +401,8 @@ int main(int argc, char **argv) {
   para.export_initial_state = options.debug || !options.final_only;
   para.export_each_iteration = options.debug || !options.final_only;
   para.export_interval = options.debug ? 1 : 50;
-  para.use_cwf_warm_start = 1;
+  para.use_cwf_warm_start = options.cwf_iters > 0;
+  para.cwf_max_iterations = options.cwf_iters;
   if (!para.use_cwf_warm_start) {
     para.show_cwf_progress = false;
     para.cwf_max_iterations = 0;

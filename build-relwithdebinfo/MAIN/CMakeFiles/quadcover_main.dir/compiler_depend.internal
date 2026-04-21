@@ -2820,6 +2820,7 @@ MAIN/CMakeFiles/quadcover_main.dir/quadcover_main.cpp.o
  /home/yiming/research/CWF/include/BGAL/Model/ManifoldModel.h
  /home/yiming/research/CWF/include/BGAL/Model/Model.h
  /home/yiming/research/CWF/include/BGAL/Model/Model_Iterator.h
+ /home/yiming/research/CWF/include/BGAL/Model/NonManifoldSurface.h
  /home/yiming/research/CWF/include/BGAL/PQP/BV.h
  /home/yiming/research/CWF/include/BGAL/PQP/PQP.h
  /home/yiming/research/CWF/include/BGAL/PQP/PQP_Compile.h

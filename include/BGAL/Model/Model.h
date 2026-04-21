@@ -117,6 +117,10 @@ namespace BGAL
 		}
 		void initialization_PQP_();
 		std::tuple<_Point3, double, int> nearest_point_(const _Point3& in_point);
+		void batch_nearest_points_(const std::vector<_Point3>& in_points,
+			std::vector<_Point3>& nearest_points,
+			std::vector<double>* distances = nullptr,
+			std::vector<int>* triangle_ids = nullptr);
 		double signed_distance_(const _Point3& in_point);
 		double signed_distance_(const _Point3& in_point, _Point3& gradient);
 		bool is_in_(const _Point3& in_point);

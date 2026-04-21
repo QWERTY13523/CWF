@@ -24,7 +24,7 @@ public:
     int export_interval = 50;
     bool use_cwf_warm_start = true;
     bool show_cwf_progress = true;
-    int cwf_max_iterations = 50;
+    int cwf_max_iterations = 80;
     int max_outer_iterations = 30;
     int max_line_search = 10;
     double active_eps = 1e-8;

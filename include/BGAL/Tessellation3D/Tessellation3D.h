@@ -3,6 +3,8 @@
 #include <vector>
 #include <queue>
 #include <map>
+#include <array>
+#include <unordered_map>
 #include <iostream>
 
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
@@ -33,6 +35,7 @@ namespace BGAL
 
   private:
     std::vector<std::set<int>> _neights;
+    std::vector<std::vector<int>> _neight_vecs;
 
   public:
     _Tessellation3D_Skeleton();
@@ -40,6 +43,10 @@ namespace BGAL
     const std::set<int> &neight_(const int &in_i) const
     {
       return _neights[in_i];
+    }
+    const std::vector<int> &neights_(const int &in_i) const
+    {
+      return _neight_vecs[in_i];
     }
   };
   class _Restricted_Tessellation3D
@@ -130,7 +137,7 @@ namespace BGAL
                                     const _Symbolic_Point &p2,
                                     const int &neigh,
                                     const int &center,
-                                    const std::vector<int> &current_face_vid) const;
+                                    const std::array<int, 3> &current_face_vid) const;
     void calculate_();
 
   public:

@@ -2819,6 +2819,7 @@ MAIN/CMakeFiles/quadcover_main.dir/quadcover_main.cpp.o: /home/yiming/research/C
   /home/yiming/research/CWF/include/BGAL/Model/ManifoldModel.h \
   /home/yiming/research/CWF/include/BGAL/Model/Model.h \
   /home/yiming/research/CWF/include/BGAL/Model/Model_Iterator.h \
+  /home/yiming/research/CWF/include/BGAL/Model/NonManifoldSurface.h \
   /home/yiming/research/CWF/include/BGAL/PQP/BV.h \
   /home/yiming/research/CWF/include/BGAL/PQP/PQP.h \
   /home/yiming/research/CWF/include/BGAL/PQP/PQP_Compile.h \
@@ -5315,6 +5316,8 @@ MAIN/CMakeFiles/quadcover_main.dir/quadcover_main.cpp.o: /home/yiming/research/C
 /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/math/special_functions/zeta.hpp:
 
 /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/CGAL/predicates_on_points_2.h:
+
+/home/yiming/research/CWF/include/BGAL/Model/NonManifoldSurface.h:
 
 /home/yiming/.vcpkg-clion/vcpkg/installed/x64-linux/include/boost/integer.hpp:
 

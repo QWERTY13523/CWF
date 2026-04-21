@@ -269,10 +269,10 @@ namespace BGAL
 		{
 			return !(*this < ffit);
 		}
-		inline int id() const 
-		{
-			return _model->edge_(_eid)._id_face;
-		}
+			inline int id() const 
+			{
+				return _eid;
+			}
 		inline int fid() const 
 		{
 			return _fid;
@@ -319,10 +319,10 @@ namespace BGAL
 		{
 			return !(*this < vvit);
 		}
-		inline int id() const 
-		{
-			return _model->edge_(_eid)._id_right_vertex;
-		}
+			inline int id() const 
+			{
+				return _eid;
+			}
 		inline int vid() const 
 		{
 			return _vid;
@@ -419,10 +419,10 @@ namespace BGAL
 		{
 			return !(*this < vfit);
 		}
-		inline int id() const 
-		{
-			return _model->edge_(_eid)._id_face;
-		}
+			inline int id() const 
+			{
+				return _eid;
+			}
 		inline int vid() const 
 		{
 			return _vid;

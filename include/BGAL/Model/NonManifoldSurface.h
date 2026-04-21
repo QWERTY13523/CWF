@@ -294,22 +294,56 @@ static inline _ManifoldModel build_manifold_model_allow_non_manifold(
     const Eigen::MatrixXi& F,
     PreparedTriangleMesh* prepared = nullptr,
     bool* used_cgal_fallback = nullptr) {
+  _ManifoldModel model(V.rows() == 0 ? std::vector<_Point3>{} : [&]() {
+      std::vector<_Point3> vertices;
+      vertices.reserve(V.rows());
+      for (int i = 0; i < V.rows(); ++i) {
+        vertices.emplace_back(V(i, 0), V(i, 1), V(i, 2));
+      }
+      return vertices;
+    }(), [&]() {
+      std::vector<_Model::_MFace> faces;
+      faces.reserve(F.rows());
+      for (int i = 0; i < F.rows(); ++i) {
+        faces.emplace_back(F(i, 0), F(i, 1), F(i, 2));
+      }
+      return faces;
+    }());
   if (used_cgal_fallback != nullptr) {
-    *used_cgal_fallback = false;
+    *used_cgal_fallback = model.used_nonmanifold_fallback_();
   }
+  if (prepared != nullptr) {
+    prepared->input_vertex_count = static_cast<std::size_t>(V.rows());
+    prepared->input_face_count = static_cast<std::size_t>(F.rows());
+    prepared->output_vertex_count = static_cast<std::size_t>(model.number_vertices_());
+    prepared->output_face_count = static_cast<std::size_t>(model.number_faces_());
+    prepared->V.resize(model.number_vertices_(), 3);
+    prepared->F.resize(model.number_faces_(), 3);
+    for (int i = 0; i < model.number_vertices_(); ++i) {
+      prepared->V(i, 0) = model.vertex_(i).x();
+      prepared->V(i, 1) = model.vertex_(i).y();
+      prepared->V(i, 2) = model.vertex_(i).z();
+    }
+    for (int i = 0; i < model.number_faces_(); ++i) {
+      prepared->F(i, 0) = model.face_(i)[0];
+      prepared->F(i, 1) = model.face_(i)[1];
+      prepared->F(i, 2) = model.face_(i)[2];
+    }
+  }
+  return model;
+}
 
-  try {
-    return build_manifold_model(V, F);
-  } catch (const std::runtime_error&) {
-    if (used_cgal_fallback != nullptr) {
-      *used_cgal_fallback = true;
-    }
-    if (prepared != nullptr) {
-      *prepared = prepare_surface_with_cgal(V, F);
-      return build_manifold_model(prepared->V, prepared->F);
-    }
-    PreparedTriangleMesh local_prepared = prepare_surface_with_cgal(V, F);
-    return build_manifold_model(local_prepared.V, local_prepared.F);
+static inline void save_prepared_triangle_mesh_as_obj(const PreparedTriangleMesh& prepared,
+                                                      const std::string& out_file_name) {
+  std::ofstream out(out_file_name);
+  if (!out) {
+    throw std::runtime_error("failed to open output OBJ file: " + out_file_name);
+  }
+  for (int i = 0; i < prepared.V.rows(); ++i) {
+    out << "v " << prepared.V(i, 0) << " " << prepared.V(i, 1) << " " << prepared.V(i, 2) << "\n";
+  }
+  for (int i = 0; i < prepared.F.rows(); ++i) {
+    out << "f " << prepared.F(i, 0) + 1 << " " << prepared.F(i, 1) + 1 << " " << prepared.F(i, 2) + 1 << "\n";
   }
 }
 

@@ -29,6 +29,10 @@ namespace BGAL
 		void calculate_(const std::vector<_Point3>& init_sites,
 			const std::string& model_name = "model",
 			bool export_process = false);
+		void set_use_feature_density_boost(bool enabled)
+		{
+			_use_feature_density_boost = enabled;
+		}
 
 		void set_outpath(const std::string& path)
 		{
@@ -54,5 +58,6 @@ namespace BGAL
 		std::vector<_Point3> _sites{};
 		std::function<double(_Point3& p)> _rho;
 		_LBFGS::_Parameter _para;
+		bool _use_feature_density_boost = true;
 	};
 } // namespace BGAL

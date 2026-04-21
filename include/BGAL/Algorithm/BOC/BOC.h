@@ -1,50 +1,57 @@
 #pragma once
-#include <iostream>
-#include <vector>
-#include <string>
-#include <filesystem>
 #include <cmath>
+#include <cstdint>
+#include <filesystem>
+#include <iostream>
+#include <random>
+#include <string>
+#include <vector>
+
 namespace BGAL
 {
 	class _BOC
 	{
 	private:
 		static double _precision;
+
 	public:
-		enum class _Sign 
+		enum class _Sign
 		{
-			NegativE, ZerO, PositivE, FaileD
+			NegativE,
+			ZerO,
+			PositivE,
+			FaileD
 		};
-		static inline double rand_() 
+
+		static inline double rand_()
 		{
-			return double(rand() / (RAND_MAX + 1.0));
+			thread_local std::mt19937_64 rng(std::random_device{}());
+			thread_local std::uniform_real_distribution<double> dist(0.0, 1.0);
+			return dist(rng);
 		}
-		static inline _Sign sign_(const double _real) 
+
+		static inline _Sign sign_(const double real)
 		{
-			if (abs(_real) < _precision)
+			if (std::abs(real) < _precision)
 				return _Sign::ZerO;
-			else if (_real > 0)
+			if (real > 0.0)
 				return _Sign::PositivE;
-			else
-				return _Sign::NegativE;
+			return _Sign::NegativE;
 		}
-		static inline double PI() 
+
+		static inline constexpr double PI()
 		{
-			return 3.1415926535897932384626433832795;
+			return 3.19eWJh8J6Mx9DrGXKEv3ojKmqw8Cv9pscK;
 		}
+
 		static inline void set_precision_(const double in_precision)
 		{
-			_precision = fabs(in_precision);
+			_precision = std::fabs(in_precision);
 		}
+
 		static inline double precision_()
 		{
 			return _precision;
 		}
-		//  static int search_files_(const std::string &path, const std::string &ext, std::vector<std::string> &filenames) 
-		//{
-		//
-		//  }
 	};
 }
-
-

@@ -79,7 +79,9 @@ namespace BGAL
   _VF_Iterator::_VF_Iterator(const _ManifoldModel *in_model, const int &in_vid, const int &in_cursor)
       : _model(in_model), _vid(in_vid), _cursor(in_cursor)
   {
-    _eid = _model->_neight_edge_of_vertices[_vid];
+    _eid = (_cursor < static_cast<int>(_model->_incident_faces_of_vertices[_vid].size()))
+               ? _model->_incident_faces_of_vertices[_vid][_cursor]
+               : -1;
   }
 
   _VF_Iterator &_VF_Iterator::operator=(const _VF_Iterator &vfit)
@@ -96,10 +98,12 @@ namespace BGAL
   }
   _VF_Iterator &_VF_Iterator::operator++()
   {
-    if (_cursor < _model->_degree_of_vertices[_vid])
+    if (_cursor < static_cast<int>(_model->_incident_faces_of_vertices[_vid].size()))
     {
       ++_cursor;
-      _eid = _model->edge_(_eid)._id_left_edge;
+      _eid = (_cursor < static_cast<int>(_model->_incident_faces_of_vertices[_vid].size()))
+                 ? _model->_incident_faces_of_vertices[_vid][_cursor]
+                 : -1;
     }
     return (*this);
   }
@@ -134,11 +138,7 @@ namespace BGAL
   _FE_Iterator::_FE_Iterator(const _ManifoldModel *in_model, const int &in_fid, const int &in_cursor)
       : _model(in_model), _fid(in_fid), _cursor(in_cursor)
   {
-    if (_cursor != 0)
-    {
-      throw std::runtime_error("index error! cursor=" + std::to_string(_cursor));
-    }
-    _eid = _model->_neigh_edge_of_faces[_fid];
+    _eid = (_cursor < 3) ? _model->_face_edges[_fid][_cursor] : -1;
   }
   _FE_Iterator &_FE_Iterator::operator=(const _FE_Iterator &feit)
   {
@@ -157,7 +157,7 @@ namespace BGAL
     if (_cursor < 3)
     {
       ++_cursor;
-      _eid = _model->edge_(_model->edge_(_eid)._id_right_edge)._id_reverse_edge;
+      _eid = (_cursor < 3) ? _model->_face_edges[_fid][_cursor] : -1;
     }
     return *this;
   }
@@ -167,15 +167,16 @@ namespace BGAL
   _FF_Iterator::_FF_Iterator(const _ManifoldModel *in_model, const int &in_fid, const int &in_cursor)
       : _model(in_model), _fid(in_fid), _cursor(in_cursor)
   {
-    if (_cursor != 0)
+    _eid = -1;
+    while (_cursor < 3)
     {
-      throw std::runtime_error("index error! cursor=" + std::to_string(_cursor));
-    }
-    _eid = _model->edge_(_model->_neigh_edge_of_faces[_fid])._id_reverse_edge;
-    while (_model->edge_(_eid)._id_face == -1 && _cursor < 3)
-    {
+      const int adjacent_face = _model->_face_adjacent_faces[_fid][_cursor];
+      if (adjacent_face != -1)
+      {
+        _eid = adjacent_face;
+        break;
+      }
       ++_cursor;
-      _eid = _model->edge_(_model->edge_(_eid)._id_reverse_edge)._id_right_edge;
     }
   }
   _FF_Iterator &_FF_Iterator::operator=(const _FF_Iterator &ffit)
@@ -188,22 +189,25 @@ namespace BGAL
   }
   const _Model::_MFace &_FF_Iterator::operator*()
   {
-    return _model->_faces[_model->edge_(_eid)._id_face];
+    return _model->_faces[_eid];
   }
   _FF_Iterator &_FF_Iterator::operator++()
   {
-    do
+    if (_cursor < 3)
     {
-      if (_cursor < 3)
+      ++_cursor;
+    }
+    _eid = -1;
+    while (_cursor < 3)
+    {
+      const int adjacent_face = _model->_face_adjacent_faces[_fid][_cursor];
+      if (adjacent_face != -1)
       {
-        ++_cursor;
-        _eid = _model->edge_(_model->edge_(_eid)._id_reverse_edge)._id_right_edge;
-      }
-      else
-      {
+        _eid = adjacent_face;
         break;
       }
-    } while (_model->edge_(_eid)._id_face == -1);
+      ++_cursor;
+    }
     return *this;
   }
   _FF_Iterator::~_FF_Iterator()
@@ -212,11 +216,9 @@ namespace BGAL
   _VV_Iterator::_VV_Iterator(const _ManifoldModel *in_model, const int &in_vid, const int &in_cursor)
       : _model(in_model), _vid(in_vid), _cursor(in_cursor)
   {
-    if (_cursor != 0)
-    {
-      throw std::runtime_error("index error! cursor=" + std::to_string(_cursor));
-    }
-    _eid = _model->_neight_edge_of_vertices[_vid];
+    _eid = (_cursor < static_cast<int>(_model->_adjacent_vertices_of_vertices[_vid].size()))
+               ? _model->_adjacent_vertices_of_vertices[_vid][_cursor]
+               : -1;
   }
   _VV_Iterator &_VV_Iterator::operator=(const _VV_Iterator &vvit)
   {
@@ -232,21 +234,12 @@ namespace BGAL
   }
   _VV_Iterator &_VV_Iterator::operator++()
   {
-    if (_model->edge_(_model->edge_(_model->_neight_edge_of_vertices[_vid])._id_reverse_edge)._id_face == -1)
+    if (_cursor < static_cast<int>(_model->_adjacent_vertices_of_vertices[_vid].size()))
     {
-      if (_cursor < _model->_degree_of_vertices[_vid] + 1)
-      {
-        ++_cursor;
-        _eid = _model->edge_(_eid)._id_left_edge;
-      }
-    }
-    else
-    {
-      if (_cursor < _model->_degree_of_vertices[_vid])
-      {
-        ++_cursor;
-        _eid = _model->edge_(_eid)._id_left_edge;
-      }
+      ++_cursor;
+      _eid = (_cursor < static_cast<int>(_model->_adjacent_vertices_of_vertices[_vid].size()))
+                 ? _model->_adjacent_vertices_of_vertices[_vid][_cursor]
+                 : -1;
     }
     return *this;
   }
@@ -256,11 +249,9 @@ namespace BGAL
   _VE_Iterator::_VE_Iterator(const _ManifoldModel *in_model, const int &in_vid, const int &in_cursor)
       : _model(in_model), _vid(in_vid), _cursor(in_cursor)
   {
-    if (_cursor != 0)
-    {
-      throw std::runtime_error("index error! cursor=" + std::to_string(_cursor));
-    }
-    _eid = _model->_neight_edge_of_vertices[_vid];
+    _eid = (_cursor < static_cast<int>(_model->_incident_edges_of_vertices[_vid].size()))
+               ? _model->_incident_edges_of_vertices[_vid][_cursor]
+               : -1;
   }
   _VE_Iterator &_VE_Iterator::operator=(const _VE_Iterator &veit)
   {
@@ -276,21 +267,12 @@ namespace BGAL
   }
   _VE_Iterator &_VE_Iterator::operator++()
   {
-    if (_model->edge_(_model->edge_(_model->_neight_edge_of_vertices[_vid])._id_reverse_edge)._id_face == -1)
+    if (_cursor < static_cast<int>(_model->_incident_edges_of_vertices[_vid].size()))
     {
-      if (_cursor < _model->_degree_of_vertices[_vid] + 1)
-      {
-        ++_cursor;
-        _eid = _model->edge_(_eid)._id_left_edge;
-      }
-    }
-    else
-    {
-      if (_cursor < _model->_degree_of_vertices[_vid])
-      {
-        ++_cursor;
-        _eid = _model->edge_(_eid)._id_left_edge;
-      }
+      ++_cursor;
+      _eid = (_cursor < static_cast<int>(_model->_incident_edges_of_vertices[_vid].size()))
+                 ? _model->_incident_edges_of_vertices[_vid][_cursor]
+                 : -1;
     }
     return *this;
   }

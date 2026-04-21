@@ -2,12 +2,25 @@
 #include <Eigen/Sparse>
 #include <time.h>
 
+#include <CGAL/AABB_face_graph_triangle_primitive.h>
+#include <CGAL/AABB_segment_primitive_3.h>
+#include <CGAL/AABB_traits_3.h>
+#include <CGAL/AABB_tree.h>
+#include <CGAL/IO/Polyhedron_iostream.h>
+#include <CGAL/Polyhedron_3.h>
+#include <CGAL/Simple_cartesian.h>
+
 #include <cmath>
+#include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <limits>
+#include <list>
+#include <memory>
 #include <set>
+#include <tuple>
 #include <unordered_set>
+#include <omp.h>
 
 #include "BGAL/CVTLike/CVT.h"
 #include "BGAL/Algorithm/BOC/BOC.h"
@@ -42,6 +55,27 @@ struct MyFace
 
 namespace
 {
+	using CGALKernel = CGAL::Simple_cartesian<double>;
+	using CGALPoint3 = CGALKernel::Point_3;
+	using CGALSegment3 = CGALKernel::Segment_3;
+	using CGALPolyhedron = CGAL::Polyhedron_3<CGALKernel>;
+	using CGALFacePrimitive =
+		CGAL::AABB_face_graph_triangle_primitive<CGALPolyhedron>;
+	using CGALFaceTraits = CGAL::AABB_traits_3<CGALKernel, CGALFacePrimitive>;
+	using CGALFaceTree = CGAL::AABB_tree<CGALFaceTraits>;
+	using CGALSegmentIterator = std::list<CGALSegment3>::const_iterator;
+	using CGALSegmentPrimitive =
+		CGAL::AABB_segment_primitive_3<CGALKernel, CGALSegmentIterator>;
+	using CGALSegmentTraits =
+		CGAL::AABB_traits_3<CGALKernel, CGALSegmentPrimitive>;
+	using CGALSegmentTree = CGAL::AABB_tree<CGALSegmentTraits>;
+	using CGALClosestFace = CGALFaceTree::Point_and_primitive_id;
+
+	constexpr double kFeatureAngleDegrees = 35.0;
+	constexpr double kFeatureDensityBoost = 12.0;
+	constexpr double kFeatureSigmaScale = 2.0;
+	constexpr double kMinFeatureSigma = 1e-8;
+
 	struct OutputSphere
 	{
 		BGAL::_Point3 c;
@@ -56,21 +90,29 @@ namespace
 	{
 		const auto& edges = rvd.get_edges_();
 		spheres.assign(sites.size(), OutputSphere());
+
+#pragma omp parallel for schedule(dynamic)
 		for (int i = 0; i < (int)sites.size(); ++i)
 		{
 			const BGAL::_Point3 site = sites[i];
-			std::unordered_set<int> boundary_vertices;
+			std::vector<int> boundary_vertices;
 			if (i < (int)edges.size())
 			{
+				boundary_vertices.reserve(edges[i].size() * 4);
 				for (const auto& kv : edges[i])
 				{
 					for (const auto& e : kv.second)
 					{
-						boundary_vertices.insert(e.first);
-						boundary_vertices.insert(e.second);
+						boundary_vertices.push_back(e.first);
+						boundary_vertices.push_back(e.second);
 					}
 				}
 			}
+
+			std::sort(boundary_vertices.begin(), boundary_vertices.end());
+			boundary_vertices.erase(
+				std::unique(boundary_vertices.begin(), boundary_vertices.end()),
+				boundary_vertices.end());
 
 			BGAL::_Point3 far_point = site;
 			double max_dist = 0.0;
@@ -110,15 +152,25 @@ namespace
 			BGAL::_Point3 normal(0.0, 0.0, 0.0);
 			if (face_id >= 0 && face_id < model.number_faces_())
 			{
-				const BGAL::_Point3& nearest_point = std::get<0>(nearest);
-				const auto& face = model.face_(face_id);
-				const double dis1 = (nearest_point - model.vertex_(face[0])).length_();
-				const double dis2 = (nearest_point - model.vertex_(face[1])).length_();
-				const double dis3 = (nearest_point - model.vertex_(face[2])).length_();
-				normal += model.normal_vertex_(face[0]) * (dis2 + dis3);
-				normal += model.normal_vertex_(face[1]) * (dis1 + dis3);
-				normal += model.normal_vertex_(face[2]) * (dis1 + dis2);
-				normal.normalized_();
+				if (model.has_nonmanifold_topology_())
+				{
+					normal = model.normal_face_(face_id);
+				}
+				else
+				{
+					const BGAL::_Point3& nearest_point = std::get<0>(nearest);
+					const auto& face = model.face_(face_id);
+					const double dis1 = (nearest_point - model.vertex_(face[0])).length_();
+					const double dis2 = (nearest_point - model.vertex_(face[1])).length_();
+					const double dis3 = (nearest_point - model.vertex_(face[2])).length_();
+					normal += model.normal_vertex_(face[0]) * (dis2 + dis3);
+					normal += model.normal_vertex_(face[1]) * (dis1 + dis3);
+					normal += model.normal_vertex_(face[2]) * (dis1 + dis2);
+				}
+				if (normal.sqlength_() > 1e-30)
+				{
+					normal.normalized_();
+				}
 			}
 
 			out << spheres[i].c.x() << "," << spheres[i].c.y() << "," << spheres[i].c.z() << ","
@@ -130,6 +182,16 @@ namespace
 	static inline Eigen::Vector3d to_eigen(const BGAL::_Point3& p)
 	{
 		return Eigen::Vector3d(p.x(), p.y(), p.z());
+	}
+
+	static inline CGALPoint3 to_cgal_point(const BGAL::_Point3& p)
+	{
+		return CGALPoint3(p.x(), p.y(), p.z());
+	}
+
+	static inline BGAL::_Point3 to_bgal_point(const CGALPoint3& p)
+	{
+		return BGAL::_Point3(p.x(), p.y(), p.z());
 	}
 
 	static inline bool is_finite_point(const BGAL::_Point3& p)
@@ -149,6 +211,130 @@ namespace
 		return true;
 	}
 
+	static inline bool project_with_aabb_tree(
+		const CGALFaceTree& tree,
+		const BGAL::_Point3& query,
+		BGAL::_Point3& projected,
+		Eigen::Vector3d& normal);
+
+	static inline void project_points_with_aabb_tree_parallel(
+		const CGALFaceTree& tree,
+		const Eigen::VectorXd& X,
+		std::vector<BGAL::_Point3>& sites,
+		std::vector<Eigen::Vector3d>& normals,
+		const std::vector<BGAL::_Point3>* fallback_sites = nullptr)
+	{
+		const int num = static_cast<int>(sites.size());
+#pragma omp parallel for schedule(static)
+		for (int i = 0; i < num; ++i)
+		{
+			const double x = X(i * 3);
+			const double y = X(i * 3 + 1);
+			const double z = X(i * 3 + 2);
+
+			if (!std::isfinite(x) || !std::isfinite(y) || !std::isfinite(z))
+			{
+				if (fallback_sites != nullptr && i < (int)fallback_sites->size())
+				{
+					sites[i] = (*fallback_sites)[i];
+				}
+				normals[i] = Eigen::Vector3d(0.0, 0.0, 1.0);
+				continue;
+			}
+
+			const BGAL::_Point3 query(x, y, z);
+			BGAL::_Point3 projected;
+			Eigen::Vector3d projected_normal(0.0, 0.0, 1.0);
+			if (!project_with_aabb_tree(tree, query, projected, projected_normal))
+			{
+				if (fallback_sites != nullptr && i < (int)fallback_sites->size())
+				{
+					sites[i] = (*fallback_sites)[i];
+				}
+				normals[i] = Eigen::Vector3d(0.0, 0.0, 1.0);
+				continue;
+			}
+
+			sites[i] = projected;
+			normals[i] = projected_normal;
+			if (!normals[i].allFinite() || normals[i].squaredNorm() <= 1e-30)
+			{
+				normals[i] = Eigen::Vector3d(0.0, 0.0, 1.0);
+			}
+		}
+	}
+
+	static inline std::vector<Eigen::Vector3i> build_rdt_faces_from_edges_fast(
+		int num_sites,
+		const std::vector<std::map<int, std::vector<std::pair<int, int>>>>& edges)
+	{
+		std::vector<std::vector<int>> adj(num_sites);
+		for (int i = 0; i < (int)edges.size(); ++i)
+		{
+			for (const auto& ee : edges[i])
+			{
+				const int j = ee.first;
+				if (j >= 0 && j < num_sites && j != i)
+				{
+					adj[i].push_back(j);
+				}
+			}
+		}
+
+#pragma omp parallel for schedule(static)
+		for (int i = 0; i < num_sites; ++i)
+		{
+			auto& nbrs = adj[i];
+			std::sort(nbrs.begin(), nbrs.end());
+			nbrs.erase(std::unique(nbrs.begin(), nbrs.end()), nbrs.end());
+		}
+
+		std::vector<Eigen::Vector3i> tris;
+#pragma omp parallel
+		{
+			std::vector<Eigen::Vector3i> local_tris;
+#pragma omp for schedule(dynamic)
+			for (int u = 0; u < num_sites; ++u)
+			{
+				for (int v : adj[u])
+				{
+					if (u >= v)
+					{
+						continue;
+					}
+
+					int pu = 0, pv = 0;
+					while (pu < (int)adj[u].size() && pv < (int)adj[v].size())
+					{
+						if (adj[u][pu] == adj[v][pv])
+						{
+							const int w = adj[u][pu];
+							if (v < w)
+							{
+								local_tris.emplace_back(u, v, w);
+							}
+							++pu;
+							++pv;
+						}
+						else if (adj[u][pu] < adj[v][pv])
+						{
+							++pu;
+						}
+						else
+						{
+							++pv;
+						}
+					}
+				}
+			}
+#pragma omp critical
+			{
+				tris.insert(tris.end(), local_tris.begin(), local_tris.end());
+			}
+		}
+		return tris;
+	}
+
 	static inline Eigen::Vector3d surface_normal_at_point(
 		const BGAL::_ManifoldModel& model,
 		const BGAL::_Point3& nearest_point,
@@ -156,14 +342,21 @@ namespace
 	{
 		if (face_id >= 0 && face_id < model.number_faces_())
 		{
-			const auto& face = model.face_(face_id);
-			const double dis1 = (nearest_point - model.vertex_(face[0])).length_();
-			const double dis2 = (nearest_point - model.vertex_(face[1])).length_();
-			const double dis3 = (nearest_point - model.vertex_(face[2])).length_();
 			BGAL::_Point3 normal(0.0, 0.0, 0.0);
-			normal += model.normal_vertex_(face[0]) * (dis2 + dis3);
-			normal += model.normal_vertex_(face[1]) * (dis1 + dis3);
-			normal += model.normal_vertex_(face[2]) * (dis1 + dis2);
+			if (model.has_nonmanifold_topology_())
+			{
+				normal = model.normal_face_(face_id);
+			}
+			else
+			{
+				const auto& face = model.face_(face_id);
+				const double dis1 = (nearest_point - model.vertex_(face[0])).length_();
+				const double dis2 = (nearest_point - model.vertex_(face[1])).length_();
+				const double dis3 = (nearest_point - model.vertex_(face[2])).length_();
+				normal += model.normal_vertex_(face[0]) * (dis2 + dis3);
+				normal += model.normal_vertex_(face[1]) * (dis1 + dis3);
+				normal += model.normal_vertex_(face[2]) * (dis1 + dis2);
+			}
 			if (normal.sqlength_() > 1e-30)
 			{
 				normal.normalized_();
@@ -178,6 +371,159 @@ namespace
 			}
 		}
 		return Eigen::Vector3d(0.0, 0.0, 1.0);
+	}
+
+	static inline bool write_model_to_off(
+		const BGAL::_ManifoldModel& model,
+		const std::filesystem::path& path)
+	{
+		std::ofstream out(path);
+		if (!out)
+		{
+			return false;
+		}
+
+		out << std::setprecision(17);
+		out << "OFF\n";
+		out << model.number_vertices_() << " " << model.number_faces_() << " 0\n";
+		for (int vid = 0; vid < model.number_vertices_(); ++vid)
+		{
+			const auto& v = model.vertex_(vid);
+			out << v.x() << " " << v.y() << " " << v.z() << "\n";
+		}
+		for (int fid = 0; fid < model.number_faces_(); ++fid)
+		{
+			const auto& f = model.face_(fid);
+			out << "3 " << f[0] << " " << f[1] << " " << f[2] << "\n";
+		}
+		return true;
+	}
+
+	static inline bool project_with_aabb_tree(
+		const CGALFaceTree& tree,
+		const BGAL::_Point3& query,
+		BGAL::_Point3& projected,
+		Eigen::Vector3d& normal)
+	{
+		if (!is_finite_point(query))
+		{
+			return false;
+		}
+
+		const CGALClosestFace hit = tree.closest_point_and_primitive(to_cgal_point(query));
+		projected = to_bgal_point(hit.first);
+		if (!is_finite_point(projected))
+		{
+			return false;
+		}
+
+		auto face = hit.second;
+		const auto p1 = face->halfedge()->vertex()->point();
+		const auto p2 = face->halfedge()->next()->vertex()->point();
+		const auto p3 = face->halfedge()->next()->next()->vertex()->point();
+		const Eigen::Vector3d v1(p1.x(), p1.y(), p1.z());
+		const Eigen::Vector3d v2(p2.x(), p2.y(), p2.z());
+		const Eigen::Vector3d v3(p3.x(), p3.y(), p3.z());
+		normal = (v2 - v1).cross(v3 - v1);
+		if (!normal.allFinite() || normal.squaredNorm() <= 1e-30)
+		{
+			normal = Eigen::Vector3d(0.0, 0.0, 1.0);
+			return true;
+		}
+		normal.normalize();
+		return true;
+	}
+
+	static inline std::list<CGALSegment3> collect_feature_segments(
+		const BGAL::_ManifoldModel& model,
+		double angle_threshold_degrees,
+		double& mean_edge_length)
+	{
+		std::list<CGALSegment3> segments;
+		std::set<std::pair<int, int>> seen_edges;
+		double total_edge_length = 0.0;
+		int unique_edge_count = 0;
+		const double cos_threshold =
+			std::cos(angle_threshold_degrees * 3.14159265358979323846 / 180.0);
+
+		for (int eid = 0; eid < model.number_edges_(); ++eid)
+		{
+			const auto edge = model.edge_(eid);
+			if (edge._is_boundary_placeholder)
+			{
+				continue;
+			}
+
+			const int a = edge._id_left_vertex;
+			const int b = edge._id_right_vertex;
+			if (a < 0 || b < 0)
+			{
+				continue;
+			}
+
+			const std::pair<int, int> key(std::min(a, b), std::max(a, b));
+			if (!seen_edges.insert(key).second)
+			{
+				continue;
+			}
+
+			const double length = (model.vertex_(a) - model.vertex_(b)).length_();
+			if (std::isfinite(length) && length > 1e-12)
+			{
+				total_edge_length += length;
+				++unique_edge_count;
+			}
+
+			bool is_feature = model.is_boundary_edge_(eid);
+			if (!is_feature)
+			{
+				const int reverse_eid = edge._id_reverse_edge;
+				if (reverse_eid >= 0)
+				{
+					const auto reverse_edge = model.edge_(reverse_eid);
+					if (reverse_edge._id_face >= 0 && edge._id_face >= 0)
+					{
+						BGAL::_Point3 n0 = model.normal_face_(edge._id_face);
+						BGAL::_Point3 n1 = model.normal_face_(reverse_edge._id_face);
+						if (n0.sqlength_() > 1e-30 && n1.sqlength_() > 1e-30)
+						{
+							n0.normalized_();
+							n1.normalized_();
+							is_feature = n0.dot_(n1) < cos_threshold;
+						}
+					}
+				}
+			}
+
+			if (is_feature)
+			{
+				segments.emplace_back(to_cgal_point(model.vertex_(a)),
+									  to_cgal_point(model.vertex_(b)));
+			}
+		}
+
+		mean_edge_length =
+			(unique_edge_count > 0) ? (total_edge_length / unique_edge_count) : 0.0;
+		return segments;
+	}
+
+	static inline double feature_density_weight(
+		const std::unique_ptr<CGALSegmentTree>& feature_tree,
+		double sigma,
+		const BGAL::_Point3& p)
+	{
+		if (!feature_tree || !(sigma > 0.0) || !is_finite_point(p))
+		{
+			return 1.0;
+		}
+
+		const CGALPoint3 closest = feature_tree->closest_point(to_cgal_point(p));
+		const double dx = closest.x() - p.x();
+		const double dy = closest.y() - p.y();
+		const double dz = closest.z() - p.z();
+		const double dist2 = dx * dx + dy * dy + dz * dz;
+		const double gaussian = std::exp(-0.5 * dist2 / (sigma * sigma));
+		return 1.0 + kFeatureDensityBoost * gaussian;
 	}
 
 	static inline void load_points_from_xyz(
@@ -336,64 +682,21 @@ namespace BGAL
 			std::ofstream outRDT1(filepath1);
 
 			const auto& Vs = sites;
-			auto Edges = RVD.get_edges_();
-			std::set<std::pair<int, int>> RDT_Edges;
-			std::vector<std::set<int>> neibors;
-			neibors.resize(Vs.size());
-			for (int i = 0; i < Edges.size(); i++)
-			{
-				for (auto ee : Edges[i])
-				{
-					RDT_Edges.insert(std::make_pair(std::min(i, ee.first), std::max(i, ee.first)));
-					neibors[i].insert(ee.first);
-					neibors[ee.first].insert(i);
-					//std::cout << ee.first << std::endl;
-
-				}
-			}
-
-			for (auto v : Vs)
+			for (const auto& v : Vs)
 			{
 				if (step >= 2)
 					outRDT << "v " << v << std::endl;
 				outRDT1 << "v " << v << std::endl;
 			}
 
-			std::set<MyFace> rdtFaces;
+			const auto rdtFaces = build_rdt_faces_from_edges_fast(
+				static_cast<int>(Vs.size()), RVD.get_edges_());
 
-			for (auto e : RDT_Edges)
-			{
-				for (int pid : neibors[e.first])
-				{
-					if (RDT_Edges.find(std::make_pair(std::min(pid, e.first), std::max(pid, e.first))) != RDT_Edges.end())
-					{
-						if (RDT_Edges.find(std::make_pair(std::min(pid, e.second), std::max(pid, e.second))) != RDT_Edges.end())
-						{
-							int f1 = pid, f2 = e.first, f3 = e.second;
-
-							int mid;
-							if (f1 != std::max(f1, std::max(f2, f3)) && f1 != std::min(f1, min(f2, f3)))
-							{
-								mid = f1;
-							}
-							if (f2 != std::max(f1, std::max(f2, f3)) && f2 != std::min(f1, std::min(f2, f3)))
-							{
-								mid = f2;
-							}
-							if (f3 != std::max(f1, max(f2, f3)) && f3 != std::min(f1, min(f2, f3)))
-							{
-								mid = f3;
-							}
-							rdtFaces.insert(MyFace(std::max(f1, std::max(f2, f3)), mid, std::min(f1, std::min(f2, f3))));
-						}
-					}
-				}
-			}
-			for (auto f : rdtFaces)
+			for (const auto& f : rdtFaces)
 			{
 				if (step >= 2)
-					outRDT << "f " << f.p.x() + 1 << " " << f.p.y() + 1 << " " << f.p.z() + 1 << std::endl;
-				outRDT1 << "f " << f.p.x() + 1 << " " << f.p.y() + 1 << " " << f.p.z() + 1 << std::endl;
+					outRDT << "f " << f.x() + 1 << " " << f.y() + 1 << " " << f.z() + 1 << std::endl;
+				outRDT1 << "f " << f.x() + 1 << " " << f.y() + 1 << " " << f.z() + 1 << std::endl;
 			}
 
 			outRDT.close();
@@ -436,6 +739,49 @@ namespace BGAL
 		double allTime = 0, RVDtime = 0;
 		clock_t start, end;
 		clock_t startRVD, endRVD;
+		const std::filesystem::path temp_off_path =
+			std::filesystem::current_path() / "Temp.off";
+		if (!write_model_to_off(_model, temp_off_path))
+		{
+			throw std::runtime_error("failed to write Temp.off for CWF projection.");
+		}
+
+		CGALPolyhedron projection_mesh;
+		{
+			std::ifstream temp_off_input(temp_off_path);
+			if (!temp_off_input || !(temp_off_input >> projection_mesh) ||
+				projection_mesh.empty())
+			{
+				throw std::runtime_error(
+					"failed to load Temp.off for CWF AABB projection.");
+			}
+		}
+		CGALFaceTree projection_tree(
+			faces(projection_mesh).first,
+			faces(projection_mesh).second,
+			projection_mesh);
+		projection_tree.accelerate_distance_queries();
+
+		double mean_edge_length = 0.0;
+		std::list<CGALSegment3> feature_segments;
+		if (_use_feature_density_boost)
+		{
+			feature_segments =
+				collect_feature_segments(_model, kFeatureAngleDegrees, mean_edge_length);
+		}
+		std::unique_ptr<CGALSegmentTree> feature_tree;
+		double feature_sigma = 0.0;
+		if (_use_feature_density_boost)
+		{
+			feature_sigma = std::max(kMinFeatureSigma,
+									 kFeatureSigmaScale * mean_edge_length);
+		}
+		if (!feature_segments.empty())
+		{
+			feature_tree = std::make_unique<CGALSegmentTree>(
+				feature_segments.begin(), feature_segments.end());
+			feature_tree->accelerate_distance_queries();
+		}
 
 		std::vector<Eigen::Vector3d> Pts, Nors;
 		Pts.reserve(init_sites.size());
@@ -450,6 +796,15 @@ namespace BGAL
 		const int num_sites = static_cast<int>(Pts.size());
 		int num = static_cast<int>(Pts.size());
 		std::cout<< "\nBegin CWF.\n" << std::endl;
+		if (_para.is_show)
+		{
+		std::cout << "[CWF] projection: Temp.off + CGAL AABB tree"
+				  << " | feature_edges: " << feature_segments.size()
+				  << " | feature_sigma: " << feature_sigma
+				  << " | feature_boost: "
+				  << (_use_feature_density_boost ? kFeatureDensityBoost : 0.0)
+				  << std::endl;
+		}
 
 
 		int Fnum = 4;
@@ -467,39 +822,8 @@ namespace BGAL
 				double lossCVT = 0, lossQE = 0, loss = 0;
 
 				startRVD = clock();
-				for (int i = 0; i < num; ++i)
-				{
-					const double x = X(i * 3);
-					const double y = X(i * 3 + 1);
-					const double z = X(i * 3 + 2);
-					if (!std::isfinite(x) || !std::isfinite(y) || !std::isfinite(z))
-					{
-						if (i < (int)last_valid_sites.size())
-						{
-							_sites[i] = last_valid_sites[i];
-						}
-						Nors[i] = Eigen::Vector3d(0.0, 0.0, 1.0);
-						continue;
-					}
-					const BGAL::_Point3 query(x, y, z);
-					auto nearest = const_cast<_ManifoldModel&>(_model).nearest_point_(query);
-					const BGAL::_Point3 projected = std::get<0>(nearest);
-					if (!is_finite_point(projected))
-					{
-						if (i < (int)last_valid_sites.size())
-						{
-							_sites[i] = last_valid_sites[i];
-						}
-						Nors[i] = Eigen::Vector3d(0.0, 0.0, 1.0);
-						continue;
-					}
-					_sites[i] = projected;
-					Nors[i] = surface_normal_at_point(_model, _sites[i], std::get<2>(nearest));
-					if (!Nors[i].allFinite() || Nors[i].squaredNorm() <= 1e-30)
-					{
-						Nors[i] = Eigen::Vector3d(0.0, 0.0, 1.0);
-					}
-				}
+				project_points_with_aabb_tree_parallel(
+					projection_tree, X, _sites, Nors, &last_valid_sites);
 				_RVD.calculate_(_sites);
 				Fnum++;
 				if (export_process && Fnum % 1 == 0)
@@ -536,15 +860,18 @@ namespace BGAL
 						}
 						NorTriM /= std::sqrt(tri_norm2);
 
-						Eigen::VectorXd inte = BGAL::_Integral::integral_triangle3D(
-							[&, NorTriM](BGAL::_Point3 p)
-							{
-								Eigen::VectorXd r(5);
-								const double rho_p = _rho(p);
+							Eigen::VectorXd inte = BGAL::_Integral::integral_triangle3D(
+								[&, NorTriM](BGAL::_Point3 p)
+								{
+									Eigen::VectorXd r(5);
+									BGAL::_Point3 rho_query = p;
+									const double rho_p =
+										_rho(rho_query) *
+										feature_density_weight(feature_tree, feature_sigma, rho_query);
 
-								r(0) = eplison * rho_p * ((_sites[i] - p).sqlength_()); //CVT
+									r(0) = eplison * rho_p * ((_sites[i] - p).sqlength_()); //CVT
 
-								r(1) = lambda*(NorTriM.dot_(p - _sites[i]))* (NorTriM.dot_(p - _sites[i])) + eplison * rho_p * ((p - _sites[i]).sqlength_()); // qe+CVT
+									r(1) = lambda*(NorTriM.dot_(p - _sites[i]))* (NorTriM.dot_(p - _sites[i])) + eplison * rho_p * ((p - _sites[i]).sqlength_()); // qe+CVT
 
 								r(2) = lambda* -2 * NorTriM.x() * (NorTriM.dot_(p - _sites[i])) + eplison * rho_p * -2 * (p - _sites[i]).x();  	 //g
 								r(3) = lambda* -2 * NorTriM.y() * (NorTriM.dot_(p - _sites[i])) + eplison * rho_p * -2 * (p - _sites[i]).y();	 //g
@@ -633,33 +960,8 @@ namespace BGAL
 		end = clock();
 		allTime += (double)(end - start) / CLOCKS_PER_SEC;
 		std::cout<<"allTime: "<<allTime<<" RVDtime: "<<RVDtime<< " L-BFGS time: "<< allTime - RVDtime << std::endl;
-		for (int i = 0; i < num; ++i)
-		{
-			const double x = iterX2(i * 3);
-			const double y = iterX2(i * 3 + 1);
-			const double z = iterX2(i * 3 + 2);
-			if (!std::isfinite(x) || !std::isfinite(y) || !std::isfinite(z))
-			{
-				if (i < (int)last_valid_sites.size())
-				{
-					_sites[i] = last_valid_sites[i];
-				}
-				continue;
-			}
-			const BGAL::_Point3 query(x, y, z);
-			auto nearest = const_cast<_ManifoldModel&>(_model).nearest_point_(query);
-			const BGAL::_Point3 projected = std::get<0>(nearest);
-			if (is_finite_point(projected))
-			{
-				_sites[i] = projected;
-				Nors[i] = surface_normal_at_point(_model, _sites[i], std::get<2>(nearest));
-			}
-			else if (i < (int)last_valid_sites.size())
-			{
-				_sites[i] = last_valid_sites[i];
-			}
-
-		}
+		project_points_with_aabb_tree_parallel(
+			projection_tree, iterX2, _sites, Nors, &last_valid_sites);
 		if (!sites_are_finite(_sites) && sites_are_finite(last_valid_sites))
 		{
 			_sites = last_valid_sites;

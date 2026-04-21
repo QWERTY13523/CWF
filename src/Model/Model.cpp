@@ -1,6 +1,92 @@
 #pragma once
 #include "BGAL/Model/Model.h"
 #include "BGAL/Model/Model_Iterator.h"
+
+#include <algorithm>
+#include <array>
+#include <cctype>
+#include <stdexcept>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
+#include <omp.h>
+
+namespace
+{
+  struct FaceKey
+  {
+    int a, b, c;
+    bool operator==(const FaceKey &other) const
+    {
+      return a == other.a && b == other.b && c == other.c;
+    }
+  };
+
+  struct FaceKeyHasher
+  {
+    std::size_t operator()(const FaceKey &k) const
+    {
+      std::size_t h1 = std::hash<int>{}(k.a);
+      std::size_t h2 = std::hash<int>{}(k.b);
+      std::size_t h3 = std::hash<int>{}(k.c);
+      return h1 ^ (h2 + 0x9e3779b9u + (h1 << 6) + (h1 >> 2)) ^
+             (h3 + 0x9e3779b9u + (h2 << 6) + (h2 >> 2));
+    }
+  };
+
+  inline bool is_blank_line(const std::string &line)
+  {
+    for (char ch : line)
+    {
+      if (!std::isspace(static_cast<unsigned char>(ch)))
+      {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  // Parse OBJ face token formats: v, v/vt, v//vn, v/vt/vn.
+  // Return zero-based vertex index.
+  inline int parse_obj_vertex_index(const std::string &token, int vertex_count)
+  {
+    if (token.empty())
+    {
+      throw std::runtime_error("Empty face token in OBJ file.");
+    }
+
+    const std::size_t slash_pos = token.find('/');
+    const std::string vertex_part = (slash_pos == std::string::npos) ? token : token.substr(0, slash_pos);
+    if (vertex_part.empty())
+    {
+      throw std::runtime_error("Invalid OBJ face token: missing vertex index.");
+    }
+
+    int obj_idx = std::stoi(vertex_part);
+    if (obj_idx > 0)
+    {
+      return obj_idx - 1;
+    }
+    if (obj_idx < 0)
+    {
+      const int resolved = vertex_count + obj_idx;
+      if (resolved < 0 || resolved >= vertex_count)
+      {
+        throw std::runtime_error("OBJ negative face index is out of range.");
+      }
+      return resolved;
+    }
+    throw std::runtime_error("OBJ face index 0 is invalid.");
+  }
+
+  inline FaceKey make_face_key(int i0, int i1, int i2)
+  {
+    std::array<int, 3> ids = {i0, i1, i2};
+    std::sort(ids.begin(), ids.end());
+    return FaceKey{ids[0], ids[1], ids[2]};
+  }
+} // namespace
+
 namespace BGAL
 {
   _Model::_MFace::_MFace() : _Triangle3(), id(-1)
@@ -282,11 +368,26 @@ namespace BGAL
     {
       throw "fail to read file: " + in_file_name;
     }
+
     _vertices.clear();
     _faces.clear();
+
+    std::unordered_set<FaceKey, FaceKeyHasher> unique_faces;
     std::string line;
+    int duplicate_face_count = 0;
+    int degenerate_face_count = 0;
+
     while (std::getline(in, line))
     {
+      if (line.empty() || is_blank_line(line))
+      {
+        continue;
+      }
+      if (line[0] == '#')
+      {
+        continue;
+      }
+
       std::istringstream sline(line);
       std::string word;
       sline >> word;
@@ -298,14 +399,50 @@ namespace BGAL
       }
       else if (word == "f")
       {
-        int id0, id1, idx;
-        sline >> id0 >> id1;
-        while (sline >> idx)
+        std::vector<int> face_vertex_ids;
+        std::string token;
+        while (sline >> token)
         {
-          _Model::_MFace f(id0 - 1, id1 - 1, idx - 1, _vertices[id0 - 1], _vertices[id1 - 1], _vertices[idx - 1]);
-          f.id = _faces.size();
+          face_vertex_ids.push_back(parse_obj_vertex_index(token, static_cast<int>(_vertices.size())));
+        }
+
+        if (face_vertex_ids.size() < 3)
+        {
+          continue;
+        }
+
+        const int id0 = face_vertex_ids[0];
+        for (std::size_t k = 1; k + 1 < face_vertex_ids.size(); ++k)
+        {
+          const int id1 = face_vertex_ids[k];
+          const int id2 = face_vertex_ids[k + 1];
+
+          if (id0 == id1 || id1 == id2 || id0 == id2)
+          {
+            ++degenerate_face_count;
+            continue;
+          }
+
+          const _Point3 &p0 = _vertices[id0];
+          const _Point3 &p1 = _vertices[id1];
+          const _Point3 &p2 = _vertices[id2];
+          const _Point3 cross = (p1 - p0).cross_(p2 - p0);
+          if (cross.length_() == 0.0)
+          {
+            ++degenerate_face_count;
+            continue;
+          }
+
+          const FaceKey key = make_face_key(id0, id1, id2);
+          if (!unique_faces.insert(key).second)
+          {
+            ++duplicate_face_count;
+            continue;
+          }
+
+          _Model::_MFace f(id0, id1, id2, p0, p1, p2);
+          f.id = static_cast<int>(_faces.size());
           _faces.push_back(f);
-          id1 = idx;
         }
       }
       else
@@ -314,6 +451,9 @@ namespace BGAL
       }
     }
     in.close();
+
+    (void)duplicate_face_count;
+    (void)degenerate_face_count;
   }
 
   void _Model::read_off_file_(const std::string &in_file_name)
@@ -369,18 +509,75 @@ namespace BGAL
   _Model::_PQP_Query_Resutl _Model::proximity_query_(const _Point3 &in_point)
   {
     PQP_DistanceResult dres;
-    dres.last_tri = _pqp_model.last_tri;
+
+    // Thread-safe warm start: do not share PQP_Model::last_tri across threads.
+    // Each thread keeps its own seed triangle per model, which preserves most
+    // of the locality benefit without introducing races.
+    thread_local std::unordered_map<const _Model *, Tri *> tls_last_tri_cache;
+    Tri *seed_tri = nullptr;
+    auto cache_it = tls_last_tri_cache.find(this);
+    if (cache_it != tls_last_tri_cache.end())
+    {
+      seed_tri = cache_it->second;
+    }
+    if (seed_tri == nullptr)
+    {
+      seed_tri = _pqp_model.last_tri;
+    }
+    if (seed_tri == nullptr && _pqp_model.tris != nullptr && _pqp_model.num_tris > 0)
+    {
+      seed_tri = _pqp_model.tris;
+    }
+
+    dres.last_tri = seed_tri;
     PQP_REAL p[3];
     p[0] = in_point.x();
     p[1] = in_point.y();
     p[2] = in_point.z();
     PQP_Distance(&dres, &_pqp_model, p, 0.0, 0.0);
+
+    if (dres.last_tri != nullptr)
+    {
+      tls_last_tri_cache[this] = dres.last_tri;
+    }
+
     _PQP_Query_Resutl res;
     res._pos_flag = dres.pos_flag;
-    res._triangle_id = dres.last_tri->id;
+    res._triangle_id = (dres.last_tri != nullptr) ? dres.last_tri->id : -1;
     res._distance = dres.distance;
     res._nearest_point = _Point3(dres.p1[0], dres.p1[1], dres.p1[2]);
     return res;
+  }
+
+  void _Model::batch_nearest_points_(const std::vector<_Point3> &in_points,
+                                     std::vector<_Point3> &nearest_points,
+                                     std::vector<double> *distances,
+                                     std::vector<int> *triangle_ids)
+  {
+    nearest_points.resize(in_points.size());
+    if (distances != nullptr)
+    {
+      distances->assign(in_points.size(), 0.0);
+    }
+    if (triangle_ids != nullptr)
+    {
+      triangle_ids->assign(in_points.size(), -1);
+    }
+
+#pragma omp parallel for schedule(static)
+    for (int i = 0; i < static_cast<int>(in_points.size()); ++i)
+    {
+      const _PQP_Query_Resutl query_res = proximity_query_(in_points[i]);
+      nearest_points[i] = query_res._nearest_point;
+      if (distances != nullptr)
+      {
+        (*distances)[i] = query_res._distance;
+      }
+      if (triangle_ids != nullptr)
+      {
+        (*triangle_ids)[i] = query_res._triangle_id;
+      }
+    }
   }
   _Model::_PQP_Query_Resutl::_PQP_Query_Resutl()
   {
