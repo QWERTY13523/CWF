@@ -6,9 +6,9 @@
 #include <array>
 #include <cctype>
 #include <stdexcept>
-#include <unordered_map>
 #include <unordered_set>
 #include <vector>
+#include <unordered_map>
 #include <omp.h>
 
 namespace
@@ -85,6 +85,48 @@ namespace
     std::sort(ids.begin(), ids.end());
     return FaceKey{ids[0], ids[1], ids[2]};
   }
+
+  inline Tri *pqp_hint_ptr(PQP_Model &model, int tri_id)
+  {
+    // PQP 的 build-state 枚举只在 PQP.cpp 内部可见，这里不要直接依赖
+    // PQP_BUILD_STATE_PROCESSED。对最近点 warm-start 来说，只要三角形数组
+    // 已经存在且 num_tris > 0，就可以安全地返回 hint；否则返回 nullptr。
+    if (model.num_tris <= 0)
+    {
+      return nullptr;
+    }
+#ifndef MODEL_MESH
+    if (model.tris == nullptr)
+    {
+      return nullptr;
+    }
+    if (tri_id >= 0 && tri_id < model.num_tris)
+    {
+      return model.tris + tri_id;
+    }
+    if (model.last_tri)
+    {
+      return model.last_tri;
+    }
+    return model.tris;
+#else
+    if (model.last_tri)
+    {
+      return model.last_tri;
+    }
+    return nullptr;
+#endif
+  }
+
+  inline int fallback_tri_id(const PQP_Model &model)
+  {
+    if (model.last_tri)
+    {
+      return model.last_tri->id;
+    }
+    return (model.num_tris > 0) ? 0 : -1;
+  }
+
 } // namespace
 
 namespace BGAL
@@ -255,7 +297,7 @@ namespace BGAL
   }
   void _Model::initialization_PQP_()
   {
-    _pqp_model.BeginModel();
+    _pqp_model.BeginModel(std::max(8, number_faces_()));
     PQP_REAL p1[3], p2[3], p3[3];
     for (auto f_it = face_begin(); f_it != face_end(); ++f_it)
     {
@@ -280,6 +322,63 @@ namespace BGAL
   {
     _PQP_Query_Resutl query_res = proximity_query_(in_point);
     return std::make_tuple(query_res._nearest_point, query_res._distance, query_res._triangle_id);
+  }
+  void _Model::batch_nearest_points_(const std::vector<_Point3> &in_points,
+                                  std::vector<_Point3> &nearest_points,
+                                  std::vector<double> *distances,
+                                  std::vector<int> *triangle_ids)
+  {
+    nearest_points.resize(in_points.size());
+    if (distances)
+    {
+      distances->assign(in_points.size(), 0.0);
+    }
+    if (triangle_ids)
+    {
+      triangle_ids->assign(in_points.size(), -1);
+    }
+    if (in_points.empty())
+    {
+      return;
+    }
+
+    const int n = static_cast<int>(in_points.size());
+    const int nt = std::max(1, omp_get_max_threads());
+    #pragma omp parallel num_threads(nt)
+    {
+      const int tid = omp_get_thread_num();
+      const int chunk_begin = (n * tid) / nt;
+      const int chunk_end = (n * (tid + 1)) / nt;
+
+      int tri_hint = fallback_tri_id(_pqp_model);
+      PQP_DistanceResult dres;
+      for (int i = chunk_begin; i < chunk_end; ++i)
+      {
+        if (tri_hint < 0 || tri_hint >= _pqp_model.num_tris)
+        {
+          tri_hint = fallback_tri_id(_pqp_model);
+        }
+        dres.last_tri = pqp_hint_ptr(_pqp_model, tri_hint);
+
+        PQP_REAL p[3];
+        p[0] = in_points[static_cast<std::size_t>(i)].x();
+        p[1] = in_points[static_cast<std::size_t>(i)].y();
+        p[2] = in_points[static_cast<std::size_t>(i)].z();
+        PQP_DistanceWithHint(&dres, &_pqp_model, p, dres.last_tri, 0.0, 0.0);
+
+        nearest_points[static_cast<std::size_t>(i)] = _Point3(dres.p1[0], dres.p1[1], dres.p1[2]);
+        const int out_tri_id = dres.last_tri ? dres.last_tri->id : tri_hint;
+        tri_hint = out_tri_id;
+        if (distances)
+        {
+          (*distances)[static_cast<std::size_t>(i)] = dres.distance;
+        }
+        if (triangle_ids)
+        {
+          (*triangle_ids)[static_cast<std::size_t>(i)] = out_tri_id;
+        }
+      }
+    }
   }
   double _Model::signed_distance_(const _Point3 &in_point)
   {
@@ -508,76 +607,29 @@ namespace BGAL
   }
   _Model::_PQP_Query_Resutl _Model::proximity_query_(const _Point3 &in_point)
   {
+    static thread_local std::unordered_map<const PQP_Model *, int> tls_last_tri_ids;
+
     PQP_DistanceResult dres;
+    int &tri_hint = tls_last_tri_ids[&_pqp_model];
+    if (tri_hint < 0 || tri_hint >= _pqp_model.num_tris)
+    {
+      tri_hint = fallback_tri_id(_pqp_model);
+    }
+    dres.last_tri = pqp_hint_ptr(_pqp_model, tri_hint);
 
-    // Thread-safe warm start: do not share PQP_Model::last_tri across threads.
-    // Each thread keeps its own seed triangle per model, which preserves most
-    // of the locality benefit without introducing races.
-    thread_local std::unordered_map<const _Model *, Tri *> tls_last_tri_cache;
-    Tri *seed_tri = nullptr;
-    auto cache_it = tls_last_tri_cache.find(this);
-    if (cache_it != tls_last_tri_cache.end())
-    {
-      seed_tri = cache_it->second;
-    }
-    if (seed_tri == nullptr)
-    {
-      seed_tri = _pqp_model.last_tri;
-    }
-    if (seed_tri == nullptr && _pqp_model.tris != nullptr && _pqp_model.num_tris > 0)
-    {
-      seed_tri = _pqp_model.tris;
-    }
-
-    dres.last_tri = seed_tri;
     PQP_REAL p[3];
     p[0] = in_point.x();
     p[1] = in_point.y();
     p[2] = in_point.z();
-    PQP_Distance(&dres, &_pqp_model, p, 0.0, 0.0);
-
-    if (dres.last_tri != nullptr)
-    {
-      tls_last_tri_cache[this] = dres.last_tri;
-    }
+    PQP_DistanceWithHint(&dres, &_pqp_model, p, dres.last_tri, 0.0, 0.0);
 
     _PQP_Query_Resutl res;
     res._pos_flag = dres.pos_flag;
-    res._triangle_id = (dres.last_tri != nullptr) ? dres.last_tri->id : -1;
+    res._triangle_id = dres.last_tri ? dres.last_tri->id : tri_hint;
     res._distance = dres.distance;
     res._nearest_point = _Point3(dres.p1[0], dres.p1[1], dres.p1[2]);
+    tri_hint = res._triangle_id;
     return res;
-  }
-
-  void _Model::batch_nearest_points_(const std::vector<_Point3> &in_points,
-                                     std::vector<_Point3> &nearest_points,
-                                     std::vector<double> *distances,
-                                     std::vector<int> *triangle_ids)
-  {
-    nearest_points.resize(in_points.size());
-    if (distances != nullptr)
-    {
-      distances->assign(in_points.size(), 0.0);
-    }
-    if (triangle_ids != nullptr)
-    {
-      triangle_ids->assign(in_points.size(), -1);
-    }
-
-#pragma omp parallel for schedule(static)
-    for (int i = 0; i < static_cast<int>(in_points.size()); ++i)
-    {
-      const _PQP_Query_Resutl query_res = proximity_query_(in_points[i]);
-      nearest_points[i] = query_res._nearest_point;
-      if (distances != nullptr)
-      {
-        (*distances)[i] = query_res._distance;
-      }
-      if (triangle_ids != nullptr)
-      {
-        (*triangle_ids)[i] = query_res._triangle_id;
-      }
-    }
   }
   _Model::_PQP_Query_Resutl::_PQP_Query_Resutl()
   {

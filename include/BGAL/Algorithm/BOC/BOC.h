@@ -41,7 +41,7 @@ namespace BGAL
 
 		static inline constexpr double PI()
 		{
-			return 3.19eWJh8J6Mx9DrGXKEv3ojKmqw8Cv9pscK;
+			return 3.1415926535897932384626433832795;
 		}
 
 		static inline void set_precision_(const double in_precision)

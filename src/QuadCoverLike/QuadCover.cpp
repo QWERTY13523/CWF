@@ -1,6 +1,7 @@
 #include "BGAL/QuadCoverLike/QuadCover.h"
 #include "BGAL/Algorithm/BOC/BOC.h"
 #include "BGAL/CVTLike/CVT.h"
+#include "BGAL/BaseShape/KDTree.h"
 #include "BGAL/Integral/Integral.h"
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/Search_traits_3.h>
@@ -27,7 +28,6 @@
 #include <sstream>
 #include <tuple>
 #include <unordered_set>
-#include <unordered_map>
 #include <vector>
 #include <omp.h> // 寮曞叆 OpenMP
 
@@ -136,16 +136,12 @@ static inline void update_surface_normals(
     const std::vector<_Point3> &sites,
     std::vector<Vec3> &surface_normals) {
   surface_normals.assign(sites.size(), Vec3(0.0, 0.0, 1.0));
-  if (sites.empty()) return;
-
-  std::vector<_Point3> nearest_points;
-  std::vector<int> face_ids;
-  auto &mutable_model = const_cast<BGAL::_ManifoldModel &>(model);
-  mutable_model.batch_nearest_points_(sites, nearest_points, nullptr, &face_ids);
-
-#pragma omp parallel for schedule(static)
+  
+  // 骞惰鍖栧鎵捐〃闈㈡硶绾?
+  #pragma omp parallel for
   for (int i = 0; i < (int)sites.size(); ++i) {
-    const int face_id = face_ids[i];
+    auto nearest = const_cast<BGAL::_ManifoldModel &>(model).nearest_point_(sites[i]);
+    const int face_id = std::get<2>(nearest);
     if (face_id >= 0 && face_id < model.number_faces_()) {
       _Point3 n_p = model.normal_face_(face_id);
       n_p.normalized_();
@@ -238,6 +234,26 @@ static inline double max_row_norm(const Eigen::MatrixXd &M) {
   return ret;
 }
 
+static constexpr double kSphereRadiusPadding = 1e-6;
+
+static inline double padded_radius_squared(const Vec3 &site,
+                                           const Vec3 &pole) {
+  const double r = (site - pole).norm() + kSphereRadiusPadding;
+  return r * r;
+}
+
+static inline Vec3 padded_hinge_grad_factor(const Vec3 &site,
+                                            const Vec3 &pole,
+                                            const Vec3 &quad_center) {
+  const Vec3 site_to_pole = site - pole;
+  const double d = site_to_pole.norm();
+  Vec3 ret = pole - quad_center;
+  if (d > 1e-30) {
+    ret -= kSphereRadiusPadding * (site_to_pole / d);
+  }
+  return ret;
+}
+
 static inline HingeStats recompute_hinge_stats_serial(
     const std::vector<_Point3> &sites,
     const std::vector<Vec3> &frozen_poles,
@@ -257,7 +273,7 @@ static inline HingeStats recompute_hinge_stats_serial(
     for (int k = 0; k < 4; ++k) {
       const int sid = q[k];
       const Vec3 Pi = to_eigen(sites[sid]);
-      const double ri2 = (Pi - frozen_poles[sid]).squaredNorm();
+      const double ri2 = padded_radius_squared(Pi, frozen_poles[sid]);
       g_val += (P_bar - Pi).squaredNorm() - ri2;
     }
 
@@ -269,8 +285,10 @@ static inline HingeStats recompute_hinge_stats_serial(
       if (need_grad) {
         for (int k = 0; k < 4; ++k) {
           const int sid = q[k];
-          const Vec3 &Vi = frozen_poles[sid];
-          stats.grads.row(sid) += (-4.0 * violation * (Vi - P_bar)).transpose();
+          const Vec3 Pi = to_eigen(sites[sid]);
+          const Vec3 factor =
+              padded_hinge_grad_factor(Pi, frozen_poles[sid], P_bar);
+          stats.grads.row(sid) += (-4.0 * violation * factor).transpose();
         }
       }
     }
@@ -295,12 +313,10 @@ static inline DynamicRadiusEval evaluate_qem_hinge_objective(
   DynamicRadiusEval eval(n_sites, need_grad);
   const auto &cell_tris = rvd.get_cells_();
 
-  double qem_loss_acc = 0.0;
-  #pragma omp parallel for schedule(dynamic) reduction(+ : qem_loss_acc)
+  double qem_loss = 0.0;
+  #pragma omp parallel for reduction(+:qem_loss) schedule(dynamic)
   for (int i = 0; i < (int)cell_tris.size(); ++i) {
-    Vec3 grad_i = Vec3::Zero();
-    double local_qem_loss = 0.0;
-
+    Eigen::RowVector3d grad_i = Eigen::RowVector3d::Zero();
     for (const auto &tri : cell_tris[i]) {
       const _Point3 p0 = rvd.vertex_(std::get<0>(tri));
       const _Point3 p1 = rvd.vertex_(std::get<1>(tri));
@@ -321,32 +337,24 @@ static inline DynamicRadiusEval evaluate_qem_hinge_objective(
           },
           p0, p1, p2);
 
-      local_qem_loss += inte(0);
+      qem_loss += inte(0);
       if (need_grad) {
-        grad_i += Vec3(inte(1), inte(2), inte(3));
+        grad_i += Eigen::RowVector3d(inte(1), inte(2), inte(3));
       }
     }
-
-    qem_loss_acc += local_qem_loss;
     if (need_grad) {
-      eval.qem_grads.row(i) = grad_i.transpose();
+      eval.qem_grads.row(i) = grad_i;
     }
   }
-  eval.qem_loss = qem_loss_acc;
+  eval.qem_loss = qem_loss;
 
   const int num_quads = (int)quads.size();
-  std::vector<double> hinge_gx, hinge_gy, hinge_gz;
-  if (need_grad) {
-    hinge_gx.assign(n_sites, 0.0);
-    hinge_gy.assign(n_sites, 0.0);
-    hinge_gz.assign(n_sites, 0.0);
-  }
+  double hinge_loss = 0.0;
+  int active_quads = 0;
+  double min_g = std::numeric_limits<double>::infinity();
+  std::vector<double> hinge_grad_flat(need_grad ? 3 * n_sites : 0, 0.0);
 
-  double hinge_loss_acc = 0.0;
-  int active_quads_acc = 0;
-  double min_g_acc = std::numeric_limits<double>::infinity();
-
-  #pragma omp parallel for schedule(dynamic) reduction(+ : hinge_loss_acc, active_quads_acc) reduction(min : min_g_acc)
+  #pragma omp parallel for reduction(+:hinge_loss,active_quads) reduction(min:min_g) schedule(static)
   for (int qi = 0; qi < num_quads; ++qi) {
     const auto &q = quads[qi];
     Vec3 P_bar = Vec3::Zero();
@@ -357,41 +365,42 @@ static inline DynamicRadiusEval evaluate_qem_hinge_objective(
     for (int k = 0; k < 4; ++k) {
       const int sid = q[k];
       const Vec3 Pi = to_eigen(sites[sid]);
-      const double ri2 = (Pi - frozen_poles[sid]).squaredNorm();
+      const double ri2 = padded_radius_squared(Pi, frozen_poles[sid]);
       g_val += (P_bar - Pi).squaredNorm() - ri2;
     }
 
-    min_g_acc = std::min(min_g_acc, g_val);
+    min_g = std::min(min_g, g_val);
     const double violation = -(g_val + eps);
     if (violation > 0.0) {
-      hinge_loss_acc += violation * violation;
-      active_quads_acc += 1;
-
+      hinge_loss += violation * violation;
+      active_quads += 1;
       if (need_grad) {
         for (int k = 0; k < 4; ++k) {
           const int sid = q[k];
-          const Vec3 d = -4.0 * violation * (frozen_poles[sid] - P_bar);
+          const Vec3 Pi = to_eigen(sites[sid]);
+          const Vec3 factor =
+              padded_hinge_grad_factor(Pi, frozen_poles[sid], P_bar);
+          const Vec3 contrib = -4.0 * violation * factor;
           #pragma omp atomic update
-          hinge_gx[sid] += d.x();
+          hinge_grad_flat[3 * sid + 0] += contrib.x();
           #pragma omp atomic update
-          hinge_gy[sid] += d.y();
+          hinge_grad_flat[3 * sid + 1] += contrib.y();
           #pragma omp atomic update
-          hinge_gz[sid] += d.z();
+          hinge_grad_flat[3 * sid + 2] += contrib.z();
         }
       }
     }
   }
 
-  eval.hinge_loss = hinge_loss_acc;
-  eval.active_quads = active_quads_acc;
-  eval.min_g = min_g_acc;
-
+  eval.hinge_loss = hinge_loss;
+  eval.active_quads = active_quads;
+  eval.min_g = min_g;
   if (need_grad) {
     #pragma omp parallel for
     for (int i = 0; i < n_sites; ++i) {
-      eval.hinge_grads(i, 0) = hinge_gx[i];
-      eval.hinge_grads(i, 1) = hinge_gy[i];
-      eval.hinge_grads(i, 2) = hinge_gz[i];
+      eval.hinge_grads(i, 0) = hinge_grad_flat[3 * i + 0];
+      eval.hinge_grads(i, 1) = hinge_grad_flat[3 * i + 1];
+      eval.hinge_grads(i, 2) = hinge_grad_flat[3 * i + 2];
     }
   }
 
@@ -441,28 +450,16 @@ static inline std::vector<_Point3> apply_projected_step(
     const std::vector<_Point3> &sites,
     const Eigen::MatrixXd &step,
     const BGAL::_ManifoldModel &model) {
-  std::vector<_Point3> queries = sites;
-  std::vector<char> moved(sites.size(), 0);
-
-#pragma omp parallel for schedule(static)
+  std::vector<_Point3> trial = sites;
+  
+  // 骞惰璁＄畻棰勬祴姝ュ苟鎶曞奖
+  #pragma omp parallel for
   for (int i = 0; i < (int)sites.size(); ++i) {
     if (step.row(i).squaredNorm() < 1e-30) continue;
     const Vec3 p = to_eigen(sites[i]) + step.row(i).transpose();
-    queries[i] = to_point(p);
-    moved[i] = 1;
+    trial[i] = project_to_surface(model, to_point(p));
   }
-
-  std::vector<_Point3> projected;
-  auto &mutable_model = const_cast<BGAL::_ManifoldModel &>(model);
-  mutable_model.batch_nearest_points_(queries, projected, nullptr, nullptr);
-
-#pragma omp parallel for schedule(static)
-  for (int i = 0; i < (int)sites.size(); ++i) {
-    if (!moved[i]) {
-      projected[i] = sites[i];
-    }
-  }
-  return projected;
+  return trial;
 }
 
 static inline Eigen::MatrixXd realized_step_matrix(
@@ -545,9 +542,9 @@ static inline std::vector<char> build_active_site_mask(
     const std::vector<Vec3> &frozen_poles,
     const std::vector<std::array<int, 4>> &quads,
     double eps) {
-  std::vector<int> mask_int(sites.size(), 0);
+  std::vector<int> flags(sites.size(), 0);
 
-  #pragma omp parallel for schedule(dynamic)
+  #pragma omp parallel for schedule(static)
   for (int qi = 0; qi < (int)quads.size(); ++qi) {
     const auto &q = quads[qi];
     Vec3 P_bar = Vec3::Zero();
@@ -558,22 +555,22 @@ static inline std::vector<char> build_active_site_mask(
     for (int k = 0; k < 4; ++k) {
       const int sid = q[k];
       const Vec3 Pi = to_eigen(sites[sid]);
-      const double ri2 = (Pi - frozen_poles[sid]).squaredNorm();
+      const double ri2 = padded_radius_squared(Pi, frozen_poles[sid]);
       g_val += (P_bar - Pi).squaredNorm() - ri2;
     }
 
     if (-(g_val + eps) > 0.0) {
       for (int k = 0; k < 4; ++k) {
         #pragma omp atomic write
-        mask_int[q[k]] = 1;
+        flags[q[k]] = 1;
       }
     }
   }
 
-  std::vector<char> mask(mask_int.size(), 0);
+  std::vector<char> mask(flags.size(), 0);
   #pragma omp parallel for
-  for (int i = 0; i < (int)mask_int.size(); ++i) {
-    mask[i] = static_cast<char>(mask_int[i] != 0);
+  for (int i = 0; i < (int)flags.size(); ++i) {
+    mask[i] = static_cast<char>(flags[i] != 0);
   }
   return mask;
 }
@@ -610,34 +607,35 @@ static inline std::vector<char> expand_active_mask_one_ring(
   if ((int)mask.size() != num_sites) mask.assign(num_sites, 0);
   if (!has_any_active(mask)) return make_all_active_mask(num_sites);
 
-  std::vector<std::vector<int>> neighbors(num_sites);
+  std::vector<std::vector<int>> adj(num_sites);
   for (const auto &f : faces) {
     const int a = f.x(), b = f.y(), c = f.z();
-    if (a < 0 || a >= num_sites || b < 0 || b >= num_sites || c < 0 || c >= num_sites) continue;
-    neighbors[a].push_back(b); neighbors[a].push_back(c);
-    neighbors[b].push_back(a); neighbors[b].push_back(c);
-    neighbors[c].push_back(a); neighbors[c].push_back(b);
+    if (a < 0 || a >= num_sites || b < 0 || b >= num_sites || c < 0 || c >= num_sites) {
+      continue;
+    }
+    adj[a].push_back(b); adj[a].push_back(c);
+    adj[b].push_back(a); adj[b].push_back(c);
+    adj[c].push_back(a); adj[c].push_back(b);
   }
 
-#pragma omp parallel for schedule(static)
+  #pragma omp parallel for
   for (int i = 0; i < num_sites; ++i) {
-    auto &nbrs = neighbors[i];
+    auto &nbrs = adj[i];
     std::sort(nbrs.begin(), nbrs.end());
     nbrs.erase(std::unique(nbrs.begin(), nbrs.end()), nbrs.end());
   }
 
   for (int r = 0; r < rings; ++r) {
     std::vector<int> next(mask.begin(), mask.end());
-#pragma omp parallel for schedule(static)
+    #pragma omp parallel for schedule(static)
     for (int i = 0; i < num_sites; ++i) {
       if (!mask[i]) continue;
-      next[i] = 1;
-      for (int j : neighbors[i]) {
-#pragma omp atomic write
+      for (int j : adj[i]) {
+        #pragma omp atomic write
         next[j] = 1;
       }
     }
-#pragma omp parallel for schedule(static)
+    #pragma omp parallel for
     for (int i = 0; i < num_sites; ++i) {
       mask[i] = static_cast<char>(next[i] != 0);
     }
@@ -785,37 +783,33 @@ static inline std::vector<double> compute_local_site_scales(
   return scales;
 }
 
-static inline std::vector<_Point3> perturb_sites_structured(
+struct TangentPerturbFrame {
+  int site_id = -1;
+  Vec3 t1 = Vec3::UnitX();
+  Vec3 t2 = Vec3::UnitY();
+  double local_scale = 1.0;
+};
+
+static inline std::vector<TangentPerturbFrame> build_tangent_perturb_frames(
     const std::vector<_Point3> &base_sites,
     const std::vector<Vec3> &surface_normals,
     const std::vector<char> &perturb_mask,
     const std::vector<Eigen::Vector3i> &rdt_faces,
-    double alpha,
-    double fallback_scale,
-    const BGAL::_ManifoldModel &model,
-    std::mt19937 &rng) {
-  std::vector<_Point3> perturbed = base_sites;
-  if (!(alpha > 0.0) || !std::isfinite(alpha)) return perturbed;
+    double fallback_scale) {
+  std::vector<TangentPerturbFrame> frames;
+  if (base_sites.empty()) return frames;
 
-  std::normal_distribution<double> normal01(0.0, 1.0);
-  std::vector<char> use_site_flags(base_sites.size(), 0);
-  std::vector<double> xi1(base_sites.size(), 0.0);
-  std::vector<double> xi2(base_sites.size(), 0.0);
   const std::vector<double> local_scales =
       compute_local_site_scales(base_sites, rdt_faces, fallback_scale);
 
+  int active_count = 0;
   for (int i = 0; i < (int)base_sites.size(); ++i) {
-    const bool use_site =
-        (i < (int)perturb_mask.size() && perturb_mask[i] != 0);
-    use_site_flags[i] = use_site ? 1 : 0;
-    if (!use_site) continue;
-    xi1[i] = normal01(rng);
-    xi2[i] = normal01(rng);
+    if (i < (int)perturb_mask.size() && perturb_mask[i] != 0) ++active_count;
   }
+  frames.reserve(active_count);
 
-#pragma omp parallel for schedule(static)
   for (int i = 0; i < (int)base_sites.size(); ++i) {
-    if (!use_site_flags[i]) continue;
+    if (!(i < (int)perturb_mask.size() && perturb_mask[i] != 0)) continue;
 
     Vec3 n = (i < (int)surface_normals.size()) ? surface_normals[i]
                                                : Vec3(0.0, 0.0, 1.0);
@@ -829,39 +823,263 @@ static inline std::vector<_Point3> perturb_sites_structured(
     if (t2_norm < 1e-12) t2 = orthogonal_unit(t1);
     else t2 /= t2_norm;
 
-    const double hi =
-        (i < (int)local_scales.size() && std::isfinite(local_scales[i]) &&
-         local_scales[i] > 0.0)
-            ? local_scales[i]
-            : fallback_scale;
-    const double sigma_i = alpha * hi;
-    if (!(sigma_i > 0.0) || !std::isfinite(sigma_i)) continue;
-
-    const Vec3 tangent_step = sigma_i * (xi1[i] * t1 + xi2[i] * t2);
-    const Vec3 p = to_eigen(base_sites[i]) + tangent_step;
-    perturbed[i] = to_point(p);
-  }
-
-  std::vector<_Point3> projected;
-  auto &mutable_model = const_cast<BGAL::_ManifoldModel &>(model);
-  mutable_model.batch_nearest_points_(perturbed, projected, nullptr, nullptr);
-#pragma omp parallel for schedule(static)
-  for (int i = 0; i < (int)base_sites.size(); ++i) {
-    if (!use_site_flags[i]) {
-      projected[i] = base_sites[i];
+    double hi = fallback_scale;
+    if (i < (int)local_scales.size() && std::isfinite(local_scales[i]) &&
+        local_scales[i] > 0.0) {
+      hi = local_scales[i];
     }
+    if (!(hi > 0.0) || !std::isfinite(hi)) hi = std::max(fallback_scale, 1e-8);
+
+    TangentPerturbFrame frame;
+    frame.site_id = i;
+    frame.t1 = t1;
+    frame.t2 = t2;
+    frame.local_scale = hi;
+    frames.push_back(frame);
   }
-  return projected;
+  return frames;
+}
+
+static inline std::vector<_Point3> perturb_sites_from_frames(
+    const std::vector<_Point3> &base_sites,
+    const std::vector<TangentPerturbFrame> &frames,
+    double alpha,
+    const BGAL::_ManifoldModel &model,
+    std::mt19937 &rng) {
+  std::vector<_Point3> perturbed = base_sites;
+  if (!(alpha > 0.0) || !std::isfinite(alpha) || frames.empty()) {
+    return perturbed;
+  }
+
+  std::normal_distribution<double> normal01(0.0, 1.0);
+  std::vector<double> xi1(frames.size(), 0.0);
+  std::vector<double> xi2(frames.size(), 0.0);
+  for (int k = 0; k < (int)frames.size(); ++k) {
+    xi1[k] = normal01(rng);
+    xi2[k] = normal01(rng);
+  }
+
+  auto apply_one = [&](int k) {
+    const auto &frame = frames[k];
+    const int i = frame.site_id;
+    if (i < 0 || i >= (int)base_sites.size()) return;
+
+    const double sigma_i = alpha * frame.local_scale;
+    if (!(sigma_i > 0.0) || !std::isfinite(sigma_i)) return;
+
+    const Vec3 tangent_step =
+        sigma_i * (xi1[k] * frame.t1 + xi2[k] * frame.t2);
+    const Vec3 p = to_eigen(base_sites[i]) + tangent_step;
+    perturbed[i] = project_to_surface(model, to_point(p));
+  };
+
+  if (omp_in_parallel()) {
+    for (int k = 0; k < (int)frames.size(); ++k) apply_one(k);
+  } else {
+    #pragma omp parallel for schedule(static)
+    for (int k = 0; k < (int)frames.size(); ++k) apply_one(k);
+  }
+  return perturbed;
 }
 
 
-// 銆愰€熷害鏍稿脊绾ф彁鍗囥€戜娇鐢ㄩ偦鎺ヨ〃浜ら泦娉曚唬鏇垮師鏉ョ殑 std::set锛屾彁鍙?Delaunay 琛ㄩ潰缁撴瀯
-static inline std::vector<Eigen::Vector3i> build_rdt_faces_from_edges(
+struct EdgeKey {
+  int a = -1;
+  int b = -1;
+
+  EdgeKey() = default;
+
+  EdgeKey(int x, int y) {
+    if (x < y) {
+      a = x;
+      b = y;
+    } else {
+      a = y;
+      b = x;
+    }
+  }
+
+  bool operator<(const EdgeKey &o) const {
+    if (a != o.a) return a < o.a;
+    return b < o.b;
+  }
+};
+
+struct FaceKey {
+  int a = -1;
+  int b = -1;
+  int c = -1;
+
+  FaceKey() = default;
+
+  FaceKey(int x, int y, int z) {
+    std::array<int, 3> t{x, y, z};
+    std::sort(t.begin(), t.end());
+    a = t[0];
+    b = t[1];
+    c = t[2];
+  }
+
+  bool valid(int n) const {
+    return a >= 0 && b >= 0 && c >= 0 &&
+           a < n && b < n && c < n &&
+           a != b && b != c && a != c;
+  }
+
+  Eigen::Vector3i vec() const {
+    return Eigen::Vector3i(a, b, c);
+  }
+
+  bool operator<(const FaceKey &o) const {
+    if (a != o.a) return a < o.a;
+    if (b != o.b) return b < o.b;
+    return c < o.c;
+  }
+};
+
+static inline Vec3 safe_face_normal(
+    const std::vector<_Point3> &sites,
+    const Eigen::Vector3i &f) {
+  const int a = f.x();
+  const int b = f.y();
+  const int c = f.z();
+
+  const Vec3 p0 = to_eigen(sites[a]);
+  const Vec3 p1 = to_eigen(sites[b]);
+  const Vec3 p2 = to_eigen(sites[c]);
+
+  Vec3 n = (p1 - p0).cross(p2 - p0);
+  const double len = n.norm();
+  if (!(len > 1e-30) || !std::isfinite(len)) {
+    return Vec3::Zero();
+  }
+  return n / len;
+}
+
+static inline double face_double_area(
+    const std::vector<_Point3> &sites,
+    const Eigen::Vector3i &f) {
+  const int a = f.x();
+  const int b = f.y();
+  const int c = f.z();
+
+  const Vec3 p0 = to_eigen(sites[a]);
+  const Vec3 p1 = to_eigen(sites[b]);
+  const Vec3 p2 = to_eigen(sites[c]);
+
+  const double da = (p1 - p0).cross(p2 - p0).norm();
+  if (!std::isfinite(da)) return 0.0;
+  return da;
+}
+
+static inline double mean_edge_length_squared(
+    const std::vector<_Point3> &sites,
+    const std::vector<Eigen::Vector3i> &faces) {
+  double sum = 0.0;
+  long long cnt = 0;
+
+  #pragma omp parallel for reduction(+:sum,cnt)
+  for (int i = 0; i < (int)faces.size(); ++i) {
+    const auto &f = faces[i];
+    const int a = f.x();
+    const int b = f.y();
+    const int c = f.z();
+
+    if (a < 0 || b < 0 || c < 0 ||
+        a >= (int)sites.size() ||
+        b >= (int)sites.size() ||
+        c >= (int)sites.size() ||
+        a == b || b == c || a == c) {
+      continue;
+    }
+
+    const Vec3 pa = to_eigen(sites[a]);
+    const Vec3 pb = to_eigen(sites[b]);
+    const Vec3 pc = to_eigen(sites[c]);
+
+    sum += (pa - pb).squaredNorm();
+    sum += (pb - pc).squaredNorm();
+    sum += (pc - pa).squaredNorm();
+    cnt += 3;
+  }
+
+  if (cnt <= 0) return 1.0;
+  const double ret = sum / double(cnt);
+  if (!(ret > 0.0) || !std::isfinite(ret)) return 1.0;
+  return ret;
+}
+
+static inline double face_badness_score(
+    const std::vector<_Point3> &sites,
+    const std::vector<Vec3> &site_normals,
+    const Eigen::Vector3i &f,
+    double mean_edge2) {
+  const int a = f.x();
+  const int b = f.y();
+  const int c = f.z();
+
+  if (a < 0 || b < 0 || c < 0 ||
+      a >= (int)sites.size() ||
+      b >= (int)sites.size() ||
+      c >= (int)sites.size() ||
+      a == b || b == c || a == c) {
+    return std::numeric_limits<double>::infinity();
+  }
+
+  const Vec3 nf = safe_face_normal(sites, f);
+  if (nf.squaredNorm() < 1e-24) {
+    return std::numeric_limits<double>::infinity();
+  }
+
+  const double area2 = face_double_area(sites, f);
+  const double area_score = area2 / (mean_edge2 + 1e-30);
+
+  double normal_alignment_bad = 0.0;
+  double normal_spread_bad = 0.0;
+
+  if ((int)site_normals.size() == (int)sites.size()) {
+    Vec3 n0 = site_normals[a];
+    Vec3 n1 = site_normals[b];
+    Vec3 n2 = site_normals[c];
+
+    const double l0 = n0.norm();
+    const double l1 = n1.norm();
+    const double l2 = n2.norm();
+
+    if (l0 > 1e-12 && l1 > 1e-12 && l2 > 1e-12) {
+      n0 /= l0;
+      n1 /= l1;
+      n2 /= l2;
+
+      const double align =
+          (std::abs(nf.dot(n0)) +
+           std::abs(nf.dot(n1)) +
+           std::abs(nf.dot(n2))) / 3.0;
+
+      normal_alignment_bad = 1.0 - std::min(1.0, std::max(0.0, align));
+
+      const double d01 = std::abs(n0.dot(n1));
+      const double d12 = std::abs(n1.dot(n2));
+      const double d20 = std::abs(n2.dot(n0));
+      const double min_consistency = std::min(d01, std::min(d12, d20));
+
+      normal_spread_bad = 1.0 - std::min(1.0, std::max(0.0, min_consistency));
+    }
+  }
+
+  // Prefer removing faces crossing sharp features, then unusually large faces.
+  return 0.20 * area_score +
+         2.50 * normal_alignment_bad +
+         4.00 * normal_spread_bad;
+}
+
+static inline std::vector<Eigen::Vector3i> build_rdt_faces_from_edges_raw(
     int num_sites,
     const std::vector<std::map<int, std::vector<std::pair<int, int>>>> &edges) {
-
   std::vector<std::vector<int>> adj(num_sites);
-  for (int i = 0; i < (int)edges.size(); ++i) {
+
+  const int edge_count = std::min(num_sites, (int)edges.size());
+  for (int i = 0; i < edge_count; ++i) {
     for (const auto &ee : edges[i]) {
       const int j = ee.first;
       if (j >= 0 && j < num_sites && j != i) {
@@ -870,32 +1088,31 @@ static inline std::vector<Eigen::Vector3i> build_rdt_faces_from_edges(
     }
   }
 
-#pragma omp parallel for schedule(static)
+  #pragma omp parallel for
   for (int i = 0; i < num_sites; ++i) {
     std::sort(adj[i].begin(), adj[i].end());
     adj[i].erase(std::unique(adj[i].begin(), adj[i].end()), adj[i].end());
   }
 
-  const int num_threads = std::max(1, omp_get_max_threads());
-  std::vector<std::vector<Eigen::Vector3i>> thread_bins(num_threads);
+  std::vector<Eigen::Vector3i> tris;
 
-#pragma omp parallel
+  #pragma omp parallel
   {
-    const int tid = omp_get_thread_num();
-    auto &local_tris = thread_bins[tid];
-    local_tris.reserve(std::max(16, num_sites / std::max(1, num_threads)));
+    std::vector<Eigen::Vector3i> local;
 
-#pragma omp for schedule(dynamic)
+    #pragma omp for schedule(dynamic, 64)
     for (int u = 0; u < num_sites; ++u) {
       for (int v : adj[u]) {
-        if (u >= v) continue;
+        if (v <= u) continue;
 
-        int i = 0, j = 0;
+        int i = 0;
+        int j = 0;
+
         while (i < (int)adj[u].size() && j < (int)adj[v].size()) {
           if (adj[u][i] == adj[v][j]) {
             const int w = adj[u][i];
-            if (v < w) {
-              local_tris.emplace_back(u, v, w);
+            if (w > v) {
+              local.emplace_back(u, v, w);
             }
             ++i;
             ++j;
@@ -907,50 +1124,231 @@ static inline std::vector<Eigen::Vector3i> build_rdt_faces_from_edges(
         }
       }
     }
+
+    #pragma omp critical
+    tris.insert(tris.end(), local.begin(), local.end());
   }
 
-  std::size_t total_size = 0;
-  for (const auto &bin : thread_bins) total_size += bin.size();
-  std::vector<Eigen::Vector3i> tris;
-  tris.reserve(total_size);
-  for (auto &bin : thread_bins) {
-    tris.insert(tris.end(), bin.begin(), bin.end());
+  std::set<FaceKey> uniq;
+  for (const auto &f : tris) {
+    FaceKey key(f.x(), f.y(), f.z());
+    if (key.valid(num_sites)) {
+      uniq.insert(key);
+    }
   }
-  return tris;
+
+  std::vector<Eigen::Vector3i> ret;
+  ret.reserve(uniq.size());
+  for (const auto &k : uniq) {
+    ret.push_back(k.vec());
+  }
+
+  return ret;
+}
+
+static inline std::vector<Eigen::Vector3i> build_rdt_faces_from_rvd_corners(
+    int num_sites,
+    const _Restricted_Tessellation3D &rvd) {
+  const auto &cells = rvd.get_cells_();
+  const int nv = rvd.number_vertices_();
+
+  if (num_sites <= 0 || nv <= 0 || cells.empty()) {
+    return {};
+  }
+
+  std::vector<std::vector<int>> vertex_to_sites(nv);
+
+  for (int sid = 0; sid < (int)cells.size() && sid < num_sites; ++sid) {
+    for (const auto &tri : cells[sid]) {
+      const int vids[3] = {
+          std::get<0>(tri),
+          std::get<1>(tri),
+          std::get<2>(tri)
+      };
+
+      for (int k = 0; k < 3; ++k) {
+        const int vid = vids[k];
+        if (vid >= 0 && vid < nv) {
+          vertex_to_sites[vid].push_back(sid);
+        }
+      }
+    }
+  }
+
+  std::set<FaceKey> face_keys;
+
+  #pragma omp parallel
+  {
+    std::set<FaceKey> local_keys;
+
+    #pragma omp for schedule(dynamic, 256)
+    for (int vid = 0; vid < nv; ++vid) {
+      auto s = vertex_to_sites[vid];
+
+      if (s.empty()) continue;
+
+      std::sort(s.begin(), s.end());
+      s.erase(std::unique(s.begin(), s.end()), s.end());
+
+      if (s.size() == 3) {
+        FaceKey key(s[0], s[1], s[2]);
+        if (key.valid(num_sites)) {
+          local_keys.insert(key);
+        }
+      }
+
+      // Do not emit all C(k,3) faces when s.size() > 3.
+      // Those cases are usually sharp corners / degeneracies / multi-sheet junctions.
+    }
+
+    #pragma omp critical
+    {
+      face_keys.insert(local_keys.begin(), local_keys.end());
+    }
+  }
+
+  std::vector<Eigen::Vector3i> ret;
+  ret.reserve(face_keys.size());
+
+  for (const auto &key : face_keys) {
+    ret.push_back(key.vec());
+  }
+
+  return ret;
+}
+
+static inline std::vector<Eigen::Vector3i> filter_nonmanifold_faces_by_edge_valence(
+    const std::vector<_Point3> &sites,
+    const std::vector<Eigen::Vector3i> &faces_in,
+    const std::vector<Vec3> &site_normals) {
+  const int n = (int)sites.size();
+  const int nf = (int)faces_in.size();
+
+  if (n <= 0 || nf <= 0) return {};
+
+  std::vector<char> removed(nf, 0);
+  const double mean_edge2 = mean_edge_length_squared(sites, faces_in);
+
+  for (int iter = 0; iter < nf; ++iter) {
+    std::map<EdgeKey, std::vector<int>> edge_faces;
+
+    for (int fi = 0; fi < nf; ++fi) {
+      if (removed[fi]) continue;
+
+      const auto &f = faces_in[fi];
+      const int a = f.x();
+      const int b = f.y();
+      const int c = f.z();
+
+      if (a < 0 || b < 0 || c < 0 ||
+          a >= n || b >= n || c >= n ||
+          a == b || b == c || a == c) {
+        removed[fi] = 1;
+        continue;
+      }
+
+      edge_faces[EdgeKey(a, b)].push_back(fi);
+      edge_faces[EdgeKey(b, c)].push_back(fi);
+      edge_faces[EdgeKey(c, a)].push_back(fi);
+    }
+
+    std::vector<int> face_conflict_count(nf, 0);
+    int num_bad_edges = 0;
+
+    for (const auto &kv : edge_faces) {
+      const auto &inc = kv.second;
+      if ((int)inc.size() > 2) {
+        ++num_bad_edges;
+        for (int fi : inc) {
+          if (!removed[fi]) {
+            face_conflict_count[fi]++;
+          }
+        }
+      }
+    }
+
+    if (num_bad_edges == 0) {
+      break;
+    }
+
+    int best_remove = -1;
+    double best_score = -std::numeric_limits<double>::infinity();
+
+    for (int fi = 0; fi < nf; ++fi) {
+      if (removed[fi]) continue;
+      if (face_conflict_count[fi] <= 0) continue;
+
+      const double badness =
+          face_badness_score(sites, site_normals, faces_in[fi], mean_edge2);
+
+      const double score =
+          1000.0 * double(face_conflict_count[fi]) + badness;
+
+      if (score > best_score) {
+        best_score = score;
+        best_remove = fi;
+      }
+    }
+
+    if (best_remove < 0) {
+      break;
+    }
+
+    removed[best_remove] = 1;
+  }
+
+  std::vector<Eigen::Vector3i> faces_out;
+  faces_out.reserve(faces_in.size());
+
+  for (int fi = 0; fi < nf; ++fi) {
+    if (!removed[fi]) {
+      faces_out.push_back(faces_in[fi]);
+    }
+  }
+
+  return faces_out;
+}
+
+static inline std::vector<Eigen::Vector3i> build_rdt_faces_robust(
+    int num_sites,
+    const std::vector<_Point3> &sites,
+    const _Restricted_Tessellation3D &rvd,
+    const BGAL::_ManifoldModel &model) {
+  std::vector<Eigen::Vector3i> corner_faces =
+      build_rdt_faces_from_rvd_corners(num_sites, rvd);
+
+  std::vector<Eigen::Vector3i> clique_faces =
+      build_rdt_faces_from_edges_raw(num_sites, rvd.get_edges_());
+
+  std::vector<Eigen::Vector3i> candidates;
+
+  if (!corner_faces.empty() &&
+      corner_faces.size() >= std::max<std::size_t>(16, clique_faces.size() / 4)) {
+    candidates = std::move(corner_faces);
+  } else {
+    candidates = std::move(clique_faces);
+  }
+
+  std::vector<Vec3> site_normals;
+  update_surface_normals(model, sites, site_normals);
+
+  return filter_nonmanifold_faces_by_edge_valence(sites, candidates, site_normals);
 }
 
 namespace {
 
-using CGALKernel = CGAL::Simple_cartesian<double>;
-using CGALPoint3 = CGALKernel::Point_3;
-using CGALTreeTraits = CGAL::Search_traits_3<CGALKernel>;
-using CGALKDTree = CGAL::Kd_tree<CGALTreeTraits>;
-using CGALFuzzySphere = CGAL::Fuzzy_sphere<CGALTreeTraits>;
-using PointKey = std::array<double, 3>;
-
-struct PointKeyHash {
-  std::size_t operator()(const PointKey &k) const noexcept {
-    const std::size_t h0 = std::hash<double>{}(k[0]);
-    const std::size_t h1 = std::hash<double>{}(k[1]);
-    const std::size_t h2 = std::hash<double>{}(k[2]);
-    std::size_t seed = h0;
-    seed ^= h1 + 0x9e3779b97f4a7c15ull + (seed << 6) + (seed >> 2);
-    seed ^= h2 + 0x9e3779b97f4a7c15ull + (seed << 6) + (seed >> 2);
-    return seed;
-  }
-};
-
-static inline PointKey make_point_key(const _Point3 &p) {
-  return PointKey{p.x(), p.y(), p.z()};
+static inline bool valid_radius(double r) {
+  return std::isfinite(r) && r >= 0.0;
 }
 
-static inline PointKey make_point_key(const CGALPoint3 &p) {
-  return PointKey{p.x(), p.y(), p.z()};
+static inline bool pairwise_sphere_overlap(const _Point3 &a, double ra,
+                                           const _Point3 &b, double rb) {
+  const double reach = ra + rb;
+  if (!(reach >= 0.0) || !std::isfinite(reach)) return false;
+  const double tol = 1e-12 * (1.0 + reach * reach);
+  return (a - b).sqlength_() <= reach * reach + tol;
 }
 
-// =========================================================================
-// 鏍稿績閫昏緫锛欳GAL kd-tree 鍗婂緞鏌ヨ + 鍊欓€夊洓鍏冪粍鏋氫妇
-// =========================================================================
 static inline void build_quads_from_search_faces(
     const std::vector<Eigen::Vector3i> &faces,
     const std::vector<_Point3> &sites,
@@ -959,162 +1357,258 @@ static inline void build_quads_from_search_faces(
 
   quads.clear();
   const int n = (int)sites.size();
-  if (n <= 0 || faces.empty()) return;
+  if (n <= 0 || faces.empty() || (int)spheres.size() != n) return;
 
+  std::vector<double> radii(n, -1.0);
   double global_rmax = 0.0;
   #pragma omp parallel for reduction(max:global_rmax)
   for (int i = 0; i < n; ++i) {
     const double ri = (double)spheres[i].r;
-    if (std::isfinite(ri) && ri >= 0.0) {
+    if (valid_radius(ri)) {
+      radii[i] = ri;
       global_rmax = std::max(global_rmax, ri);
     }
   }
+  if (!(global_rmax >= 0.0) || !std::isfinite(global_rmax)) return;
 
-  std::vector<CGALPoint3> kd_points;
-  kd_points.reserve(n);
-  std::unordered_map<PointKey, std::vector<int>, PointKeyHash> point_to_ids;
-  point_to_ids.reserve(std::max(1, n * 2));
+  BGAL::_KDTree tree(sites);
+  std::vector<std::vector<int>> overlap_neighbors(n);
+
+  #pragma omp parallel for schedule(dynamic, 32)
   for (int i = 0; i < n; ++i) {
-    const CGALPoint3 p(sites[i].x(), sites[i].y(), sites[i].z());
-    kd_points.push_back(p);
-    point_to_ids[make_point_key(p)].push_back(i);
+    const double ri = radii[i];
+    if (!valid_radius(ri)) continue;
+
+    const double query_radius = ri + global_rmax;
+    if (!valid_radius(query_radius)) continue;
+
+    std::vector<int> hits = tree.rsearch_(sites[i], query_radius);
+    auto &nbrs = overlap_neighbors[i];
+    nbrs.reserve(hits.size());
+    for (int j : hits) {
+      if (j == i || j < 0 || j >= n) continue;
+      const double rj = radii[j];
+      if (!valid_radius(rj)) continue;
+      if (pairwise_sphere_overlap(sites[i], ri, sites[j], rj)) {
+        nbrs.push_back(j);
+      }
+    }
+    std::sort(nbrs.begin(), nbrs.end());
+    nbrs.erase(std::unique(nbrs.begin(), nbrs.end()), nbrs.end());
   }
 
-  CGALKDTree tree(kd_points.begin(), kd_points.end());
-  tree.build();
+  const int max_threads = std::max(1, omp_get_max_threads());
+  std::vector<std::vector<std::array<int, 4>>> thread_bins(max_threads);
 
-  const int num_threads = std::max(1, omp_get_max_threads());
-  std::vector<std::vector<std::array<int, 4>>> thread_bins(num_threads);
-
-#pragma omp parallel
+  #pragma omp parallel
   {
     const int tid = omp_get_thread_num();
-    std::vector<CGALPoint3> hits;
-    hits.reserve(256);
     auto &local_quads = thread_bins[tid];
     local_quads.reserve(std::min<std::size_t>(
-        std::max<std::size_t>(1, faces.size() / std::max(1, num_threads)) * 8ull,
+        std::max<std::size_t>(1, faces.size() / std::max(1, max_threads)) * 4ull,
         1ull << 18));
 
-#pragma omp for schedule(dynamic)
+    #pragma omp for schedule(dynamic, 64)
     for (int f_idx = 0; f_idx < (int)faces.size(); ++f_idx) {
       const auto &f = faces[f_idx];
       const int i = f.x(), j = f.y(), k = f.z();
       if (i < 0 || i >= n || j < 0 || j >= n || k < 0 || k >= n) continue;
-
-      const double ri = (double)spheres[i].r;
-      const double rj = (double)spheres[j].r;
-      const double rk = (double)spheres[k].r;
-      if (!std::isfinite(ri) || !std::isfinite(rj) || !std::isfinite(rk) ||
-          ri < 0.0 || rj < 0.0 || rk < 0.0) {
+      if (!valid_radius(radii[i]) || !valid_radius(radii[j]) || !valid_radius(radii[k])) {
         continue;
       }
 
-      int anchor = i;
-      double rmin = ri;
-      if (rj < rmin) {
-        rmin = rj;
-        anchor = j;
-      }
-      if (rk < rmin) {
-        rmin = rk;
-        anchor = k;
-      }
+      const std::vector<int> *lists[3] = {
+          &overlap_neighbors[i], &overlap_neighbors[j], &overlap_neighbors[k]};
+      int ref = 0;
+      if (lists[1]->size() < lists[ref]->size()) ref = 1;
+      if (lists[2]->size() < lists[ref]->size()) ref = 2;
+      const int other_a = (ref + 1) % 3;
+      const int other_b = (ref + 2) % 3;
 
-      const double query_radius = rmin + global_rmax;
-      if (!std::isfinite(query_radius) || query_radius < 0.0) continue;
+      for (int l : *lists[ref]) {
+        if (l == i || l == j || l == k) continue;
+        if (!std::binary_search(lists[other_a]->begin(), lists[other_a]->end(), l)) continue;
+        if (!std::binary_search(lists[other_b]->begin(), lists[other_b]->end(), l)) continue;
 
-      hits.clear();
-      const CGALPoint3 query_center(sites[anchor].x(), sites[anchor].y(),
-                                    sites[anchor].z());
-      tree.search(std::back_inserter(hits),
-                  CGALFuzzySphere(query_center, query_radius));
-
-      for (const auto &hp : hits) {
-        auto it = point_to_ids.find(make_point_key(hp));
-        if (it == point_to_ids.end()) continue;
-
-        for (int l : it->second) {
-          if (l == i || l == j || l == k) continue;
-          if (l < 0 || l >= n) continue;
-
-          const double rl = (double)spheres[l].r;
-          if (!std::isfinite(rl) || rl < 0.0) continue;
-
-          std::array<int, 4> q{i, j, k, l};
-          if (q[0] > q[1]) std::swap(q[0], q[1]);
-          if (q[1] > q[2]) std::swap(q[1], q[2]);
-          if (q[2] > q[3]) std::swap(q[2], q[3]);
-          if (q[0] > q[1]) std::swap(q[0], q[1]);
-          if (q[1] > q[2]) std::swap(q[1], q[2]);
-          if (q[0] > q[1]) std::swap(q[0], q[1]);
-          local_quads.push_back(q);
-        }
+        std::array<int, 4> q{i, j, k, l};
+        std::sort(q.begin(), q.end());
+        local_quads.push_back(q);
       }
     }
   }
 
-  std::size_t total_size = 0;
-  for (const auto &bin : thread_bins) total_size += bin.size();
-  quads.reserve(total_size);
+  std::size_t total = 0;
+  for (const auto &bin : thread_bins) total += bin.size();
+  quads.reserve(total);
   for (auto &bin : thread_bins) {
     quads.insert(quads.end(), bin.begin(), bin.end());
   }
-
   std::sort(quads.begin(), quads.end());
   quads.erase(std::unique(quads.begin(), quads.end()), quads.end());
 }
 
-} // namespace 闂悎
+} // namespace
+
+static inline double quad_margin_value(
+    const std::vector<_Point3> &sites,
+    const std::vector<Vec3> &frozen_poles,
+    const std::array<int, 4> &q) {
+  Vec3 p_bar = Vec3::Zero();
+  for (int k = 0; k < 4; ++k) p_bar += to_eigen(sites[q[k]]);
+  p_bar /= 4.0;
+
+  double g_val = 0.0;
+  for (int k = 0; k < 4; ++k) {
+    const int sid = q[k];
+    const Vec3 pi = to_eigen(sites[sid]);
+    const double ri2 = padded_radius_squared(pi, frozen_poles[sid]);
+    g_val += (p_bar - pi).squaredNorm() - ri2;
+  }
+  return g_val;
+}
+
+static inline int write_active_quads_obj(
+    const std::vector<_Point3> &sites,
+    const std::vector<std::array<int, 4>> &quads,
+    const std::vector<Vec3> &frozen_poles,
+    double eps,
+    int num,
+    const std::string &outpath,
+    const std::string &modelname,
+    const std::string &tag) {
+  namespace fs = std::filesystem;
+  fs::create_directories(outpath);
+
+  const std::string filepath =
+      outpath + "/QuadCover_" + std::to_string(num) + "_" + modelname +
+      "_" + tag + "ActiveQuads.obj";
+  std::ofstream out(filepath, std::ios::out | std::ios::trunc);
+  if (!out) return 0;
+
+  out << std::setprecision(17);
+  out << "# Active QuadCover quads. Each active quad is written as four\n";
+  out << "# duplicated vertices plus all six pairwise line segments.\n";
+  out << "# eps " << eps << "\n";
+  out << "g " << tag << "ActiveQuads\n";
+
+  int active_count = 0;
+  int next_vertex_index = 1;
+  const double eps_safe = (std::isfinite(eps) && eps >= 0.0) ? eps : 0.0;
+
+  for (const auto &q : quads) {
+    bool valid = true;
+    for (int k = 0; k < 4; ++k) {
+      valid = valid && q[k] >= 0 && q[k] < (int)sites.size() &&
+              q[k] < (int)frozen_poles.size();
+    }
+    if (!valid) continue;
+
+    const double g_val = quad_margin_value(sites, frozen_poles, q);
+    const double violation = -(g_val + eps_safe);
+    if (!(violation > 0.0)) continue;
+
+    ++active_count;
+    out << "\n# active_quad " << active_count
+        << " ids " << q[0] << " " << q[1] << " " << q[2] << " " << q[3]
+        << " g " << g_val
+        << " violation " << violation << "\n";
+
+    for (int k = 0; k < 4; ++k) {
+      out << "v " << sites[q[k]] << "\n";
+    }
+
+    const int a = next_vertex_index;
+    out << "l " << a << " " << a + 1 << "\n";
+    out << "l " << a << " " << a + 2 << "\n";
+    out << "l " << a << " " << a + 3 << "\n";
+    out << "l " << a + 1 << " " << a + 2 << "\n";
+    out << "l " << a + 1 << " " << a + 3 << "\n";
+    out << "l " << a + 2 << " " << a + 3 << "\n";
+    next_vertex_index += 4;
+  }
+
+  return active_count;
+}
+
 static inline void compute_cell_geom_and_spheres(
     const std::vector<_Point3> &sites,
     const _Restricted_Tessellation3D &rvd,
     std::vector<CellGeom> &cells,
     std::vector<Sphere::Sphere> &spheres) {
-        
+
   const auto &cell_tris = rvd.get_cells_();
-  cells.assign(sites.size(), CellGeom());
-  spheres.assign(sites.size(), Sphere::Sphere());
+  const int n_sites = (int)sites.size();
+  const int n_vertices = rvd.number_vertices_();
 
-  #pragma omp parallel for schedule(dynamic)
-  for (int i = 0; i < (int)cell_tris.size(); ++i) {
-    // 閲囩敤灞€閮ㄥ畾闀挎暟缁勬垨鑰呭皬 vector 鏇夸唬 std::set锛屽姞閫熸瀬鍏舵槑鏄?
+  std::vector<_Point3> vertex_cache(std::max(0, n_vertices));
+  #pragma omp parallel for schedule(static)
+  for (int vid = 0; vid < n_vertices; ++vid) {
+    vertex_cache[vid] = rvd.vertex_(vid);
+  }
+
+  cells.assign(n_sites, CellGeom());
+  spheres.assign(n_sites, Sphere::Sphere());
+
+  const int max_threads = std::max(1, omp_get_max_threads());
+  std::vector<std::vector<unsigned int>> thread_marks(
+      max_threads, std::vector<unsigned int>(std::max(0, n_vertices), 0u));
+
+  #pragma omp parallel
+  {
+    const int tid = omp_get_thread_num();
+    auto &marks = thread_marks[tid];
+    unsigned int stamp = 1u;
     std::vector<int> uniq;
-    uniq.reserve(cell_tris[i].size() * 3);
-    for (const auto &tri : cell_tris[i]) {
-      uniq.push_back(std::get<0>(tri));
-      uniq.push_back(std::get<1>(tri));
-      uniq.push_back(std::get<2>(tri));
-    }
-    std::sort(uniq.begin(), uniq.end());
-    uniq.erase(std::unique(uniq.begin(), uniq.end()), uniq.end());
 
-    cells[i].vertex_ids = std::move(uniq);
-    cells[i].vertex_pos.reserve(cells[i].vertex_ids.size());
-
-    double best_d2 = 0.0;
-    _Point3 best_v = sites[i];
-
-    for (int vid : cells[i].vertex_ids) {
-      const _Point3 pv = rvd.vertex_(vid);
-      cells[i].vertex_pos.push_back(pv);
-      const double d2 = (pv - sites[i]).sqlength_();
-      if (d2 > best_d2) {
-        best_d2 = d2;
-        best_v = pv;
+    #pragma omp for schedule(dynamic, 32)
+    for (int i = 0; i < (int)cell_tris.size(); ++i) {
+      if (++stamp == 0u) {
+        std::fill(marks.begin(), marks.end(), 0u);
+        stamp = 1u;
       }
-    }
-    cells[i].r2 = best_d2;
-    cells[i].far_v = best_v;
 
-    spheres[i].c = sites[i];
-    spheres[i].r = std::sqrt(best_d2) + 1e-6;
-    spheres[i].max_point = best_v;
+      uniq.clear();
+      uniq.reserve(cell_tris[i].size() * 3);
+      for (const auto &tri : cell_tris[i]) {
+        const int vids[3] = {std::get<0>(tri), std::get<1>(tri), std::get<2>(tri)};
+        for (int t = 0; t < 3; ++t) {
+          const int vid = vids[t];
+          if (vid < 0 || vid >= n_vertices) continue;
+          if (marks[vid] != stamp) {
+            marks[vid] = stamp;
+            uniq.push_back(vid);
+          }
+        }
+      }
+
+      auto &cell = cells[i];
+      cell.vertex_ids.assign(uniq.begin(), uniq.end());
+      cell.vertex_pos.clear();
+
+      double best_d2 = 0.0;
+      _Point3 best_v = sites[i];
+      for (int vid : uniq) {
+        const _Point3 &pv = vertex_cache[vid];
+        const double d2 = (pv - sites[i]).sqlength_();
+        if (d2 > best_d2) {
+          best_d2 = d2;
+          best_v = pv;
+        }
+      }
+
+      cell.r2 = best_d2;
+      cell.far_v = best_v;
+
+      spheres[i].c = sites[i];
+      spheres[i].r = std::sqrt(best_d2) + 1e-6;
+      spheres[i].max_point = best_v;
+    }
   }
 }
 
 static inline void output_mesh(const std::vector<_Point3> &sites,
                                const _Restricted_Tessellation3D &rvd,
+                               const BGAL::_ManifoldModel &model,
                                int num,
                                const std::string &outpath,
                                const std::string &modelname,
@@ -1131,6 +1625,7 @@ static inline void output_mesh(const std::vector<_Point3> &sites,
   }
 
   std::ofstream out(filepath);
+  out << std::setprecision(17);
   out << "g 3D_Object\nmtllib BKLineColorBar.mtl\nusemtl BKLineColorBar\n";
 
   for (int i = 0; i < rvd.number_vertices_(); ++i) {
@@ -1154,6 +1649,7 @@ static inline void output_mesh(const std::vector<_Point3> &sites,
                   "_Iter" + std::to_string(step) + "_Points.xyz";
   }
   std::ofstream outP(points_path);
+  outP << std::setprecision(17);
   for (const auto &s : sites) outP << s << "\n";
   outP.close();
 
@@ -1161,16 +1657,19 @@ static inline void output_mesh(const std::vector<_Point3> &sites,
       outpath + "/QuadCover_" + std::to_string(num) + "_" + modelname +
       "_Remesh.obj";
   std::ofstream out_remesh(remesh_path);
+  if (out_remesh) out_remesh << std::setprecision(17);
   std::ofstream out_remesh_iter;
   if (step > 0) {
     std::string remesh_iter_path =
         outpath + "/QuadCover_" + std::to_string(num) + "_" + modelname +
         "_Iter" + std::to_string(step) + "_Remesh.obj";
     out_remesh_iter.open(remesh_iter_path, std::ios::out | std::ios::trunc);
+    if (out_remesh_iter) out_remesh_iter << std::setprecision(17);
   }
 
   if (out_remesh) {
-    const auto rdt_faces = build_rdt_faces_from_edges((int)sites.size(), rvd.get_edges_());
+    const auto rdt_faces =
+        build_rdt_faces_robust((int)sites.size(), sites, rvd, model);
 
     for (const auto &s : sites) {
       out_remesh << "v " << s << "\n";
@@ -1209,27 +1708,18 @@ static inline void write_spheres_csv(const std::string &outdir,
 
   out << std::setprecision(17);
   
-  std::vector<_Point3> sphere_centers(spheres.size());
-#pragma omp parallel for schedule(static)
-  for (int i = 0; i < (int)spheres.size(); ++i) {
-    sphere_centers[i] = spheres[i].c;
-  }
-
-  std::vector<_Point3> nearest_points;
-  std::vector<int> face_ids;
-  auto &mutable_model = const_cast<BGAL::_ManifoldModel &>(model);
-  mutable_model.batch_nearest_points_(sphere_centers, nearest_points, nullptr, &face_ids);
-
+  // IO涓茶锛屼絾鎴戜滑鍙互棰勫厛骞惰璁＄畻琛ㄩ潰娉曞悜
   std::vector<std::pair<int, _Point3>> cached_normals(spheres.size());
-#pragma omp parallel for schedule(static)
-  for (int i = 0; i < (int)spheres.size(); ++i) {
-    const int face_id = face_ids[i];
-    _Point3 normal(0.0, 0.0, 0.0);
-    if (face_id >= 0 && face_id < model.number_faces_()) {
-      normal = model.normal_face_(face_id);
-      normal.normalized_();
-    }
-    cached_normals[i] = {face_id, normal};
+  #pragma omp parallel for
+  for (int i = 0; i < spheres.size(); ++i) {
+      auto nearest = const_cast<BGAL::_ManifoldModel &>(model).nearest_point_(spheres[i].c);
+      int face_id = std::get<2>(nearest);
+      _Point3 normal(0.0, 0.0, 0.0);
+      if (face_id >= 0 && face_id < model.number_faces_()) {
+        normal = model.normal_face_(face_id);
+        normal.normalized_();
+      }
+      cached_normals[i] = {face_id, normal};
   }
 
   for (size_t i = 0; i < spheres.size(); ++i) {
@@ -1289,7 +1779,13 @@ void _QuadCover3D::calculate_(int site_num, char *modelNamee, char *pointsName) 
 
 void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
                               const std::string &model_name) {
-  const double total_start = omp_get_wtime();
+  const double overall_start = omp_get_wtime();
+  const double max_wall_time_seconds = _para.max_wall_time_seconds;
+  bool hit_time_limit = false;
+  auto time_limit_exceeded = [&]() -> bool {
+    return max_wall_time_seconds > 0.0 &&
+           wall_seconds_since(overall_start) >= max_wall_time_seconds;
+  };
   _history.clear();
   _sites = init_sites;
   const std::vector<_Point3> original_init_sites = init_sites;
@@ -1316,6 +1812,11 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
     cvt_para.epsilon = 1e-30;
     cvt_para.max_linearsearch = 20;
     cvt_para.max_iteration = _para.cwf_max_iterations;
+    if (max_wall_time_seconds > 0.0) {
+      const double remaining_seconds =
+          std::max(0.0, max_wall_time_seconds - wall_seconds_since(overall_start));
+      cvt_para.max_time = std::max(1.0, remaining_seconds * 1000.0);
+    }
 
     if (_para.is_show) {
       std::cout << "[QuadCoverLike] CWF warm start begin"
@@ -1327,6 +1828,9 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
     cvt.set_use_feature_density_boost(false);
     cvt.set_outpath(output_dir + "/");
     cvt.calculate_(_sites, model_name, false);
+    if (time_limit_exceeded()) {
+      hit_time_limit = true;
+    }
     warm_start_used = true;
     const std::vector<_Point3> &warm_sites = cvt.get_sites();
     if (warm_sites.size() == _sites.size() && sites_are_finite(warm_sites)) {
@@ -1344,7 +1848,9 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
       std::cout << "[QuadCoverLike] CWF warm start end"
                 << " | sites=" << _sites.size() << std::endl;
     }
-  }
+	  }
+
+  const double quadcover_start = omp_get_wtime();
 
   double total_rebuild_non_rvd_time = 0.0;
   double total_rvd_time = 0.0;
@@ -1373,6 +1879,24 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
   double penalty_k = hinge_lambda_floor;
   double fixed_hinge_lambda = penalty_k;
   double qem_weight = 1.0;
+  const bool use_qem_energy = _para.use_qem_energy;
+  const bool use_hinge_loss_energy = _para.use_hinge_loss_energy;
+  const bool use_weight_schedule = _para.use_weight_schedule;
+  const bool use_tangential_perturb = _para.use_tangential_perturb;
+
+  auto effective_qem_weight = [&]() -> double {
+    return use_qem_energy ? qem_weight : 0.0;
+  };
+
+  auto effective_hinge_lambda = [&]() -> double {
+    return use_hinge_loss_energy ? fixed_hinge_lambda : 0.0;
+  };
+
+  if (!use_weight_schedule) {
+    penalty_k = 1.0;
+    fixed_hinge_lambda = 1.0;
+    qem_weight = 1.0;
+  }
 
   auto rebuild_state = [&](const std::vector<_Point3> &sites_in,
                            bool need_grad,
@@ -1413,13 +1937,14 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
     } else {
       state.surface_normals.clear();
     }
-    state.rdt_faces = build_rdt_faces_from_edges(n, rvd.get_edges_());
+    state.rdt_faces = build_rdt_faces_robust(n, state.sites, rvd, _model);
     build_quads_from_search_faces(state.rdt_faces, state.sites, state.spheres,
                                   state.search_quads);
 
     state.eval = evaluate_qem_hinge_objective(
         state.sites, rvd, state.frozen_poles, state.surface_normals,
-        state.search_quads, state.eps, qem_weight, fixed_hinge_lambda,
+        state.search_quads, state.eps, effective_qem_weight(),
+        effective_hinge_lambda(),
         need_grad);
     rebuild_non_rvd_acc +=
         std::max(0.0, wall_seconds_since(rebuild_start) - rvd_elapsed);
@@ -1440,7 +1965,8 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
         }
         state.eval = evaluate_qem_hinge_objective(
             state.sites, rvd, state.frozen_poles, state.surface_normals,
-            state.search_quads, state.eps, qem_weight, fixed_hinge_lambda,
+            state.search_quads, state.eps, effective_qem_weight(),
+            effective_hinge_lambda(),
             need_grad);
       };
 
@@ -1511,10 +2037,17 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
         _sites, true, _RVD, total_rebuild_non_rvd_time, total_rvd_time);
     warm_start_fell_back = true;
   }
-  qem_weight = penalty_k * current_state.eval.hinge_loss /
-               (current_state.eval.qem_loss + 1e-12);
-  if (!std::isfinite(qem_weight)) qem_weight = 1.0;
-  qem_weight = std::max(qem_weight, 0.0);
+  if (use_weight_schedule) {
+    qem_weight = penalty_k * current_state.eval.hinge_loss /
+                 (current_state.eval.qem_loss + 1e-12);
+    if (!std::isfinite(qem_weight)) qem_weight = 1.0;
+    qem_weight = std::max(qem_weight, 0.0);
+    if (!use_qem_energy) qem_weight = 0.0;
+  } else {
+    qem_weight = 1.0;
+    penalty_k = 1.0;
+    fixed_hinge_lambda = 1.0;
+  }
   {
     const double refresh_start = omp_get_wtime();
     refresh_state_with_current_rvd(current_state, _RVD, true);
@@ -1528,6 +2061,20 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
   int best_active_quads = current_state.eval.active_quads;
   double best_hinge_loss = current_state.eval.hinge_loss;
   double best_min_g = current_state.eval.min_g;
+
+  const double initial_active_quads_output_start = omp_get_wtime();
+  const int initial_active_quads_written = write_active_quads_obj(
+      current_state.sites, current_state.search_quads, current_state.frozen_poles,
+      current_state.eps, n, output_dir, model_name, "Initial");
+  total_output_time += wall_seconds_since(initial_active_quads_output_start);
+  if (_para.is_show) {
+    std::cout << "[QuadCoverLike] initial active quads OBJ"
+              << " | active_quads=" << initial_active_quads_written
+              << " | total_quads=" << current_state.search_quads.size()
+              << " | path=" << output_dir << "/QuadCover_" << n << "_"
+              << model_name << "_InitialActiveQuads.obj"
+              << std::endl;
+  }
 
   auto update_best_state = [&](const RebuiltState &state, double state_E) {
     const bool better =
@@ -1550,7 +2097,7 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
     }
   };
 
-  const double adam_lr_init = 1e-4;
+  const double adam_lr_init = _para.adam_learning_rate;
   const double adam_beta1 = 0.9;
   const double adam_beta2 = 0.999;
   const double adam_eps = 1e-8;
@@ -1581,9 +2128,9 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
   const double perturb_window_progress_tol = 0.03;
   const double perturb_single_step_progress_tol = 0.03;
 
-  // perturb 鏇翠繚瀹堬細鍑忓皯 trial 鏁帮紝鍑忓皬灏哄害
+  // Conservative perturbation: small displacement, broader trial pool.
   const double stagnation_perturb_ratio = 0.010;
-  const int perturb_num_trials = 96;
+  const int perturb_num_trials = 16;
   const double perturb_lr_max = 5e-5;
   const double stagnation_lr_trigger = 0.25 * adam_lr_init;
 
@@ -1595,6 +2142,10 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
 
   // perturb cooldown after acceptance
   const int post_perturb_lock_iters = 10;
+  const int late_post_perturb_lock_iters = 2;
+  const int quick_perturb_active_quads_thresh = 4;
+  const double quick_perturb_hinge_thresh = 1e-8;
+  const int quick_perturb_stagnation_patience = 2;
   const double post_perturb_lr_scale = 1.2;
 
   // 鍚庢湡绛栫暐锛氶檺鍒舵闀裤€佸叧闂?late perturb銆佸姞蹇?hinge 涓诲
@@ -1689,6 +2240,13 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
 
   int hinge_stagnation_streak = 0;
   int post_perturb_lock_iters_remaining = 0;
+  bool stop_requested = false;
+  bool max_iter_notice_printed = false;
+
+  auto has_strict_zero_cover_energy = [&](const RebuiltState &state) -> bool {
+    return state.eval.hinge_loss == 0.0 && state.eval.active_quads == 0 &&
+           state.eval.min_g >= -hinge_stop_tol;
+  };
 
   auto accept_perturb_candidate = [&](const RebuiltState &cand,
                                       double cand_E,
@@ -1727,7 +2285,43 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
     return energy_not_too_bad && hinge_not_too_bad;
   };
 
-  for (int outer = 0; outer < _para.max_outer_iterations; ++outer) {
+  for (int outer = 0;; ++outer) {
+    if (time_limit_exceeded()) {
+      hit_time_limit = true;
+      break;
+    }
+    if (use_hinge_loss_energy && has_strict_zero_cover_energy(current_state)) {
+      if (_para.is_show) {
+        std::cout << "[QuadCoverLike][Adam] STOP (hinge zero)"
+                  << std::scientific << std::setprecision(log_value_precision)
+                  << " | hingeRaw=" << current_state.eval.hinge_loss
+                  << " | hingePen=" << current_state.eval.weighted_hinge_loss
+                  << " | lambda=" << current_state.eval.hinge_lambda
+                  << " | num_quads=" << current_state.search_quads.size()
+                  << " | active_quads=" << current_state.eval.active_quads
+                  << " | min_g=" << current_state.eval.min_g
+                  << std::endl;
+      }
+      stop_requested = true;
+      break;
+    }
+    if (outer >= _para.max_outer_iterations) {
+      if (!use_hinge_loss_energy) {
+        break;
+      }
+      if (!max_iter_notice_printed && _para.is_show) {
+        std::cout << "[QuadCoverLike][Adam] max_outer_iterations reached"
+                  << " | continuing until hingeRaw==0 and active_quads==0"
+                  << " | max_outer_iterations=" << _para.max_outer_iterations
+                  << " | hingeRaw=" << std::scientific
+                  << std::setprecision(log_value_precision)
+                  << current_state.eval.hinge_loss
+                  << " | active_quads=" << current_state.eval.active_quads
+                  << std::endl;
+      }
+      max_iter_notice_printed = true;
+    }
+
     const double iter_start = omp_get_wtime();
     double iter_rebuild_non_rvd_time = 0.0;
     double iter_rvd_time = 0.0;
@@ -1754,7 +2348,7 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
         iter_rvd_time += elapsed;
       }
       const double output_start = omp_get_wtime();
-      output_mesh(_sites, _RVD, n, output_dir, model_name, outer);
+      output_mesh(_sites, _RVD, _model, n, output_dir, model_name, outer);
       write_spheres_csv(output_dir, n, model_name, outer, current_state.spheres,
                         _model);
       {
@@ -1774,14 +2368,24 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
         last_hinge_window_ready &&
         (last_window_hinge_progress <= perturb_window_progress_tol) &&
         (last_single_step_hinge_progress < perturb_single_step_progress_tol);
+    const bool allow_perturb_by_quick_cleanup =
+        (current_state.eval.active_quads > 0) &&
+        (current_state.eval.active_quads <= quick_perturb_active_quads_thresh) &&
+        (current_state.eval.hinge_loss <= quick_perturb_hinge_thresh) &&
+        (hinge_stagnation_streak >= quick_perturb_stagnation_patience ||
+         last_single_step_hinge_progress < perturb_single_step_progress_tol);
     const bool allow_perturb =
+        use_tangential_perturb &&
         (post_perturb_lock_iters_remaining == 0) &&
         (allow_perturb_by_local_stagnation ||
-         allow_perturb_by_window_stagnation);
+         allow_perturb_by_window_stagnation ||
+         allow_perturb_by_quick_cleanup);
     const double perturb_window_progress_for_log = last_window_hinge_progress;
     const double perturb_step_progress_for_log = last_single_step_hinge_progress;
     const char *perturb_trigger =
-        allow_perturb_by_window_stagnation
+        allow_perturb_by_quick_cleanup
+            ? "quick-cleanup"
+            : allow_perturb_by_window_stagnation
             ? (allow_perturb_by_local_stagnation ? "local+window15"
                                                  : "window15")
             : "local";
@@ -1817,7 +2421,7 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
         PerturbEval eval_result;
         _Restricted_Tessellation3D local_rvd(_model);
         eval_result.state =
-            rebuild_state(sites_in, true, local_rvd,
+            rebuild_state(sites_in, false, local_rvd,
                           eval_result.rebuild_non_rvd_time,
                           eval_result.rvd_time);
         eval_result.energy = rebuilt_energy(eval_result.state);
@@ -1838,17 +2442,21 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
         trial_seeds[trial] = perturb_rng();
       }
 
+      const std::vector<TangentPerturbFrame> perturb_frames =
+          build_tangent_perturb_frames(current_state.sites,
+                                       current_state.surface_normals,
+                                       perturb_mask,
+                                       current_state.rdt_faces,
+                                       perturb_fallback_scale);
+
       std::vector<PerturbEval> trial_results(perturb_num_trials);
       #pragma omp parallel for schedule(dynamic)
       for (int trial = 0; trial < perturb_num_trials; ++trial) {
         std::mt19937 trial_rng(trial_seeds[trial]);
-        std::vector<_Point3> perturbed_sites = perturb_sites_structured(
+        std::vector<_Point3> perturbed_sites = perturb_sites_from_frames(
             current_state.sites,
-            current_state.surface_normals,
-            perturb_mask,
-            current_state.rdt_faces,
+            perturb_frames,
             perturb_alpha * sigma_mult[trial % sigma_mult.size()],
-            perturb_fallback_scale,
             _model,
             trial_rng);
         trial_results[trial] = evaluate_perturb_sites(perturbed_sites);
@@ -1875,20 +2483,20 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
         }
       }
 
-      const double perturb_wall_elapsed = wall_seconds_since(perturb_wall_start);
-      total_perturb_wall_time += perturb_wall_elapsed;
-      iter_perturb_wall_time += perturb_wall_elapsed;
-      total_perturb_rebuild_task_time += perturb_rebuild_non_rvd_task_time;
-      total_perturb_rvd_task_time += perturb_rvd_task_time;
-      iter_perturb_rebuild_task_time += perturb_rebuild_non_rvd_task_time;
-      iter_perturb_rvd_task_time += perturb_rvd_task_time;
 
       bool perturb_accepted = false;
       if (best_perturb_trial >= 0 &&
           accept_perturb_candidate(best_perturb_state, best_perturb_E,
                                    pre_perturb_state, pre_perturb_E)) {
-        current_state = std::move(best_perturb_state);
-        current_rebuilt_E = best_perturb_E;
+        const std::vector<_Point3> accepted_sites = best_perturb_state.sites;
+        double accepted_rebuild_non_rvd_time = 0.0;
+        double accepted_rvd_time = 0.0;
+        current_state = rebuild_state(accepted_sites, true, _RVD,
+                                      accepted_rebuild_non_rvd_time,
+                                      accepted_rvd_time);
+        perturb_rebuild_non_rvd_task_time += accepted_rebuild_non_rvd_time;
+        perturb_rvd_task_time += accepted_rvd_time;
+        current_rebuilt_E = rebuilt_energy(current_state);
         _sites = current_state.sites;
         update_best_state(current_state, current_rebuilt_E);
 
@@ -1910,7 +2518,10 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
 
         hinge_stagnation_streak = 0;
         last_penalty_update_hinge = current_state.eval.hinge_loss;
-        post_perturb_lock_iters_remaining = post_perturb_lock_iters;
+        post_perturb_lock_iters_remaining =
+            current_state.eval.active_quads <= quick_perturb_active_quads_thresh
+                ? late_post_perturb_lock_iters
+                : post_perturb_lock_iters;
         perturb_accepted = true;
 
         if (_para.is_show) {
@@ -1936,6 +2547,23 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
                     << pre_perturb_state.eval.min_g << "/"
                     << current_state.eval.min_g
                     << std::endl;
+        }
+
+        if (has_strict_zero_cover_energy(current_state)) {
+          stop_requested = true;
+          if (_para.is_show) {
+            std::cout << "[QuadCoverLike][Adam] STOP (perturb feasible)"
+                      << std::scientific
+                      << std::setprecision(log_value_precision)
+                      << " | hingeRaw=" << current_state.eval.hinge_loss
+                      << " | hingePen=" << current_state.eval.weighted_hinge_loss
+                      << " | lambda=" << current_state.eval.hinge_lambda
+                      << " | num_quads=" << current_state.search_quads.size()
+                      << " | active_quads=" << current_state.eval.active_quads
+                      << " | min_g=" << current_state.eval.min_g
+                      << " | bestTrial=" << best_perturb_trial
+                      << std::endl;
+          }
         }
       }
 
@@ -1973,6 +2601,18 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
                     << std::endl;
         }
       }
+
+      const double perturb_wall_elapsed = wall_seconds_since(perturb_wall_start);
+      total_perturb_wall_time += perturb_wall_elapsed;
+      iter_perturb_wall_time += perturb_wall_elapsed;
+      total_perturb_rebuild_task_time += perturb_rebuild_non_rvd_task_time;
+      total_perturb_rvd_task_time += perturb_rvd_task_time;
+      iter_perturb_rebuild_task_time += perturb_rebuild_non_rvd_task_time;
+      iter_perturb_rvd_task_time += perturb_rvd_task_time;
+    }
+
+    if (stop_requested) {
+      break;
     }
 
     const int prev_num_quads = (int)current_state.search_quads.size();
@@ -1989,6 +2629,7 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
         current_state.search_quads, current_state.eps);
     std::vector<char> opt_mask = expand_active_mask_one_ring(
         active_mask, current_state.rdt_faces, n, 1);
+    if (!use_hinge_loss_energy) opt_mask = make_all_active_mask(n);
     if (!has_any_active(opt_mask)) opt_mask = make_all_active_mask(n);
     const int active_site_count = std::max(1, count_active_mask(opt_mask));
 
@@ -2101,7 +2742,7 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
     _history.push_back(info);
 
 
-    if ((outer + 1) % penalty_k_update_interval == 0) {
+    if (use_weight_schedule && (outer + 1) % penalty_k_update_interval == 0) {
       const double old_penalty_k = penalty_k;
       const double old_fixed_hinge_lambda = fixed_hinge_lambda;
       const double old_qem_weight = qem_weight;
@@ -2135,7 +2776,8 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
       if (std::abs(penalty_k - old_penalty_k) > 1e-18 ||
           std::abs(fixed_hinge_lambda - old_fixed_hinge_lambda) > 1e-18 ||
           std::abs(qem_weight - old_qem_weight) > 1e-18) {
-        apply_eval_weights(current_state.eval, qem_weight, fixed_hinge_lambda);
+        apply_eval_weights(current_state.eval, effective_qem_weight(),
+                           effective_hinge_lambda());
         current_rebuilt_E = rebuilt_energy(current_state);
         _sites = current_state.sites;
         update_best_state(current_state, current_rebuilt_E);
@@ -2157,15 +2799,7 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
     }
 
     {
-      std::vector<char> stop_mask = build_active_site_mask(
-          current_state.sites, current_state.frozen_poles,
-          current_state.search_quads, current_state.eps);
-      stop_mask = expand_active_mask_one_ring(
-          stop_mask, current_state.rdt_faces, n, 1);
-      if (!has_any_active(stop_mask)) stop_mask = make_all_active_mask(n);
-
-      const bool hinge_exact_zero = current_state.eval.hinge_loss == 0.0;
-      if (hinge_exact_zero) {
+      if (use_hinge_loss_energy && has_strict_zero_cover_energy(current_state)) {
         if (_para.is_show) {
           std::cout << "[QuadCoverLike][Adam] STOP (hinge zero)"
                     << std::scientific << std::setprecision(log_value_precision)
@@ -2178,6 +2812,7 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
                     << " | step=" << step_for_log
                     << std::endl;
         }
+        stop_requested = true;
         break;
       }
     }
@@ -2224,12 +2859,14 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
                 << " | adamT=" << iter_adam_time << "s"
                 << " | outputT=" << iter_output_time << "s"
                 << " | perturbWallT=" << iter_perturb_wall_time << "s"
-                << " | perturbTask(rebuild/rvd)="
-                << iter_perturb_rebuild_task_time << "/"
-                << iter_perturb_rvd_task_time
                 << " | otherT=" << iter_other_time << "s"
                 << " | " << step_status
                 << std::endl;
+    }
+
+    if (time_limit_exceeded()) {
+      hit_time_limit = true;
+      break;
     }
   }
   _sites = best_sites;
@@ -2241,14 +2878,18 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
   compute_cell_geom_and_spheres(_sites, _RVD, final_cells, _spheres);
   total_rebuild_non_rvd_time += wall_seconds_since(final_rebuild_start);
   const double final_output_start = omp_get_wtime();
-  output_mesh(_sites, _RVD, n, output_dir, model_name,
+  output_mesh(_sites, _RVD, _model, n, output_dir, model_name,
               (int)_history.size() + 1);
   write_spheres_csv(output_dir, n, model_name, (int)_history.size() + 1,
                     _spheres, _model);
   total_output_time += wall_seconds_since(final_output_start);
 
+  if (hit_time_limit || time_limit_exceeded()) {
+    std::cout << "tle" << std::endl;
+  }
+
   if (_para.is_show) {
-    const double total_time = wall_seconds_since(total_start);
+    const double total_time = wall_seconds_since(quadcover_start);
     const double accounted_wall_time =
         total_rebuild_non_rvd_time + total_rvd_time + total_refresh_eval_time +
         total_adam_time + total_output_time + total_perturb_wall_time;
@@ -2268,10 +2909,6 @@ void _QuadCover3D::calculate_(const std::vector<_Point3> &init_sites,
               << "Perturb Wall Time: " << total_perturb_wall_time << " s\n"
               << "Output Wall Time: " << total_output_time << " s\n"
               << "Other Wall Time: " << other_wall_time << " s\n"
-              << "Accumulated Perturb Rebuild Task Time: "
-              << total_perturb_rebuild_task_time << " s\n"
-              << "Accumulated Perturb RVD Task Time: "
-              << total_perturb_rvd_task_time << " s\n"
               << std::endl;
   }
 }

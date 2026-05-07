@@ -1,0 +1,8 @@
+{
+  "input_obj": "/home/yiming/research/CWF/data/mobius1.obj",
+  "sampling_method": "pymeshlab.generate_sampling_poisson_disk(exactnumflag=True)",
+  "surface_obj": "/home/yiming/research/CWF/data/mobius1.obj",
+  "sampled_xyz": "/home/yiming/research/CWF/result/mobius/mobius_sampled_22000.xyz",
+  "quadcover_exe": "/home/yiming/research/CWF/bin/quadcover_main",
+  "output_dir": "/home/yiming/research/CWF/result/mobius"
+}

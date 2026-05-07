@@ -26,6 +26,7 @@ namespace BGAL
     is_show = in_parameter.is_show;
     wolfe = in_parameter.wolfe;
     max_time = in_parameter.max_time;
+    iteration_callback = in_parameter.iteration_callback;
   }
   _LBFGS::_LBFGS()
   {

@@ -1,9 +1,12 @@
 #pragma once
-#include <Eigen/Dense>
-#include <time.h>
-#include <vector>
-#include<cmath>
+#include <cmath>
+#include <ctime>
 #include <iostream>
+#include <limits>
+#include <vector>
+
+#include <Eigen/Dense>
+
 namespace BGAL
 {
   class _GradientDescent
@@ -38,20 +41,26 @@ namespace BGAL
                        double &step,
                        const Eigen::VectorXd &direction);
   };
+
   template <class fun>
   int _GradientDescent::minimize(fun &f, Eigen::VectorXd &iterX)
   {
     const clock_t start_t = clock();
     const int n = iterX.size();
     Eigen::VectorXd gradient = Eigen::VectorXd::Zero(n);
+    Eigen::VectorXd oldX = iterX;
+    Eigen::VectorXd oldGradient = Eigen::VectorXd::Zero(n);
     double fval = f(iterX, gradient);
+    double grad_norm = gradient.norm();
     Eigen::VectorXd direction = -gradient;
     int k = 0;
     int l = 0;
-    double step = 1.0 / direction.norm();
+    double step = (_parameter.init_step > 0.0)
+                      ? _parameter.init_step
+                      : std::min(1.0, 1.0 / std::max(grad_norm, 1e-12));
     while (1)
     {
-      if (gradient.norm() < _parameter.epsilon)
+      if (grad_norm < _parameter.epsilon)
       {
         if (_parameter.is_show)
         {
@@ -66,6 +75,13 @@ namespace BGAL
           std::cout << "reach the max itertion time" << std::endl;
         }
         return k;
+      }
+
+      oldX = iterX;
+      oldGradient = gradient;
+      if (direction.dot(gradient) >= 0.0)
+      {
+        direction = -gradient;
       }
       int num_linear = linear_search_(f, fval, iterX, gradient, step, direction);
       if (num_linear == _parameter.max_linearsearch)
@@ -86,15 +102,29 @@ namespace BGAL
       }
       l += num_linear;
       k++;
+      grad_norm = gradient.norm();
       if (_parameter.is_show)
       {
-        std::cout << k << "\t" << l << "\t" << (clock() - start_t) * 1.0 / CLOCKS_PER_SEC << "\t" << gradient.norm()
+        std::cout << k << "\t" << l << "\t" << (clock() - start_t) * 1.0 / CLOCKS_PER_SEC << "\t" << grad_norm
                   << "\t" << fval << std::endl;
       }
+
+      const Eigen::VectorXd s = iterX - oldX;
+      const Eigen::VectorXd y = gradient - oldGradient;
+      const double sy = s.dot(y);
+      const double ss = s.squaredNorm();
+      if (std::abs(sy) > 1e-16 && ss > 0.0)
+      {
+        step = std::max(_parameter.min_step, std::min(ss / std::abs(sy), 1e6));
+      }
+      else
+      {
+        step = std::min(1.0, 1.0 / std::max(grad_norm, 1e-12));
+      }
       direction = -gradient;
-      //step = _parameter.init_step;
     }
   }
+
   template <class fun>
   int _GradientDescent::linear_search_(fun &f,
                                        double &fval,
@@ -111,42 +141,35 @@ namespace BGAL
     const double ifval = fval;
     const Eigen::VectorXd iX = iterX;
     const double idg = gradient.dot(direction);
-    if (idg > 0)
+    if (idg >= 0)
     {
-      std::cout << "error! direction is not a decline direction!" << std::endl;
-      throw std::runtime_error("error! direction is not a decline direction!");
+      return -1;
     }
-    double step_l = 0;
+    double step_l = 0.0;
     double step_u = std::numeric_limits<double>::infinity();
     int k = 1;
     while (1)
     {
       iterX = iX + step * direction;
       fval = f(iterX, gradient);
+      const double dg = gradient.dot(direction);
+      if (fval <= ifval && dg >= _parameter.wolfe * idg)
+      {
+        break;
+      }
       if (fval > ifval)
       {
         step_u = step;
       }
       else
       {
-        double dg = gradient.dot(direction);
-        if (dg < _parameter.wolfe * idg)
+        step_l = step;
+        if (dg >= 0.0)
         {
-          step_l = step;
-        }
-        else
-        {
-          if (dg > -_parameter.wolfe * idg)
-          {
-            step_u = step;
-          }
-          else
-          {
-            break;
-          }
+          step_u = step;
         }
       }
-      k++;
+      ++k;
       if (k == _parameter.max_linearsearch)
       {
         iterX = iX;
@@ -158,7 +181,7 @@ namespace BGAL
         iterX = iX;
         break;
       }
-      step = std::isinf(step_u) ? 2 * step : 0.5 * (step_l + step_u);
+      step = std::isinf(step_u) ? 2.0 * step : 0.5 * (step_l + step_u);
     }
     return k;
   }

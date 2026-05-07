@@ -1,3 +1,5 @@
+find_package(OpenMP REQUIRED)
+
 cmake_minimum_required(VERSION 3.17)
 
 set(BGAL_Model_SRC        
@@ -8,7 +10,7 @@ set(BGAL_Model_SRC
 
 # Get static lib
 add_library(Model STATIC ${BGAL_Model_SRC})
-target_link_libraries(Model Algorithm BaseShape PQP ${Boost_LIBRARIES})
+target_link_libraries(Model Algorithm BaseShape PQP ${Boost_LIBRARIES} OpenMP::OpenMP_CXX)
 set_target_properties(Model PROPERTIES VERSION ${VERSION})
 set_target_properties(Model PROPERTIES CLEAN_DIRECT_OUTPUT 1)
 

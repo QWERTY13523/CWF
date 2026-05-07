@@ -1,0 +1,8 @@
+{
+  "input_obj": "/home/yiming/research/CWF/organic_models/new/Squirrel.obj",
+  "sampling_method": "pymeshlab.generate_sampling_poisson_disk(exactnumflag=True)",
+  "surface_obj": "/home/yiming/research/CWF/organic_models/new/Squirrel.obj",
+  "sampled_xyz": "/home/yiming/research/CWF/result/organic_new/Squirrel/Squirrel_sampled_50000.xyz",
+  "quadcover_exe": "/home/yiming/research/CWF/bin/quadcover_main",
+  "output_dir": "/home/yiming/research/CWF/result/organic_new/Squirrel"
+}

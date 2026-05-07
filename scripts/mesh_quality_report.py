@@ -38,6 +38,29 @@ def edge_len(a, b):
     return math.sqrt(dx * dx + dy * dy + dz * dz)
 
 
+def triangle_area(a, b, c):
+    ux = b[0] - a[0]
+    uy = b[1] - a[1]
+    uz = b[2] - a[2]
+    vx = c[0] - a[0]
+    vy = c[1] - a[1]
+    vz = c[2] - a[2]
+    cx = uy * vz - uz * vy
+    cy = uz * vx - ux * vz
+    cz = ux * vy - uy * vx
+    return 0.5 * math.sqrt(cx * cx + cy * cy + cz * cz)
+
+
+def triangle_q(a, b, c, lens):
+    area = triangle_area(a, b, c)
+    half_perimeter = 0.5 * sum(lens)
+    longest_edge = max(lens)
+    denom = half_perimeter * longest_edge
+    if area <= 1e-18 or denom <= 1e-18:
+        return None
+    return (6.0 / math.sqrt(3.0)) * area / denom
+
+
 def clamp(x, lo, hi):
     return lo if x < lo else hi if x > hi else x
 
@@ -70,6 +93,7 @@ def main():
 
     angles = []
     aspects = []
+    q_values = []
     skipped = 0
 
     for i0, i1, i2 in faces:
@@ -90,6 +114,9 @@ def main():
             aspects.append(max_len / min_len)
         else:
             skipped += 1
+        q = triangle_q(verts[i0], verts[i1], verts[i2], lens)
+        if q is not None:
+            q_values.append(q)
 
     if not angles:
         print("No valid triangles.")
@@ -106,6 +133,8 @@ def main():
         aspects_sorted = sorted(aspects)
         idx = int(0.95 * (len(aspects_sorted) - 1))
         p95_aspect = aspects_sorted[idx]
+    min_q = min(q_values) if q_values else float("nan")
+    avg_q = sum(q_values) / len(q_values) if q_values else float("nan")
 
     print("Mesh quality report")
     print(f"  Triangles: {len(faces)}")
@@ -118,6 +147,10 @@ def main():
         f"min {min_aspect:.3f}, avg {avg_aspect:.3f}, max {max_aspect:.3f}"
     )
     print(f"  Aspect ratio p95: {p95_aspect:.3f}")
+    print(
+        "  TriangleQ = 6/sqrt(3) * area / (half-perimeter * longest edge): "
+        f"min {min_q:.6f}, avg {avg_q:.6f}"
+    )
     return 0
 
 

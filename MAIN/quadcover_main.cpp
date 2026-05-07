@@ -44,9 +44,14 @@ struct CliOptions {
   std::string model_name_override;
   int threads = 0;
   int cwf_iters = 50;
+  int max_outer_iters = 750;
+  double learning_rate = 1e-4;
   bool final_only = false;
   bool debug = false;
   bool show_help = false;
+  std::string energy_mode = "full";
+  bool use_weight_schedule = true;
+  bool use_tangential_perturb = true;
 };
 
 static void print_usage(const char *exe_name) {
@@ -65,6 +70,17 @@ static void print_usage(const char *exe_name) {
       << "  --name NAME     Output basename. Defaults to the surface stem.\n"
       << "  --threads N     Number of threads used inside one run.\n"
       << "  --cwf-iters N   Number of CWF warm-start iterations. Use 0 to disable. Default: 50\n"
+      << "  --max-outer-iters N\n"
+      << "                  Maximum QuadCover Adam outer iterations. Default: 750\n"
+      << "  --learning-rate LR\n"
+      << "                  QuadCover base Adam learning rate per bbox max extent.\n"
+      << "                  actual_lr = LR * bbox_max_extent. Default: 1e-4\n"
+      << "  --energy-mode M QuadCover energy terms: full, eq-only (hinge only),\n"
+      << "                  or ena-only (QEM/e_na only). Default: full\n"
+      << "  --no-weight-schedule\n"
+      << "                  Disable scheduling and keep QEM/hinge coefficients fixed at 1.\n"
+      << "  --no-tangential-perturb\n"
+      << "                  Disable stagnation-triggered tangential perturbation.\n"
       << "  --final-only    Export only the final QuadCover result.\n"
       << "  --debug         Export every iteration to data/NAME/ (NAME = model stem).\n"
       << "  -h, --help      Show this help message.\n\n"
@@ -135,6 +151,44 @@ static bool parse_args(int argc, char **argv, CliOptions &opts) {
       const char *value = need_value("--cwf-iters");
       if (!value) return false;
       opts.cwf_iters = std::max(0, std::stoi(value));
+      continue;
+    }
+    if (arg == "--max-outer-iters") {
+      const char *value = need_value("--max-outer-iters");
+      if (!value) return false;
+      opts.max_outer_iters = std::max(1, std::stoi(value));
+      continue;
+    }
+    if (arg == "--learning-rate") {
+      const char *value = need_value("--learning-rate");
+      if (!value) return false;
+      opts.learning_rate = std::stod(value);
+      if (!(opts.learning_rate > 0.0)) {
+        std::cerr << "Error: --learning-rate must be positive\n";
+        return false;
+      }
+      continue;
+    }
+    if (arg == "--energy-mode") {
+      const char *value = need_value("--energy-mode");
+      if (!value) return false;
+      opts.energy_mode = value;
+      for (char &c : opts.energy_mode) {
+        c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+      }
+      if (opts.energy_mode != "full" && opts.energy_mode != "eq-only" &&
+          opts.energy_mode != "ena-only") {
+        std::cerr << "Error: --energy-mode must be full, eq-only, or ena-only\n";
+        return false;
+      }
+      continue;
+    }
+    if (arg == "--no-weight-schedule") {
+      opts.use_weight_schedule = false;
+      continue;
+    }
+    if (arg == "--no-tangential-perturb") {
+      opts.use_tangential_perturb = false;
       continue;
     }
     if (arg == "--final-only") {
@@ -265,6 +319,15 @@ static bool load_init_sites_file(const std::filesystem::path &path,
     sites.emplace_back(V(i, 0), V(i, 1), V(i, 2));
   }
   return !sites.empty();
+}
+
+static double bbox_max_extent(const Eigen::MatrixXd &V) {
+  if (V.rows() <= 0 || V.cols() < 3) return 1.0;
+
+  const Eigen::RowVector3d min_corner = V.leftCols<3>().colwise().minCoeff();
+  const Eigen::RowVector3d max_corner = V.leftCols<3>().colwise().maxCoeff();
+  const double extent = (max_corner - min_corner).maxCoeff();
+  return (std::isfinite(extent) && extent > 0.0) ? extent : 1.0;
 }
 
 int main(int argc, char **argv) {
@@ -403,11 +466,25 @@ int main(int argc, char **argv) {
   para.export_interval = options.debug ? 1 : 50;
   para.use_cwf_warm_start = options.cwf_iters > 0;
   para.cwf_max_iterations = options.cwf_iters;
+  // This only controls the QuadCover stage. CWF warm start keeps its own
+  // CVT + e_na/QEM behavior unchanged.
+  para.use_qem_energy = options.energy_mode != "eq-only";         // e_na/QEM term
+  para.use_hinge_loss_energy = options.energy_mode != "ena-only"; // hinge term
+  para.use_weight_schedule = options.use_weight_schedule;
+  para.use_tangential_perturb = options.use_tangential_perturb;
+  const Eigen::MatrixXd &bbox_vertices =
+      (used_cgal_fallback && prepared_surface.has_value()) ? prepared_surface->V : V;
+  const double bbox_extent = bbox_max_extent(bbox_vertices);
+  para.adam_learning_rate = options.learning_rate * bbox_extent;
+  std::cout << "[quadcover_main] adaptive QuadCover lr"
+            << " | bbox_max_extent=" << bbox_extent
+            << " | base_lr=" << options.learning_rate
+            << " | actual_lr=" << para.adam_learning_rate << "\n";
   if (!para.use_cwf_warm_start) {
     para.show_cwf_progress = false;
     para.cwf_max_iterations = 0;
   }
-  para.max_outer_iterations = 1000;
+  para.max_outer_iterations = options.max_outer_iters;
   para.max_line_search = 10;
   para.active_eps = 1e-8;
   para.step_cap_scale = 0.02;

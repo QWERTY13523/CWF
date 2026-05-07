@@ -227,6 +227,7 @@ void CWF3D(std::string file, std::string pointsFile, int max_iteration)
 	para.is_show = true;
 	para.epsilon = 1e-30;
 	para.max_iteration = max_iteration;
+	para.max_time = 0.0;
 	BGAL::_CVT3D cvt(model, rho, para);
 	cvt.set_use_feature_density_boost(false);
 	cvt.set_outpath("./");

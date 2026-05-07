@@ -17,7 +17,6 @@ set(BGAL_Optimization_SRC
         LBFGS/LBFGS.cpp
         GradientDescent/GradientDescent.cpp
         LinearSystem/LinearSystem.cpp
-        LBFGS/LBFGS.cpp
         )
 
 # Get static lib
@@ -28,4 +27,4 @@ target_include_directories(Optimization PUBLIC
 	$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
 	$<INSTALL_INTERFACE:include>)
 
-target_link_libraries (Optimization Eigen3::Eigen)
+target_link_libraries(Optimization Eigen3::Eigen)

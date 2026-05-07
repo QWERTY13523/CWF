@@ -24,16 +24,22 @@ public:
     int export_interval = 50;
     bool use_cwf_warm_start = true;
     bool show_cwf_progress = true;
+    bool use_qem_energy = true;
+    bool use_hinge_loss_energy = true;
+    bool use_weight_schedule = true;
+    bool use_tangential_perturb = true;
     int cwf_max_iterations = 80;
-    int max_outer_iterations = 30;
+    int max_outer_iterations = 750;
     int max_line_search = 10;
     double active_eps = 1e-8;
     double accept_eps = 1e-12;
+    double adam_learning_rate = 4e-3;
     double hinge_lambda = 1.0;
     double step_cap_scale = 0.02;
     double fallback_step_cap_scale = 1e-3;
     double min_step_scale = 1e-6;
     int max_incident_cells_per_rvd_vertex = 8;
+    double max_wall_time_seconds = 0.0;
   };
 
   struct _Quad {

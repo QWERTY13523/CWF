@@ -576,8 +576,14 @@ namespace BGAL
           update_cliped.clear();
           update_cliped.reserve(old_cliped.size() + 2);
 
-          _BOC::_Sign pre_state = side_(current_site, plane_site, old_cliped[0]);
-          _BOC::_Sign cur_state = side_(current_site, plane_site, old_cliped[1]);
+          std::vector<_BOC::_Sign> states(old_cliped.size());
+          for (int si = 0; si < static_cast<int>(old_cliped.size()); ++si)
+          {
+            states[si] = side_(current_site, plane_site, old_cliped[si]);
+          }
+
+          _BOC::_Sign pre_state = states[0];
+          _BOC::_Sign cur_state = states[1];
           _BOC::_Sign nex_state;
 
           if (pre_state == _BOC::_Sign::PositivE)
@@ -617,7 +623,7 @@ namespace BGAL
             }
             else if (cur_state == _BOC::_Sign::ZerO)
             {
-              _BOC::_Sign sp2 = side_(current_site, plane_site, old_cliped[2]);
+              _BOC::_Sign sp2 = states[2];
               if (sp2 == _BOC::_Sign::PositivE)
               {
                 update_cliped.clear();
@@ -636,7 +642,7 @@ namespace BGAL
           bool ifbreak = false, ifcontinue = false;
           for (int i = 2; i < static_cast<int>(old_cliped.size()); ++i)
           {
-            nex_state = side_(current_site, plane_site, old_cliped[i]);
+            nex_state = states[i];
             if (cur_state == _BOC::_Sign::PositivE)
             {
               if (nex_state == _BOC::_Sign::PositivE)

@@ -5,9 +5,11 @@ from __future__ import annotations
 import argparse
 import concurrent.futures
 import csv
+import math
 import multiprocessing as mp
 import os
 import re
+import signal
 import shlex
 import shutil
 import subprocess
@@ -31,11 +33,13 @@ DEFAULT_SAMPLER_CANDIDATES = [
     Path("/home/yiming/research/CWFSampling/cmake-build-debug/vcg_poisson_sampling"),
 ]
 ITER_PATTERN = re.compile(r"\[QuadCoverLike\]\[Adam\] iter=(\d+)")
+COMMAND_TIMEOUT_EXIT_CODE = 124
 
 
 @dataclass
 class BatchOptions:
     input_dir: Path
+    input_model: Path | None
     output_dir: Path
     sampler_exe: Path
     cwf_exe: Path
@@ -45,9 +49,12 @@ class BatchOptions:
     merge_close_threshold: float
     jobs: int
     threads_per_job: int
+    timeout_minutes: float
     seed: int
     cwf_iterations: int
+    quadcover_base_learning_rate: float
     name_contains: str
+    exclude_names: tuple[str, ...]
     limit: int | None
 
 
@@ -59,7 +66,6 @@ class RunResult:
     result_dir: Path
     model_log_path: Path
     preprocessed_mesh: Path
-    normalized_mesh: Path
     sample_points: Path
     cwf_work_dir: Path
     quadcover_work_dir: Path
@@ -72,7 +78,6 @@ class RunResult:
     end_time_utc: str = ""
     total_time_seconds: float = 0.0
     preprocess_seconds: float = 0.0
-    normalize_seconds: float = 0.0
     sampling_seconds: float = 0.0
     cwf_seconds: float = 0.0
     quadcover_seconds: float = 0.0
@@ -82,6 +87,7 @@ class RunResult:
     cwf_exit_code: int = -1
     quadcover_exit_code: int = -1
     success: bool = False
+    timed_out: bool = False
     error: str = ""
 
 
@@ -110,12 +116,25 @@ def non_negative_int(value: str) -> int:
     return parsed
 
 
+def positive_float(value: str) -> float:
+    parsed = float(value)
+    if parsed <= 0:
+        raise argparse.ArgumentTypeError("value must be > 0")
+    return parsed
+
+
 def parse_args() -> BatchOptions:
     parser = argparse.ArgumentParser(
         description=(
-            "Batch test all OBJ/OFF models in ABC: preprocess -> normalize -> "
+            "Batch test OBJ/OFF models: preprocess -> "
             "CWFSampling -> CWF(50) -> QuadCover(final)."
         )
+    )
+    parser.add_argument(
+        "--input-model",
+        type=Path,
+        default=None,
+        help="Run exactly one OBJ/OFF model. Overrides --input-dir model discovery.",
     )
     parser.add_argument(
         "--input-dir",
@@ -151,7 +170,7 @@ def parse_args() -> BatchOptions:
         "--sample-num",
         type=positive_int,
         default=None,
-        help="Fixed number of sampled points per model. Default: max(8000, vertex_count / 3)",
+        help="Fixed number of sampled points per model. Default: max(5000, vertex_count / 3)",
     )
     parser.add_argument(
         "--merge-close-threshold",
@@ -172,7 +191,16 @@ def parse_args() -> BatchOptions:
         "--threads-per-job",
         type=positive_int,
         default=None,
-        help="Threads used inside one quadcover_main process.",
+        help=(
+            "Threads used inside one model job. This is passed to quadcover_main "
+            "and exported as OMP/BLAS thread limits for sampler/CWF/QuadCover."
+        ),
+    )
+    parser.add_argument(
+        "--timeout-minutes",
+        type=positive_float,
+        default=40.0,
+        help="Maximum wall-clock time per model for the whole pipeline. Default: 40",
     )
     parser.add_argument(
         "--seed",
@@ -187,9 +215,26 @@ def parse_args() -> BatchOptions:
         help="CWF iterations before QuadCover. Default: 50",
     )
     parser.add_argument(
+        "--quadcover-base-learning-rate",
+        type=positive_float,
+        default=1e-4,
+        help=(
+            "QuadCover learning rate per unit bbox max extent. "
+            "The actual learning rate is base_lr * bbox_max_extent. Default: 1e-4"
+        ),
+    )
+    parser.add_argument(
         "--name-contains",
         default="",
         help="Only process model names containing this substring.",
+    )
+    parser.add_argument(
+        "--exclude-names",
+        default="",
+        help=(
+            "Comma-separated model stems to skip, matched case-insensitively. "
+            "Example: 19_socket_head_bolt,35_embossed_logo_plate"
+        ),
     )
     parser.add_argument(
         "--limit",
@@ -199,7 +244,10 @@ def parse_args() -> BatchOptions:
     )
     args = parser.parse_args()
 
-    input_dir = args.input_dir or find_first_existing(DEFAULT_INPUT_CANDIDATES)
+    input_model = args.input_model.resolve() if args.input_model is not None else None
+    input_dir = args.input_dir or (
+        input_model.parent if input_model is not None else find_first_existing(DEFAULT_INPUT_CANDIDATES)
+    )
     if input_dir is None:
         parser.error("cannot find ABC folder; pass --input-dir explicitly")
 
@@ -211,8 +259,19 @@ def parse_args() -> BatchOptions:
     if threads_per_job is None:
         threads_per_job = max(1, (os.cpu_count() or 1) // args.jobs)
 
+    exclude_names = tuple(
+        sorted(
+            {
+                name.strip().lower()
+                for name in args.exclude_names.split(",")
+                if name.strip()
+            }
+        )
+    )
+
     return BatchOptions(
         input_dir=input_dir.resolve(),
+        input_model=input_model,
         output_dir=args.output_dir.resolve(),
         sampler_exe=sampler_exe.resolve(),
         cwf_exe=args.cwf_exe.resolve(),
@@ -222,9 +281,12 @@ def parse_args() -> BatchOptions:
         merge_close_threshold=args.merge_close_threshold,
         jobs=args.jobs,
         threads_per_job=threads_per_job,
+        timeout_minutes=args.timeout_minutes,
         seed=args.seed,
         cwf_iterations=args.cwf_iterations,
+        quadcover_base_learning_rate=args.quadcover_base_learning_rate,
         name_contains=args.name_contains,
+        exclude_names=exclude_names,
         limit=args.limit,
     )
 
@@ -313,36 +375,23 @@ def load_mesh(path: Path) -> tuple[list[tuple[float, float, float]], list[tuple[
     raise ValueError(f"unsupported mesh format: {path}")
 
 
-def normalize_vertices(vertices: list[tuple[float, float, float]]) -> list[tuple[float, float, float]]:
+def bbox_max_extent(vertices: list[tuple[float, float, float]]) -> float:
     if not vertices:
-        raise ValueError("mesh has no vertices")
-
-    mins = [min(v[idx] for v in vertices) for idx in range(3)]
-    maxs = [max(v[idx] for v in vertices) for idx in range(3)]
-    extent = max(maxs[idx] - mins[idx] for idx in range(3))
-    if extent <= 0.0:
-        raise ValueError("mesh bounding box is degenerate")
-
-    normalized = []
-    for vertex in vertices:
-        normalized.append(tuple((vertex[idx] - mins[idx]) / extent for idx in range(3)))
-    return normalized
+        raise ValueError("cannot compute bbox for an empty vertex set")
+    mins = [min(v[i] for v in vertices) for i in range(3)]
+    maxs = [max(v[i] for v in vertices) for i in range(3)]
+    extent = max(maxs[i] - mins[i] for i in range(3))
+    if not math.isfinite(extent) or extent <= 0.0:
+        raise ValueError(f"invalid bbox max extent: {extent}")
+    return extent
 
 
-def write_obj_mesh(
-    path: Path,
-    vertices: list[tuple[float, float, float]],
-    faces: list[tuple[int, int, int]],
-) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8") as handle:
-        for vertex in vertices:
-            handle.write(f"v {vertex[0]:.17g} {vertex[1]:.17g} {vertex[2]:.17g}\n")
-        for face in faces:
-            handle.write(f"f {face[0] + 1} {face[1] + 1} {face[2] + 1}\n")
-
-
-def list_models(input_dir: Path, name_contains: str, limit: int | None) -> list[Path]:
+def list_models(
+    input_dir: Path,
+    name_contains: str,
+    exclude_names: tuple[str, ...],
+    limit: int | None,
+) -> list[Path]:
     models = [
         path
         for path in input_dir.rglob("*")
@@ -351,6 +400,9 @@ def list_models(input_dir: Path, name_contains: str, limit: int | None) -> list[
     models.sort()
     if name_contains:
         models = [path for path in models if name_contains in path.stem]
+    if exclude_names:
+        excluded = set(exclude_names)
+        models = [path for path in models if path.stem.lower() not in excluded]
     if limit is not None:
         models = models[:limit]
     return models
@@ -364,7 +416,7 @@ def make_model_key(input_dir: Path, model_path: Path) -> str:
 def resolve_sample_num(options: BatchOptions, vertex_count: int) -> int:
     if options.sample_num is not None:
         return options.sample_num
-    return max(8000, vertex_count // 3)
+    return max(5000, vertex_count // 3)
 
 
 def preprocess_cmd(options: BatchOptions, input_path: Path, output_path: Path) -> list[str]:
@@ -394,6 +446,16 @@ def parse_quadcover_iterations(log_path: Path) -> int:
 
 def format_cmd(command: list[str]) -> str:
     return shlex.join(command)
+
+
+def make_job_env(threads_per_job: int) -> dict[str, str]:
+    env = os.environ.copy()
+    thread_value = str(threads_per_job)
+    env["OMP_NUM_THREADS"] = thread_value
+    env["OPENBLAS_NUM_THREADS"] = thread_value
+    env["MKL_NUM_THREADS"] = thread_value
+    env["NUMEXPR_NUM_THREADS"] = thread_value
+    return env
 
 
 def sanitized_artifact_name(path: Path) -> str:
@@ -438,19 +500,51 @@ def run_logged_command(
     command: list[str],
     log_file,
     cwd: Path | None = None,
+    env: dict[str, str] | None = None,
+    timeout_seconds: float | None = None,
 ) -> int:
     if cwd is not None:
         cwd.mkdir(parents=True, exist_ok=True)
         log_file.write(f"[Batch] cwd={cwd}\n")
     log_file.write(format_cmd(command) + "\n\n")
+    if timeout_seconds is not None:
+        log_file.write(f"[Batch] command_timeout_seconds={timeout_seconds:.3f}\n")
     log_file.flush()
-    proc = subprocess.run(
+
+    proc = subprocess.Popen(
         command,
         cwd=str(cwd) if cwd is not None else None,
+        env=env,
         stdout=log_file,
         stderr=subprocess.STDOUT,
-        check=False,
+        start_new_session=True,
     )
+
+    try:
+        proc.wait(timeout=timeout_seconds)
+    except subprocess.TimeoutExpired:
+        log_file.write("\n[Batch] command timed out; terminating process group\n")
+        log_file.flush()
+        try:
+            os.killpg(proc.pid, signal.SIGTERM)
+        except ProcessLookupError:
+            pass
+        try:
+            proc.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            log_file.write("[Batch] process group did not exit after SIGTERM; killing\n")
+            log_file.flush()
+            try:
+                os.killpg(proc.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            proc.wait()
+        log_file.write(f"[Batch] exit_code={COMMAND_TIMEOUT_EXIT_CODE}\n")
+        log_file.flush()
+        return COMMAND_TIMEOUT_EXIT_CODE
+
+    log_file.write(f"\n[Batch] exit_code={proc.returncode}\n")
+    log_file.flush()
     return proc.returncode
 
 
@@ -492,6 +586,7 @@ def release_batch_lock(fd: int, lock_path: Path) -> None:
 
 def run_one_model(options: BatchOptions, model_path: Path) -> RunResult:
     start_time = time.perf_counter()
+    deadline = start_time + options.timeout_minutes * 60.0
     model_key = make_model_key(options.input_dir, model_path)
     model_name = model_path.stem
     start_time_utc = utc_now_iso()
@@ -500,7 +595,6 @@ def run_one_model(options: BatchOptions, model_path: Path) -> RunResult:
     work_dir = options.output_dir / ".work" / model_key
     log_path = result_dir / f"{model_name}.log"
     preprocessed_mesh = work_dir / f"{model_name}_merged.obj"
-    normalized_mesh = work_dir / f"{model_name}_normalized.obj"
     sample_points = work_dir / f"{model_name}_inputPoints.xyz"
     cwf_work_dir = work_dir / f"cwf{options.cwf_iterations}"
     quadcover_work_dir = work_dir / "quadcover_final"
@@ -512,12 +606,27 @@ def run_one_model(options: BatchOptions, model_path: Path) -> RunResult:
         result_dir=result_dir,
         model_log_path=log_path,
         preprocessed_mesh=preprocessed_mesh,
-        normalized_mesh=normalized_mesh,
         sample_points=sample_points,
         cwf_work_dir=cwf_work_dir,
         quadcover_work_dir=quadcover_work_dir,
         start_time_utc=start_time_utc,
     )
+
+    def remaining_seconds() -> float:
+        return max(0.0, deadline - time.perf_counter())
+
+    def mark_timeout(stage: str) -> RunResult:
+        result.timed_out = True
+        result.error = f"{stage} timed out after {options.timeout_minutes:.3f} minutes"
+        result.end_time_utc = utc_now_iso()
+        result.total_time_seconds = time.perf_counter() - start_time
+        return result
+
+    def timeout_for_next_command() -> float | None:
+        remaining = remaining_seconds()
+        if remaining <= 0.0:
+            return 0.001
+        return remaining
 
     if result_dir.exists():
         shutil.rmtree(result_dir)
@@ -536,80 +645,118 @@ def run_one_model(options: BatchOptions, model_path: Path) -> RunResult:
         log_file.write(f"[Batch] seed={options.seed}\n")
         log_file.write(f"[Batch] cwf_iterations={options.cwf_iterations}\n")
         log_file.write(f"[Batch] threads_per_job={options.threads_per_job}\n\n")
+        log_file.write(f"[Batch] timeout_minutes={options.timeout_minutes:.3f}\n\n")
         log_file.flush()
+
+        job_env = make_job_env(options.threads_per_job)
 
         preprocess_command = preprocess_cmd(options, model_path, preprocessed_mesh)
         log_file.write("[Batch] Preprocess command:\n")
         preprocess_start = time.perf_counter()
-        result.preprocess_exit_code = run_logged_command(preprocess_command, log_file)
+        result.preprocess_exit_code = run_logged_command(
+            preprocess_command,
+            log_file,
+            env=job_env,
+            timeout_seconds=timeout_for_next_command(),
+        )
         result.preprocess_seconds = time.perf_counter() - preprocess_start
         log_file.write(f"[Batch] preprocess_seconds={result.preprocess_seconds:.6f}\n\n")
         log_file.flush()
+        if result.preprocess_exit_code == COMMAND_TIMEOUT_EXIT_CODE:
+            return mark_timeout("preprocess")
         if result.preprocess_exit_code != 0:
             result.error = f"preprocess failed with exit code {result.preprocess_exit_code}"
             result.end_time_utc = utc_now_iso()
             result.total_time_seconds = time.perf_counter() - start_time
             return result
 
+        if remaining_seconds() <= 0.0:
+            return mark_timeout("load preprocessed mesh")
         try:
-            normalize_start = time.perf_counter()
-            vertices, faces = load_mesh(preprocessed_mesh)
-            normalized_vertices = normalize_vertices(vertices)
+            vertices, _ = load_mesh(preprocessed_mesh)
             sample_num = resolve_sample_num(options, len(vertices))
             sample_points = work_dir / f"n{sample_num}_{model_name}_inputPoints.xyz"
+            bbox_size = bbox_max_extent(vertices)
+            quadcover_base_learning_rate = options.quadcover_base_learning_rate
             result.sample_num = sample_num
             result.sample_points = sample_points
-            write_obj_mesh(normalized_mesh, normalized_vertices, faces)
-            result.normalize_seconds = time.perf_counter() - normalize_start
         except Exception as exc:  # noqa: BLE001
-            result.error = f"normalize failed: {exc}"
+            result.error = f"load preprocessed mesh/bbox failed: {exc}"
             result.end_time_utc = utc_now_iso()
             result.total_time_seconds = time.perf_counter() - start_time
             return result
 
         log_file.write(f"[Batch] sample_num={result.sample_num}\n")
-        log_file.write(f"[Batch] normalized_mesh={normalized_mesh}\n")
+        log_file.write(f"[Batch] bbox_max_extent={bbox_size:.17g}\n")
+        log_file.write(
+            f"[Batch] quadcover_base_learning_rate={options.quadcover_base_learning_rate:.17g}\n"
+        )
+        log_file.write(
+            "[Batch] quadcover_main computes actual_lr="
+            "quadcover_base_learning_rate*bbox_max_extent\n"
+        )
+        log_file.write(f"[Batch] preprocessed_mesh={preprocessed_mesh}\n")
         log_file.write(f"[Batch] sample_points={sample_points}\n\n")
-        log_file.write(f"[Batch] normalize_seconds={result.normalize_seconds:.6f}\n\n")
         log_file.flush()
 
+        if remaining_seconds() <= 0.0:
+            return mark_timeout("sampling")
         sampler_cmd = [
             str(options.sampler_exe),
-            str(normalized_mesh),
+            str(preprocessed_mesh),
             str(sample_points),
             str(result.sample_num),
             str(options.seed),
         ]
         log_file.write("[Batch] CWFSampling command:\n")
         sampling_start = time.perf_counter()
-        result.sampler_exit_code = run_logged_command(sampler_cmd, log_file)
+        result.sampler_exit_code = run_logged_command(
+            sampler_cmd,
+            log_file,
+            env=job_env,
+            timeout_seconds=timeout_for_next_command(),
+        )
         result.sampling_seconds = time.perf_counter() - sampling_start
         log_file.write(f"[Batch] sampling_seconds={result.sampling_seconds:.6f}\n\n")
         log_file.flush()
+        if result.sampler_exit_code == COMMAND_TIMEOUT_EXIT_CODE:
+            return mark_timeout("CWFSampling")
         if result.sampler_exit_code != 0:
             result.error = f"CWFSampling failed with exit code {result.sampler_exit_code}"
             result.end_time_utc = utc_now_iso()
             result.total_time_seconds = time.perf_counter() - start_time
             return result
 
+        if remaining_seconds() <= 0.0:
+            return mark_timeout("cwf")
         cwf_cmd = [
             str(options.cwf_exe),
-            str(normalized_mesh),
+            str(preprocessed_mesh),
             str(sample_points),
             str(options.cwf_iterations),
         ]
         log_file.write("[Batch] CWF command:\n")
         cwf_start = time.perf_counter()
-        result.cwf_exit_code = run_logged_command(cwf_cmd, log_file, cwd=cwf_work_dir)
+        result.cwf_exit_code = run_logged_command(
+            cwf_cmd,
+            log_file,
+            cwd=cwf_work_dir,
+            env=job_env,
+            timeout_seconds=timeout_for_next_command(),
+        )
         result.cwf_seconds = time.perf_counter() - cwf_start
         log_file.write(f"[Batch] cwf_seconds={result.cwf_seconds:.6f}\n\n")
         log_file.flush()
+        if result.cwf_exit_code == COMMAND_TIMEOUT_EXIT_CODE:
+            return mark_timeout("cwf")
         if result.cwf_exit_code != 0:
             result.error = f"cwf failed with exit code {result.cwf_exit_code}"
             result.end_time_utc = utc_now_iso()
             result.total_time_seconds = time.perf_counter() - start_time
             return result
 
+        if remaining_seconds() <= 0.0:
+            return mark_timeout("CWF export")
         export_start = time.perf_counter()
         cwf_source_remesh = find_exported_remesh(cwf_work_dir, "Ours_")
         if cwf_source_remesh is None:
@@ -628,7 +775,7 @@ def run_one_model(options: BatchOptions, model_path: Path) -> RunResult:
         quadcover_cmd = [
             str(options.quadcover_exe),
             "--surface",
-            str(normalized_mesh),
+            str(preprocessed_mesh),
             "--input",
             str(cwf_source_remesh),
             "--name",
@@ -637,22 +784,34 @@ def run_one_model(options: BatchOptions, model_path: Path) -> RunResult:
             str(quadcover_work_dir),
             "--threads",
             str(options.threads_per_job),
+            "--learning-rate",
+            f"{quadcover_base_learning_rate:.17g}",
             "--cwf-iters",
             "0",
             "--final-only",
         ]
         log_file.write("[Batch] QuadCover command:\n")
         quadcover_start = time.perf_counter()
-        result.quadcover_exit_code = run_logged_command(quadcover_cmd, log_file)
+        result.quadcover_exit_code = run_logged_command(
+            quadcover_cmd,
+            log_file,
+            env=job_env,
+            timeout_seconds=timeout_for_next_command(),
+        )
         result.quadcover_seconds = time.perf_counter() - quadcover_start
         log_file.write(f"[Batch] quadcover_seconds={result.quadcover_seconds:.6f}\n\n")
         log_file.flush()
+        if result.quadcover_exit_code == COMMAND_TIMEOUT_EXIT_CODE:
+            result.quadcover_iterations = parse_quadcover_iterations(log_path)
+            return mark_timeout("quadcover_main")
         if result.quadcover_exit_code != 0:
             result.error = f"quadcover_main failed with exit code {result.quadcover_exit_code}"
             result.end_time_utc = utc_now_iso()
             result.total_time_seconds = time.perf_counter() - start_time
             return result
 
+        if remaining_seconds() <= 0.0:
+            return mark_timeout("QuadCover export")
         export_start = time.perf_counter()
         quadcover_source_remesh = find_exported_remesh(quadcover_work_dir, "QuadCover_")
         if quadcover_source_remesh is None:
@@ -709,7 +868,6 @@ def write_summary(output_dir: Path, results: list[RunResult]) -> Path:
             "end_time_utc",
             "total_time_seconds",
             "preprocess_seconds",
-            "normalize_seconds",
             "sampling_seconds",
             "cwf_seconds",
             "quadcover_seconds",
@@ -730,14 +888,13 @@ def write_summary(output_dir: Path, results: list[RunResult]) -> Path:
             writer.writerow([
                 result.model_key,
                 result.model_name,
-                "success" if result.success else "failed",
+                "success" if result.success else "timeout" if result.timed_out else "failed",
                 result.sample_num,
                 result.quadcover_iterations,
                 result.start_time_utc,
                 result.end_time_utc,
                 f"{result.total_time_seconds:.3f}",
                 f"{result.preprocess_seconds:.3f}",
-                f"{result.normalize_seconds:.3f}",
                 f"{result.sampling_seconds:.3f}",
                 f"{result.cwf_seconds:.3f}",
                 f"{result.quadcover_seconds:.3f}",
@@ -762,18 +919,17 @@ def write_total_log(output_dir: Path, results: list[RunResult], batch_total_time
     with total_log_path.open("w", encoding="utf-8") as handle:
         handle.write(
             "model_name,status,start_time_utc,end_time_utc,total_time_seconds,"
-            "preprocess_seconds,normalize_seconds,sampling_seconds,cwf_seconds,"
+            "preprocess_seconds,sampling_seconds,cwf_seconds,"
             "quadcover_seconds,export_seconds,quadcover_iterations,error\n"
         )
         for result in results:
             handle.write(
                 f"{result.model_name},"
-                f"{'success' if result.success else 'failed'},"
+                f"{'success' if result.success else 'timeout' if result.timed_out else 'failed'},"
                 f"{result.start_time_utc},"
                 f"{result.end_time_utc},"
                 f"{result.total_time_seconds:.3f},"
                 f"{result.preprocess_seconds:.3f},"
-                f"{result.normalize_seconds:.3f},"
                 f"{result.sampling_seconds:.3f},"
                 f"{result.cwf_seconds:.3f},"
                 f"{result.quadcover_seconds:.3f},"
@@ -790,6 +946,13 @@ def main() -> int:
     if not options.input_dir.is_dir():
         print(f"input directory does not exist: {options.input_dir}", file=sys.stderr)
         return 1
+    if options.input_model is not None:
+        if not options.input_model.is_file():
+            print(f"input model does not exist: {options.input_model}", file=sys.stderr)
+            return 1
+        if lower_ext(options.input_model) not in {".obj", ".off"}:
+            print(f"input model must be OBJ/OFF: {options.input_model}", file=sys.stderr)
+            return 1
     if not options.sampler_exe.exists():
         print(f"sampler executable does not exist: {options.sampler_exe}", file=sys.stderr)
         return 1
@@ -803,7 +966,15 @@ def main() -> int:
         print(f"preprocess script does not exist: {options.preprocess_script}", file=sys.stderr)
         return 1
 
-    models = list_models(options.input_dir, options.name_contains, options.limit)
+    if options.input_model is not None:
+        models = [options.input_model]
+    else:
+        models = list_models(
+            options.input_dir,
+            options.name_contains,
+            options.exclude_names,
+            options.limit,
+        )
     if not models:
         print(f"no OBJ/OFF models found in {options.input_dir}", file=sys.stderr)
         return 1
@@ -819,12 +990,14 @@ def main() -> int:
     sample_desc = (
         str(options.sample_num)
         if options.sample_num is not None
-        else "auto(max(8000, vertex_count/3))"
+        else "auto(max(5000, vertex_count/3))"
     )
     print(
         f"Batch start: models={len(models)} jobs={options.jobs} "
         f"threads-per-job={options.threads_per_job} sample-num={sample_desc} "
-        f"cwf-iters={options.cwf_iterations} output={options.output_dir}"
+        f"cwf-iters={options.cwf_iterations} timeout-minutes={options.timeout_minutes:.3f} "
+        f"exclude={','.join(options.exclude_names) if options.exclude_names else 'none'} "
+        f"output={options.output_dir}"
     )
 
     try:
@@ -838,7 +1011,7 @@ def main() -> int:
             for future in concurrent.futures.as_completed(future_map):
                 result = future.result()
                 results.append(result)
-                status = "success" if result.success else "failed"
+                status = "success" if result.success else "timeout" if result.timed_out else "failed"
                 print(
                     f"[{status}] {result.model_name} | "
                     f"sample_num={result.sample_num} | "
@@ -851,8 +1024,10 @@ def main() -> int:
         batch_total_time = time.perf_counter() - batch_start_time
         total_log_path = write_total_log(options.output_dir, results, batch_total_time)
         failures = sum(1 for item in results if not item.success)
+        timeouts = sum(1 for item in results if item.timed_out)
         print(
-            f"Batch finished: success={len(results) - failures} failed={failures} "
+            f"Batch finished: success={len(results) - failures} "
+            f"failed={failures - timeouts} timeout={timeouts} "
             f"total_time={batch_total_time:.3f}s summary={summary_path} total_log={total_log_path}"
         )
         return 0 if failures == 0 else 2

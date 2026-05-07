@@ -634,6 +634,7 @@ int PQP_Distance(PQP_DistanceResult *res, PQP_Model *o, PQP_REAL p[3],
   // provided the minimum distance
 
   PQP_REAL q[3];
+  if (!res->last_tri) res->last_tri = (o->last_tri ? o->last_tri : o->tris);
 //  res->distance = PointTriDistance(&(res->pos_flag), p, o->last_tri,q);
   res->distance = PointTriDistance(&(res->pos_flag), p, o->m_inMesh, res->last_tri,q);
   VcV(res->p1,q);
@@ -1311,6 +1312,7 @@ int PQP_Distance(PQP_DistanceResult *res, PQP_Model *o, PQP_REAL p[3],
   // provided the minimum distance
 
   PQP_REAL q[3];
+  if (!res->last_tri) res->last_tri = (o->last_tri ? o->last_tri : o->tris);
 //  res->distance = PointTriDistance(&(res->pos_flag), p, o->last_tri,q);
   res->distance = PointTriDistance(&(res->pos_flag), p, res->last_tri,q);
   VcV(res->p1,q);

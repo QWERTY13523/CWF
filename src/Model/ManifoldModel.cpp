@@ -4,17 +4,27 @@
 #include "BGAL/Model/NonManifoldSurface.h"
 
 #include <algorithm>
+#include <cstdint>
 #include <limits>
-#include <set>
 #include <stdexcept>
+#include <unordered_map>
 
 namespace BGAL
 {
   namespace
   {
-    static inline std::pair<int, int> undirected_key(const int a, const int b)
+    static inline std::uint64_t directed_key(const int a, const int b)
     {
-      return std::make_pair(std::min(a, b), std::max(a, b));
+      return (static_cast<std::uint64_t>(static_cast<std::uint32_t>(a)) << 32) |
+             static_cast<std::uint32_t>(b);
+    }
+
+    static inline std::uint64_t undirected_key(const int a, const int b)
+    {
+      const int lo = std::min(a, b);
+      const int hi = std::max(a, b);
+      return (static_cast<std::uint64_t>(static_cast<std::uint32_t>(lo)) << 32) |
+             static_cast<std::uint32_t>(hi);
     }
 
     static inline void mesh_to_eigen(const std::vector<_Point3> &vertices,
@@ -216,22 +226,25 @@ namespace BGAL
   void _ManifoldModel::creat_edges_from_vertices_faces_()
   {
     _edges.clear();
-    _face_edges.clear();
-    _face_edges.resize(_faces.size(), std::array<int, 3>{-1, -1, -1});
-    _face_adjacent_faces.clear();
-    _face_adjacent_faces.resize(_faces.size(), std::array<int, 3>{-1, -1, -1});
+    _face_edges.assign(_faces.size(), std::array<int, 3>{-1, -1, -1});
+    _face_adjacent_faces.assign(_faces.size(), std::array<int, 3>{-1, -1, -1});
     _boundary_edge_flags.clear();
     _has_nonmanifold_topology = false;
 
-    std::map<std::pair<int, int>, std::vector<int>> directed_edges;
-    std::map<std::pair<int, int>, std::vector<int>> undirected_edges;
+    const std::size_t expected_half_edges = static_cast<std::size_t>(_faces.size()) * 3;
+    _edges.reserve(expected_half_edges * 2);
+
+    std::unordered_map<std::uint64_t, std::vector<int>> directed_edges;
+    std::unordered_map<std::uint64_t, std::vector<int>> undirected_edges;
+    directed_edges.reserve(expected_half_edges * 2 + 1);
+    undirected_edges.reserve(expected_half_edges * 2 + 1);
 
     for (int i = 0; i < static_cast<int>(_faces.size()); ++i)
     {
       for (int j = 0; j < 3; ++j)
       {
-        int post = (j + 1) % 3;
-        int pre = (j + 2) % 3;
+        const int post = (j + 1) % 3;
+        const int pre = (j + 2) % 3;
 
         const int left_vertex = _faces[i][pre];
         const int right_vertex = _faces[i][j];
@@ -244,7 +257,7 @@ namespace BGAL
         const int eid = static_cast<int>(_edges.size());
         _edges.push_back(e);
         _face_edges[i][j] = eid;
-        directed_edges[std::make_pair(left_vertex, right_vertex)].push_back(eid);
+        directed_edges[directed_key(left_vertex, right_vertex)].push_back(eid);
         undirected_edges[undirected_key(left_vertex, right_vertex)].push_back(eid);
       }
     }
@@ -307,9 +320,14 @@ namespace BGAL
       for (int local_edge = 0; local_edge < 3; ++local_edge)
       {
         const int eid = _face_edges[fid][local_edge];
-        const auto edge_key =
-            undirected_key(_edges[eid]._id_left_vertex, _edges[eid]._id_right_vertex);
-        const std::vector<int> &incident_edges = undirected_edges[edge_key];
+        const std::uint64_t edge_key = undirected_key(_edges[eid]._id_left_vertex,
+                                                      _edges[eid]._id_right_vertex);
+        const auto found = undirected_edges.find(edge_key);
+        if (found == undirected_edges.end())
+        {
+          continue;
+        }
+        const std::vector<int> &incident_edges = found->second;
 
         std::vector<int> opposite_edges;
         opposite_edges.reserve(incident_edges.size());
@@ -365,23 +383,37 @@ namespace BGAL
   }
   void _ManifoldModel::arrange_neighs_of_vertex_face_()
   {
-    _neight_edge_of_vertices.clear();
-    _neight_edge_of_vertices.resize(_vertices.size(), -1);
-    _neigh_edge_of_faces.clear();
-    _neigh_edge_of_faces.resize(_faces.size(), -1);
-    _degree_of_vertices.clear();
-    _degree_of_vertices.resize(_vertices.size(), 0);
-    _incident_edges_of_vertices.clear();
-    _incident_edges_of_vertices.resize(_vertices.size());
-    _incident_faces_of_vertices.clear();
-    _incident_faces_of_vertices.resize(_vertices.size());
-    _adjacent_vertices_of_vertices.clear();
-    _adjacent_vertices_of_vertices.resize(_vertices.size());
-    _boundary_vertex_flags.clear();
-    _boundary_vertex_flags.resize(_vertices.size(), false);
+    _neight_edge_of_vertices.assign(_vertices.size(), -1);
+    _neigh_edge_of_faces.assign(_faces.size(), -1);
+    _degree_of_vertices.assign(_vertices.size(), 0);
+    _incident_edges_of_vertices.assign(_vertices.size(), {});
+    _incident_faces_of_vertices.assign(_vertices.size(), {});
+    _adjacent_vertices_of_vertices.assign(_vertices.size(), {});
+    _boundary_vertex_flags.assign(_vertices.size(), false);
 
-    std::vector<std::set<int>> incident_faces(_vertices.size());
-    std::vector<std::set<int>> adjacent_vertices(_vertices.size());
+    std::vector<int> edge_reserve(_vertices.size(), 0);
+    std::vector<int> face_reserve(_vertices.size(), 0);
+    std::vector<int> adj_reserve(_vertices.size(), 0);
+
+    for (int fid = 0; fid < static_cast<int>(_faces.size()); ++fid)
+    {
+      for (int local_edge = 0; local_edge < 3; ++local_edge)
+      {
+        const int vid = _faces[fid][(local_edge + 2) % 3];
+        const int nbr = _faces[fid][local_edge];
+        ++edge_reserve[vid];
+        ++face_reserve[vid];
+        ++adj_reserve[vid];
+        ++adj_reserve[nbr];
+      }
+    }
+
+    for (int i = 0; i < static_cast<int>(_vertices.size()); ++i)
+    {
+      _incident_edges_of_vertices[i].reserve(edge_reserve[i]);
+      _incident_faces_of_vertices[i].reserve(face_reserve[i]);
+      _adjacent_vertices_of_vertices[i].reserve(adj_reserve[i]);
+    }
 
     for (int fid = 0; fid < static_cast<int>(_faces.size()); ++fid)
     {
@@ -392,9 +424,9 @@ namespace BGAL
         const int vid = _edges[eid]._id_left_vertex;
         const int nbr = _edges[eid]._id_right_vertex;
         _incident_edges_of_vertices[vid].push_back(eid);
-        incident_faces[vid].insert(fid);
-        adjacent_vertices[vid].insert(nbr);
-        adjacent_vertices[nbr].insert(vid);
+        _incident_faces_of_vertices[vid].push_back(fid);
+        _adjacent_vertices_of_vertices[vid].push_back(nbr);
+        _adjacent_vertices_of_vertices[nbr].push_back(vid);
         if (_neight_edge_of_vertices[vid] == -1 || _boundary_edge_flags[eid])
         {
           _neight_edge_of_vertices[vid] = eid;
@@ -407,18 +439,21 @@ namespace BGAL
       }
     }
 
-    _isolated_vertices.resize(0);
+    _isolated_vertices.clear();
     for (int i = 0; i < static_cast<int>(_vertices.size()); ++i)
     {
-      _incident_faces_of_vertices[i].assign(incident_faces[i].begin(), incident_faces[i].end());
-      _adjacent_vertices_of_vertices[i].assign(adjacent_vertices[i].begin(),
-                                               adjacent_vertices[i].end());
-      _degree_of_vertices[i] = static_cast<int>(_incident_faces_of_vertices[i].size());
+      auto &faces = _incident_faces_of_vertices[i];
+      auto &nbrs = _adjacent_vertices_of_vertices[i];
+      std::sort(faces.begin(), faces.end());
+      faces.erase(std::unique(faces.begin(), faces.end()), faces.end());
+      std::sort(nbrs.begin(), nbrs.end());
+      nbrs.erase(std::unique(nbrs.begin(), nbrs.end()), nbrs.end());
+      _degree_of_vertices[i] = static_cast<int>(faces.size());
       if (_neight_edge_of_vertices[i] == -1)
       {
         _isolated_vertices.push_back(i);
       }
-      if (_incident_faces_of_vertices[i].size() > _adjacent_vertices_of_vertices[i].size() + 1)
+      if (faces.size() > nbrs.size() + 1)
       {
         _has_nonmanifold_topology = true;
       }

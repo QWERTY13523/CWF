@@ -1,6 +1,7 @@
 //#include "BKPolygon.h"
 //#include "../../include/BK_BaseShape/BKPolygon.h"
 #include "BGAL/BaseShape/Polygon.h"
+#include <cmath>
 
 namespace BGAL
 {
@@ -97,73 +98,59 @@ namespace BGAL
 	}
 	_Point2 _Polygon::nearest_point_(const _Point2 &in_p)
 	{
-		double min_dis = (in_p - _points[0]).length_();
+		double min_dis_sq = (in_p - _points[0]).sqlength_();
 		_Point2 min_p = _points[0];
-		for (int i = 0; i < num_(); ++i)
+		for (int i = 0, n = num_(); i < n; ++i)
 		{
-			if (_BOC::sign_((_points[(i + 1) % num_()] - _points[i]).length_()) == _BOC::_Sign::ZerO)
+			const _Point2 &a = _points[i];
+			const _Point2 &b = _points[(i + 1) % n];
+			const _Point2 ab = b - a;
+			const double ab_sq = ab.sqlength_();
+			_Point2 cand = a;
+			if (_BOC::sign_(ab_sq) != _BOC::_Sign::ZerO)
 			{
-				double len = (_points[i] - in_p).length_();
-				if (len < min_dis)
-				{
-					min_dis = len;
-					min_p = _points[i];
-				}
-				continue;
+				double t = ab.dot_(in_p - a) / ab_sq;
+				if (t <= 0.0)
+					cand = a;
+				else if (t >= 1.0)
+					cand = b;
+				else
+					cand = a + ab * t;
 			}
-			double len = (_points[(i + 1) % num_()] - _points[i]).dot_(in_p - _points[i]);
-			_Point2 lp;
-			if (len < 0 || len > (_points[(i + 1) % num_()] - _points[i]).sqlength_())
+			const double dis_sq = (cand - in_p).sqlength_();
+			if (dis_sq < min_dis_sq)
 			{
-				double len1 = (in_p - _points[i]).length_();
-				double len2 = (in_p - _points[(i + 1) % num_()]).length_();
-				len = (len1 < len2 ? len1 : len2);
-				lp = (len1 < len2 ? _points[i] : _points[(i + 1) % num_()]);
-			}
-			else
-			{
-				lp = _points[i] + (_points[(i + 1) % num_()] - _points[i]) * len / ((_points[(i + 1) % num_()] - _points[i]).sqlength_());
-				len = (lp - in_p).length_();
-			}
-			if (len < min_dis)
-			{
-				min_dis = len;
-				min_p = lp;
+				min_dis_sq = dis_sq;
+				min_p = cand;
 			}
 		}
 		return min_p;
 	}
 	double _Polygon::distance_to_boundary_(const _Point2 &in_p)
 	{
-		double min_dis = (in_p - _points[0]).length_();
-		for (int i = 0; i < num_(); ++i)
+		double min_dis_sq = (in_p - _points[0]).sqlength_();
+		for (int i = 0, n = num_(); i < n; ++i)
 		{
-			if (_BOC::sign_((_points[(i + 1) % num_()] - _points[i]).length_()) == _BOC::_Sign::ZerO)
+			const _Point2 &a = _points[i];
+			const _Point2 &b = _points[(i + 1) % n];
+			const _Point2 ab = b - a;
+			const double ab_sq = ab.sqlength_();
+			_Point2 cand = a;
+			if (_BOC::sign_(ab_sq) != _BOC::_Sign::ZerO)
 			{
-				double len = (_points[i] - in_p).length_();
-				if (len < min_dis)
-				{
-					min_dis = len;
-				}
-				continue;
+				double t = ab.dot_(in_p - a) / ab_sq;
+				if (t <= 0.0)
+					cand = a;
+				else if (t >= 1.0)
+					cand = b;
+				else
+					cand = a + ab * t;
 			}
-			double len = (_points[(i + 1) % num_()] - _points[i]).dot_(in_p - _points[i]);
-			if (len < 0 || len > (_points[(i + 1) % num_()] - _points[i]).sqlength_())
-			{
-				double len1 = (in_p - _points[i]).length_();
-				double len2 = (in_p - _points[(i + 1) % num_()]).length_();
-				len = (len1 < len2 ? len1 : len2);
-			}
-			else
-			{
-				_Point2 lp = _points[i] + (_points[(i + 1) % num_()] - _points[i]) * len / ((_points[(i + 1) % num_()] - _points[i]).sqlength_());
-				len = (lp - in_p).length_();
-			}
-			if (len < min_dis)
-			{
-				min_dis = len;
-			}
+			const double dis_sq = (cand - in_p).sqlength_();
+			if (dis_sq < min_dis_sq)
+				min_dis_sq = dis_sq;
 		}
+		const double min_dis = std::sqrt(min_dis_sq);
 		return (is_in_(in_p) ? -min_dis : min_dis);
 	}
 	int _Polygon::intersection_with_linesegment_(const _Point2 &p1, const _Point2 &p2, std::vector<std::pair<int, _Point2>> &intersections) const
@@ -329,26 +316,27 @@ namespace BGAL
 	}
 	double _Polygon::area_() const
 	{
-		double sum = 0;
-		std::vector<_Polygon> tris = constrained_delaunay_triangulation_();
-		for (int i = 0; i < tris.size(); ++i)
+		double twice_area = 0.0;
+		for (int i = 0, n = num_(); i < n; ++i)
 		{
-			sum += tris[i].triangle_area_();
+			const _Point2 &a = _points[i];
+			const _Point2 &b = _points[(i + 1) % n];
+			twice_area += a.x() * b.y() - a.y() * b.x();
 		}
-		return sum;
+		return 0.5 * std::fabs(twice_area);
 	}
 	double _Polygon::triangle_area_() const
 	{
-		_Point2 v1 = _points[1] - _points[0];
-		_Point2 v2 = _points[2] - _points[0];
-		return v1.cross_(v2).length_() * 0.5;
+		const _Point2 v1 = _points[1] - _points[0];
+		const _Point2 v2 = _points[2] - _points[0];
+		return 0.5 * std::fabs(v1.cross_(v2).z());
 	}
 	double _Polygon::circumference_() const
 	{
-		double C = 0;
-		for (int i = 0; i < num_(); ++i)
+		double C = 0.0;
+		for (int i = 0, n = num_(); i < n; ++i)
 		{
-			C += (_points[i] - _points[(i + 1) % num_()]).length_();
+			C += (_points[i] - _points[(i + 1) % n]).length_();
 		}
 		return C;
 	}

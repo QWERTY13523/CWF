@@ -264,6 +264,14 @@ int PQP_Collide(PQP_CollideResult *result,
 int PQP_Distance(PQP_DistanceResult *result, PQP_Model *o, PQP_REAL p[3],
                  PQP_REAL rel_err, PQP_REAL abs_err,
                  int qsize = 2);
+inline int PQP_DistanceWithHint(PQP_DistanceResult *result, PQP_Model *o, PQP_REAL p[3],
+                                Tri *initial_tri,
+                                PQP_REAL rel_err = 0.0, PQP_REAL abs_err = 0.0,
+                                int qsize = 2)
+{
+  result->last_tri = initial_tri ? initial_tri : (o->last_tri ? o->last_tri : o->tris);
+  return PQP_Distance(result, o, p, rel_err, abs_err, qsize);
+}
 
 int PQP_Distance(PQP_DistanceResult *result,
                  PQP_REAL R1[3][3], PQP_REAL T1[3], PQP_Model *o1,

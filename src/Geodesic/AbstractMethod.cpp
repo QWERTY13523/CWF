@@ -1,5 +1,7 @@
 #include "BGAL/Geodesic/AbstractMethod.h"
 
+#include <limits>
+
 namespace BGAL
 {
   namespace Geodesic
@@ -19,12 +21,15 @@ namespace BGAL
     }
     void _Abstract_Method::initialize_()
     {
-      _distances.clear();
-      _distances.resize(_model.number_vertices_(), std::numeric_limits<double>::max());
+      _distances.assign(_model.number_vertices_(), std::numeric_limits<double>::max());
       _max_queue_length = 0;
       _max_result_depth = 0;
     }
     std::vector<double> _Abstract_Method::get_distances_() const
+    {
+      return _distances;
+    }
+    const std::vector<double> &_Abstract_Method::distances_ref_() const
     {
       return _distances;
     }
